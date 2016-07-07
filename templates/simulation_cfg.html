@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Simulations</title>
+<style>
+table, th, td { border: 1px solid black; text-align: left; }
+</style>
+</head>
+<body>
+<h1>Simulation: {{sim['SIMID']}}</h1>
+<h3>Name: {{sim['FullName']}}</h3>
+<h3>Command: {{sim['Executable']}}</h3>
+<h3>Output: {{sim['Output']}}</h3>
+<p>
+{{ sim['Configuration'] }}
+
+<h3>Instances</h3>
+<table>
+<tr><th>Instance</th><th>Status</th></tr>
+{% for i in running %}
+<tr><td>{{i['IID']}}</td><td>{{i['Status']}}</td><td><form method="POST" action='/simulation/{{i['SIMID']}}/{{i['IID']}}'><input type="submit" value="Remove"></form></td></tr>
+{% endfor %}
+</table>
+
+<br>
+<h4>Run new instance</h4>
+<form enctype="multipart/form-data" method="post"  id="wholeform">
+  <label>Configuration File</label>
+  <input type="file" id="fileToUpload" name="fileToUpload">
+  <input type="submit" value="Upload">
+</form>
+
+</form>
+</body>
+</html>
+

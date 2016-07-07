@@ -1,0 +1,57 @@
+Proposed Scheme for Web Interface:
+
+All References prefixed by <server address>
+
+
+URI Reference:
+
+GET /
+
+Result:
+
+Return Intro Page with URI scheme - Response Code 200
+
+GET /simulation
+POST /simulation
+
+Result:
+GET - return available simulations on the server 200
+POST - Parameters - simluation name, simulation config file name, simulation config file
+     - return 201 if created 
+
+GET /simulation/<simid>
+POST /simulation/<simid>
+
+Result:
+GET - return configuration data/info on simid simulation
+POST - Parameters - <simulation config>
+     - return 201 - new simulation started with config and resource <instanceid>
+
+GET /simulation/<simid>/<instanceid>
+Result - configuration information on instance id
+
+GET /simulation/<simid>/<instanceid>/status
+Result - return status info (format to be determined, may be app specific) Code 200
+
+GET /simulation/<simid>/<instanceid>/data
+Result - return data for <instanceid> - (possible extensions - add further resources to determine format or delivery type) Code 200
+
+GET /status
+Result - return server status data Code 200
+
+GET /status/performance
+Result - return performance metrics data Code 200
+
+GET /status/history
+Result - return simulation run and server history Code 200
+
+GET /led
+Result - return LED animation types
+
+GET /led/current
+Result - return LED current animation
+
+POST /led
+Result: Params - Number - led animation number
+        Result - 200 - change of led animation across cluster
+
