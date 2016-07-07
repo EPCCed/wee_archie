@@ -1,6 +1,5 @@
 import os
 import logging
-import sqlite3 as lite
 import uuid
 import shutil
 import httplib
@@ -10,26 +9,13 @@ from runsim import RunSim
 from logging.handlers import RotatingFileHandler
 from subprocess import Popen, PIPE
 from flask import Flask, request, render_template, redirect, g, send_from_directory
+import frameworkdb as fdb
 
 app = Flask(__name__)
 handler = RotatingFileHandler('error.log', maxBytes=100000, backupCount=1)
 handler.setLevel(logging.DEBUG)
 app.logger.addHandler(handler)
 threads = {}
-
-def get_db():
-    app_database = getattr(g, '_database', None)
-    if app_database is None:
-        g._database = lite.connect(cfg.DATABASE_CONNECTION)
-        g._database.row_factory = lite.Row
-        app_database = g._database
-    return app_database
-
-@app.teardown_appcontext
-def close_connection(exception):
-    app_database = getattr(g, '_database', None)
-    if app_database is not None:
-        app_database.close()
 
 def get_cluster_status():
     proc = Popen('env', shell=True, stdout=PIPE)
@@ -46,10 +32,8 @@ def welcome_page():
 @app.route('/simulation', methods=['GET', 'POST'])
 def display_simulations():
     if request.method == 'GET':
-        con = get_db()
-        cur = con.cursor()
-        cur.execute('SELECT * FROM Simulations')
-        data = cur.fetchall()
+        with fdb.SimulationInstanceConnector(cfg.DATABASE_CONNECTION) as conn:
+            data = conn.getSimulations()
         return render_template('simulationlist.html', sims=data), httplib.OK
     if request.method == 'POST':
         return 'Op not implemented', httplib.NOT_IMPLEMENTED
@@ -61,12 +45,11 @@ def get_threads():
 @app.route('/simulation/<simid>', methods=['GET', 'POST'])
 def display_simulation(simid):
     if request.method == 'GET':
-        con = get_db()
-        cur = con.cursor()
-        cur.execute('SELECT * FROM Simulations WHERE SIMID=?', (simid, ))
-        sim = cur.fetchone()
-        cur.execute('SELECT * FROM Instances WHERE SIMID=?', (simid, ))
-        actives = cur.fetchall()
+        sim = None
+        active = None
+        with fdb.SimulationInstanceConnector(cfg.DATABASE_CONNECTION) as conn:
+            sim = conn.getSimulation(simid)
+            actives = conn.getInstancesOf(simid)
         return render_template('simulation_cfg.html', sim=sim, running=actives), httplib.OK
     if request.method == 'POST':
         siminstance = str(uuid.uuid4())
@@ -74,11 +57,8 @@ def display_simulation(simid):
         os.makedirs(instancedirectory)
         requestconfiguration = request.files['fileToUpload']
         requestconfiguration.save(os.path.join(instancedirectory, "config.txt"))
-        con = get_db()
-        cur = con.cursor()
-        cur.execute("""INSERT INTO Instances(IID,SIMID,Status) VALUES(?,?,?)""",
-                    (siminstance, str(simid), cfg.STATUS_NAMES['ready']))
-        con.commit()
+        with fdb.SimulationInstanceConnector(cfg.DATABASE_CONNECTION) as conn:
+            conn.createInstance(siminstance, str(simid), cfg.STATUS_NAMES['ready'])
         thread_run_simulation = RunSim(kwargs={
             'simid': simid,
             'instanceid': siminstance,
@@ -94,25 +74,19 @@ def display_simulation(simid):
 @app.route('/simulation/<simid>/<instanceid>/status', methods=['GET'])
 def get_instance_status(simid, instanceid):
     if request.method == 'GET':
-        con = get_db()
-        cur = con.cursor()
-        cur.execute('SELECT Status FROM Instances WHERE SIMID=? and IID=?', (simid, instanceid))
-        actives = cur.fetchone()
         data = {}
-        data['status'] = actives[0]
+        with fdb.SimulationInstanceConnector(cfg.DATABASE_CONNECTION) as conn:
+            data['status'] = conn.getInstanceStatus(simid,instanceid)
         files = sorted(os.listdir(os.path.join(cfg.BASE_DIR, 'results', instanceid)),
             key=lambda fn: os.path.getctime(os.path.join(cfg.BASE_DIR, 'results', instanceid, fn)))
         files.remove('config.txt')
         data['files'] = files
         return json.dumps(data), httplib.OK
     if request.method in {'POST', 'DELETE'}:
-        # Kill process TODO
         if os.path.exists(os.path.join(cfg.BASE_DIR, 'results', instanceid)):
             shutil.rmtree(os.path.join(cfg.BASE_DIR, 'results', instanceid))
-        con = get_db()
-        cur = con.cursor()
-        cur.execute('DELETE FROM Instances WHERE SIMID=? and IID=?', (simid, instanceid))
-        con.commit()
+        with fdb.SimulationInstanceConnector(cfg.DATABASE_CONNECTION) as conn:
+            conn.deleteInstance(instanceid,simid)
         return redirect('/simulation/'+simid), httplib.OK
 
 @app.route('/simulation/<simid>/<instanceid>/data', methods=['GET'])
@@ -128,11 +102,9 @@ def get_datanames(simid, instanceid):
 @app.route('/simulation/<simid>/<instanceid>/data/<fileid>', methods=['GET', 'DELETE'])
 def get_results(simid, instanceid,fileid):
     if request.method == "GET":
-        con = get_db()
-        cur = con.cursor()
-        cur.execute('SELECT Status FROM Instances WHERE SIMID=? and IID=?', (simid, instanceid))
-        actives = cur.fetchone()
-        if actives[0] in {cfg.STATUS_NAMES['ready'], cfg.STATUS_NAMES['error']}:
+        with fdb.SimulationInstanceConnector(cfg.DATABASE_CONNECTION) as conn:
+            active = conn.getInstanceStatus(simid,instanceid)
+        if active in {cfg.STATUS_NAMES['ready'], cfg.STATUS_NAMES['error']}:
             return '', httplib.NO_CONTENT
         if os.path.isfile(os.path.join(os.path.join(cfg.BASE_DIR, 'results', instanceid, fileid))):
             return send_from_directory(os.path.join(cfg.BASE_DIR, 'results', instanceid), fileid, as_attachment=True), httplib.OK
@@ -156,28 +128,3 @@ def system_status():
 def hello_world():
     return 'Op not implemented', httplib.NOT_IMPLEMENTED
 
-
-"""
-def get_old_results(simid, instanceid,fileid):
-    if request.method == "GET":
-        con = get_db()
-        cur = con.cursor()
-        cur.execute('SELECT Status FROM Instances WHERE SIMID=? and IID=?', (simid, instanceid))
-        actives = cur.fetchone()
-        if actives[0] in {cfg.STATUS_NAMES['ready'], cfg.STATUS_NAMES['error']}:
-            return '', httplib.NO_CONTENT
-        files = sorted(os.listdir(os.path.join(cfg.BASE_DIR, 'results', instanceid)),
-            key=lambda fn: os.path.getctime(os.path.join(cfg.BASE_DIR, 'results', instanceid, fn)))
-        files.remove('config.txt') #config.txt is a system file
-        if len(files) > 0:
-            return send_from_directory(os.path.join(cfg.BASE_DIR, 'results', instanceid), files[0], as_attachment=True), httplib.OK
-        else:
-            return '', httplib.NO_CONTENT
-    if request.method == "DELETE":
-        files = sorted(os.listdir(os.path.join(cfg.BASE_DIR, 'results', instanceid)),
-            key=lambda fn: os.path.getctime(os.path.join(cfg.BASE_DIR, 'results', instanceid, fn)))
-        files.remove('config.txt') #config.txt is a system file
-        if len(files) > 0:
-            os.remove(os.path.join(cfg.BASE_DIR,'results', instanceid, files[0]))
-        return '', httplib.NO_CONTENT
-"""
