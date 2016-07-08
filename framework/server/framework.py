@@ -53,7 +53,7 @@ def display_simulation(simid):
         return render_template('simulation_cfg.html', sim=sim, running=actives), httplib.OK
     if request.method == 'POST':
         siminstance = str(uuid.uuid4())
-        instancedirectory = os.path.join(cfg.BASE_DIR, 'results', siminstance)
+        instancedirectory = os.path.join(cfg.RESULTS_DIR, siminstance)
         os.makedirs(instancedirectory)
         requestconfiguration = request.files['fileToUpload']
         requestconfiguration.save(os.path.join(instancedirectory, "config.txt"))
@@ -77,24 +77,24 @@ def get_instance_status(simid, instanceid):
         data = {}
         with fdb.SimulationInstanceConnector(cfg.DATABASE_CONNECTION) as conn:
             data['status'] = conn.getInstanceStatus(simid,instanceid)
-        files = sorted(os.listdir(os.path.join(cfg.BASE_DIR, 'results', instanceid)),
-            key=lambda fn: os.path.getctime(os.path.join(cfg.BASE_DIR, 'results', instanceid, fn)))
+        files = sorted(os.listdir(os.path.join(cfg.RESULTS_DIR, instanceid)),
+            key=lambda fn: os.path.getctime(os.path.join(cfg.RESULTS_DIR, instanceid, fn)))
         files.remove('config.txt')
         data['files'] = files
         return json.dumps(data), httplib.OK
     if request.method in {'POST', 'DELETE'}:
-        if os.path.exists(os.path.join(cfg.BASE_DIR, 'results', instanceid)):
-            shutil.rmtree(os.path.join(cfg.BASE_DIR, 'results', instanceid))
+        if os.path.exists(os.path.join(cfg.RESULTS_DIR, instanceid)):
+            shutil.rmtree(os.path.join(cfg.RESULTS_DIR, instanceid))
         with fdb.SimulationInstanceConnector(cfg.DATABASE_CONNECTION) as conn:
             conn.deleteInstance(instanceid,simid)
-        return redirect('/simulation/'+simid), httplib.OK
+        return redirect('/simulation/'+simid), httplib.FOUND
 
 @app.route('/simulation/<simid>/<instanceid>/data', methods=['GET'])
 def get_datanames(simid, instanceid):
     if request.method == 'GET':
         data = {}
-        files = sorted(os.listdir(os.path.join(cfg.BASE_DIR, 'results', instanceid)),
-            key=lambda fn: os.path.getctime(os.path.join(cfg.BASE_DIR, 'results', instanceid, fn)))
+        files = sorted(os.listdir(os.path.join(cfg.RESULTS_DIR, instanceid)),
+            key=lambda fn: os.path.getctime(os.path.join(cfg.RESULTS_DIR, instanceid, fn)))
         files.remove('config.txt')
         data['files'] = files
         return json.dumps(data), httplib.OK
@@ -106,13 +106,13 @@ def get_results(simid, instanceid,fileid):
             active = conn.getInstanceStatus(simid,instanceid)
         if active in {cfg.STATUS_NAMES['ready'], cfg.STATUS_NAMES['error']}:
             return '', httplib.NO_CONTENT
-        if os.path.isfile(os.path.join(os.path.join(cfg.BASE_DIR, 'results', instanceid, fileid))):
-            return send_from_directory(os.path.join(cfg.BASE_DIR, 'results', instanceid), fileid, as_attachment=True), httplib.OK
+        if os.path.isfile(os.path.join(os.path.join(cfg.RESULTS_DIR, instanceid, fileid))):
+            return send_from_directory(os.path.join(cfg.RESULTS_DIR, instanceid), fileid, as_attachment=True), httplib.OK
         else:
             return '', httplib.NO_CONTENT
     if request.method == "DELETE":
-        if os.path.isfile(os.path.join(os.path.join(cfg.BASE_DIR, 'results', instanceid, fileid))):
-            os.remove(os.path.isfile(os.path.join(os.path.join(cfg.BASE_DIR, 'results', instanceid, fileid))))
+        if os.path.isfile(os.path.join(os.path.join(cfg.RESULTS_DIR, instanceid, fileid))):
+            os.remove(os.path.isfile(os.path.join(os.path.join(cfg.RESULTS_DIR, instanceid, fileid))))
         return '', httplib.NO_CONTENT
 
 
