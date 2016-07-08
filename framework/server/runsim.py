@@ -37,5 +37,6 @@ class RunSim(threading.Thread):
               proc.kill()
            with fdb.SimulationInstanceConnector(cfg.DATABASE_CONNECTION) as conn:
                conn.updateInstance(self.kwargs['instanceid'], self.kwargs['simid'], cfg.STATUS_NAMES['error'])
-        self.kwargs['pool'].pop(self.kwargs['instanceid'])
+        if self.kwargs['pool'] is not None:
+            self.kwargs['pool'].pop(self.kwargs['instanceid'])
         return
