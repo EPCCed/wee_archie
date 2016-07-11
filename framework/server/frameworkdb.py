@@ -48,8 +48,8 @@ class SimulationInstanceConnector(object):
 
     def getSimulationExecutable(self, simulationid):
         cursor = self.database.cursor()
-        cursor.execute('SELECT Executable FROM Simulations WHERE SIMID=?', (simulationid, ))
-        return cursor.fetchone()['Executable']
+        cursor.execute('SELECT ExecutionPrefix, ExecutionHostFile, Executable FROM Simulations WHERE SIMID=?', (simulationid, ))
+        return cursor.fetchone()
 
     def updateInstance(self, instanceid, simulationid, status):
         try:

@@ -6,6 +6,8 @@ CREATE TABLE "Simulations" (
 	`Executable`	TEXT NOT NULL,
 	`Output`	TEXT NOT NULL,
 	`Configuration`	BLOB,
+	`ExecutionPrefix`	TEXT,
+	`ExecutionHostFile`	TEXT,
 	PRIMARY KEY(SIMID)
 );
 CREATE TABLE `Instances` (
