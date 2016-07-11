@@ -28,5 +28,5 @@ def delete_results_directory(path, instanceid):
         shutil.rmtree(os.path.join(path, instanceid))
 
 def delete_results_file(path, instanceid, resultsfile):
-    if os.path.isfile(os.path.join(os.path.join(path, instanceid, resultsfile))):
-        os.remove(os.path.isfile(os.path.join(os.path.join(path, instanceid, resultsfile))))
+    if os.path.isfile(os.path.join(path, instanceid, 'data', resultsfile)):
+        os.remove(os.path.join(path, instanceid, 'data', resultsfile))
