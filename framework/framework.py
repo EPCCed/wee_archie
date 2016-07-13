@@ -246,6 +246,12 @@ class MyWindow(wx.Frame):
         self.buttonsizer.Add(self.logger,1,wx.EXPAND)
 
 
+        #disable buttons
+        self.buttons[1].Enable(False)
+        self.buttons[2].Enable(False)
+        self.buttons[3].Enable(False)
+        self.buttons[4].Enable(False)
+        self.buttons[5].Enable(False)
 
 
 
@@ -303,69 +309,96 @@ class MyWindow(wx.Frame):
     def Start(self,e):
         if not self.server.IsStarted(): #if the simulation hasn't been started
 
-            self.server.StartSim('galaxy.py') #pass in dummy file as a config file
+            dlg=wx.MessageDialog(self,"Do you wish to continue?","This will start a simulation",wx.OK|wx.CANCEL)
+            if dlg.ShowModal() == wx.ID_OK:
 
-            (self.pipemain,pipeprocess)=mp.Pipe() #create pipe for sending data between processes
-            self.frameno=mp.Value('i',0) #frameno is an integer, initialised to 0
-            self.nfiles=mp.Value('i',0) #number of files available on server
-            self.getdata=mp.Value('b',False) #flag to tell process to get new data
-            self.newdata=mp.Value('b',False) #flag saying if process has new data ready
+                self.server.StartSim('galaxy.py') #pass in dummy file as a config file
 
-            #kick off process
-            self.p=mp.Process(target=process,args=(self.frameno,self.nfiles,self.getdata,self.newdata,pipeprocess,self.demo,self.server))
-            self.p.start() #start off process
+                (self.pipemain,pipeprocess)=mp.Pipe() #create pipe for sending data between processes
+                self.frameno=mp.Value('i',0) #frameno is an integer, initialised to 0
+                self.nfiles=mp.Value('i',0) #number of files available on server
+                self.getdata=mp.Value('b',False) #flag to tell process to get new data
+                self.newdata=mp.Value('b',False) #flag saying if process has new data ready
 
-            self.buttons[0].SetLabel("Stop Simulaton")
+                #kick off process
+                self.p=mp.Process(target=process,args=(self.frameno,self.nfiles,self.getdata,self.newdata,pipeprocess,self.demo,self.server))
+                self.p.start() #start off process
 
-            self.CurrentFrame=0
-            self.playing=False
+                self.buttons[0].SetLabel("Stop Simulaton")
 
-            #start timer
-            self.timer.Start(self.refreshrate*1000)
+                self.CurrentFrame=0
+                self.playing=False
+
+                #start timer
+                self.timer.Start(self.refreshrate*1000)
+                self.buttons[1].Enable(True)
+                self.buttons[2].Enable(True)
+                self.buttons[3].Enable(True)
+                self.buttons[4].Enable(True)
+                self.buttons[5].Enable(True)
+
+                self.getdata.value=True
 
 
         else: #if the simulation is already running
-            print "Deleting Simulation"
-            self.p.terminate()
-            self.server.DeleteSim()
-            self.buttons[0].SetLabel("Start Simulation")
-            self.nfiles.value=0
-            self.CurrentFrame=0
-            self.playing=False
+            dlg=wx.MessageDialog(self,"Are you sure?","This will stop the current simulation.",wx.OK|wx.CANCEL)
+            if dlg.ShowModal() == wx.ID_OK:
+                print "Deleting Simulation"
+                self.p.terminate()
+                self.server.DeleteSim()
+                self.buttons[0].SetLabel("Start Simulation")
+                self.nfiles.value=0
+                self.CurrentFrame=0
+                self.playing=False
+                self.buttons[1].SetLabel("Play")
+                self.buttons[1].Enable(False)
+                self.buttons[2].Enable(False)
+                self.buttons[3].Enable(False)
+                self.buttons[4].Enable(False)
+                self.buttons[5].Enable(False)
+                try:
+                    self.renderer.RemoveActor(self.actor)
+                except:
+                    pass
+                self.widget.GetRenderWindow().Render()
 
     #function that checks for new data from the process. If so, it downloads it and (if required) renders it
     def TimerCallback(self,e):
+        if self.server.IsStarted():
 
-        if self.newdata.value==1: #if new data is available
+            if self.newdata.value: #if new data is available
 
-            if self.getdata.value: #if we have requested new data
+                if self.getdata.value: #if we have requested new data
 
-                data=self.pipemain.recv() #get data from process
+                    data=self.pipemain.recv() #get data from process
 
-                self.CurrentFrame=self.frameno.value #set the current frame number to the one the process has just read in
+                    self.CurrentFrame=self.frameno.value #set the current frame number to the one the process has just read in
 
-                if self.playing: #increment frame number by 1 and tell process to fetch it
-                    self.frameno.value += 1
-                    self.getdata.value=True
-                else: #we don't need any more data
-                    self.getdata.value=False
+                    if self.playing: #increment frame number by 1 and tell process to fetch it
+                        self.frameno.value += 1
+                        self.getdata.value=True
+                    else: #we don't need any more data
+                        self.getdata.value=False
 
-                self.pipemain.send(1)#read receipt
+                    self.pipemain.send(1)#read receipt
 
-                self.demo.RenderFrame(self,data) #render the data
+                    self.demo.RenderFrame(self,data) #render the data
 
 
-            else: #we didn't request new data (likely someone hit 'pause' after a request for new data was put into the process). We don't need/want this data, so read it into a dummy array then do nothing
-                dummydata=self.pipemain.recv() #read data into dummy array and do nothing
-                self.pipemain.send(1)
+                else: #we didn't request new data (likely someone hit 'pause' after a request for new data was put into the process). We don't need/want this data, so read it into a dummy array then do nothing
+                    dummydata=self.pipemain.recv() #read data into dummy array and do nothing
+                    self.pipemain.send(1)
 
-        #update logger at bottom of screen to update current frame number, and total frame count
-        self.logger.SetValue("Frame %d of %d"%(self.CurrentFrame,self.nfiles.value-1))
+            #update logger at bottom of screen to update current frame number, and total frame count
+            self.logger.SetValue("Frame %d of %d"%(self.CurrentFrame,self.nfiles.value-1))
+        else:
+            self.logger.SetValue("")
 
 
 
     #play or pause (depending upon whether the )
     def play(self,e):
+
         if not self.playing: #play
             self.getdata.value=True
             self.buttons[1].SetLabel("Pause")
@@ -378,29 +411,40 @@ class MyWindow(wx.Frame):
 
     #Go back to the first frame
     def rewind(self,e):
+
         self.playing=False #stop playing (if it is playing)
         self.frameno.value=0
         self.getdata.value=True
+        self.buttons[1].SetLabel("Play")
+
 
     #go to the latest frame
     def fastforward(self,e):
+
         self.playing=False #stop playing (if it is playing)
         self.frameno.value=self.nfiles.value-1
         self.getdata.value=True
+        self.buttons[1].SetLabel("Play")
+
 
 
     #step one frame backwards
     def stepback(self,e):
-       self.playing=False #stop playing (if it is playing)
-       self.frameno.value=self.CurrentFrame-1
-       self.getdata.value=True
+
+        self.playing=False #stop playing (if it is playing)
+        self.frameno.value=self.CurrentFrame-1
+        self.getdata.value=True
+        self.buttons[1].SetLabel("Play")
 
 
     #step one frame forwards
     def stepforward(self,e):
+
         self.playing=False #stop playing (if it is playing)
         self.frameno.value=self.CurrentFrame+1
         self.getdata.value=True
+        self.buttons[1].SetLabel("Play")
+
 
 
     def UpdateSlider(self,e):
