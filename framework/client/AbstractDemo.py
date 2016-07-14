@@ -10,7 +10,5 @@ class AbstractDemo(object):
         return
 
     @abc.abstractmethod
-    def RenderFrame(self,win,data):
+    def RenderFrame(self,win,dto):
         return
-
-

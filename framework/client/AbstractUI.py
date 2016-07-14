@@ -33,13 +33,13 @@ class AbstractUI(wx.Frame):
 
         #create vtk render widget and start it
         self.vtkwidget=wxVTKRenderWindowInteractor(self,wx.ID_ANY)
-        
+
         #default refreshrate to 0.5s
         self.refreshrate=0.5
-        
 
-       
-    
+
+
+
     # attach renderer to the vtk widget and draw axes
     @abc.abstractmethod
     def StartInteractor(self):
@@ -68,12 +68,12 @@ class AbstractUI(wx.Frame):
 
         self.vtkwidget.GetRenderWindow().Render()
 
-    
+
     #start the simulation
     @abc.abstractmethod
     def StartSim(self,config):
-        
-            self.servercomm.StartSim(config) #pass in config file 
+
+            self.servercomm.StartSim(config) #pass in config file
 
             (self.pipemain,pipeprocess)=mp.Pipe() #create pipe for sending data between processes
             self.frameno=mp.Value('i',0) #frameno is an integer, initialised to 0
@@ -86,11 +86,11 @@ class AbstractUI(wx.Frame):
             self.p.start() #start off process
 
             self.CurrentFrame=0
-            
+
             #Start timer (argument to .Start is in milliseconds)
             self.timer.Start(self.refreshrate*1000)
-    
-    
+
+
     #stop the simulation
     @abc.abstractmethod
     def StopSim(self):
@@ -101,20 +101,20 @@ class AbstractUI(wx.Frame):
             self.nfiles.value=0
             self.CurrentFrame=0
             self.timer.Stop()
-                
-               
-    
+
+
+
     #function that checks for new data from the process. If so, it downloads it and (if required) renders it
     @abc.abstractmethod
     def TimerCallback(self,e):
         if self.servercomm.IsStarted():
-            
+
 
             if self.newdata.value: #if new data is available
 
                 if self.getdata.value: #if we have requested new data
 
-                    data=self.pipemain.recv() #get data from process
+                    dto=self.pipemain.recv() #get the dto from process
 
                     self.CurrentFrame=self.frameno.value #set the current frame number to the one the process has just read in
 
@@ -126,16 +126,16 @@ class AbstractUI(wx.Frame):
 
                     self.pipemain.send(1)#read receipt
 
-                    self.demo.RenderFrame(self,data) #render the data
+                    self.demo.RenderFrame(self,dto) #render the data
 
 
                 else: #we didn't request new data (likely someone hit 'pause' after a request for new data was put into the process). We don't need/want this data, so read it into a dummy array then do nothing
                     dummydata=self.pipemain.recv() #read data into dummy array and do nothing
                     self.pipemain.send(1)
 
-        
 
-    
+
+
     #Make sure any background processes are killed off when the main window is closed
     @abc.abstractmethod
     def OnClose(self,evt):
@@ -150,4 +150,3 @@ class AbstractUI(wx.Frame):
           self.servercomm.DeleteSim()
       print "Done!"
       self.Destroy()
-

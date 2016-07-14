@@ -3,7 +3,7 @@ import client
 import vtk
 import numpy as np
 from netCDF4 import Dataset
-import sys
+
 
 
 
@@ -60,16 +60,16 @@ class GalaxyDemo(client.AbstractDemo):
         xml=writer.GetOutputString()
 
         #create data transfer object and put the xml string into it
-        data=DTO()
-        data.SetData(xml)
-        return data
+        dto=DTO()
+        dto.SetData(xml)
+        return dto
 
 
     # Renders a frame with data contained within the data transfer object, data
-    def RenderFrame(self,win,data):
+    def RenderFrame(self,win,dto):
 
         #unpack xml string from data transfer object
-        xml=data.GetData()
+        xml=dto.GetData()
 
         #read in xml data
         reader=vtk.vtkXMLPolyDataReader()
@@ -83,7 +83,7 @@ class GalaxyDemo(client.AbstractDemo):
             win.mapper
         except:
             win.mapper=vtk.vtkPolyDataMapper()
-            
+
         win.mapper.SetInputConnection(reader.GetOutputPort())
 
 
@@ -97,6 +97,3 @@ class GalaxyDemo(client.AbstractDemo):
 
         #update renderer
         win.vtkwidget.GetRenderWindow().Render()
-
-
-

@@ -29,10 +29,10 @@ def process(frameno,nfiles,getdata,newdata,pipe,demo,servercomm):
 
                 root=Dataset('tmp.nc','r') #get the netcdf handle for the data file
 
-                data=demo.GetVTKData(root) #read it into a Data Transfer Object
+                dto=demo.GetVTKData(root) #read it into a Data Transfer Object
 
                 newdata.value=True #set flag to tell GUI there is new data available
-                pipe.send(data) #send the data across
+                pipe.send(dto) #send the data across
                 ok=pipe.recv() #get a read receipt
                 newdata.value=False #say we no longer have new data (since its been sent and received)
 
@@ -41,5 +41,3 @@ def process(frameno,nfiles,getdata,newdata,pipe,demo,servercomm):
 
         else:
             time.sleep(0.1)
-
-
