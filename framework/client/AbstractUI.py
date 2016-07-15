@@ -19,7 +19,7 @@ class AbstractUI(wx.Frame):
 
     @abc.abstractmethod
     def __init__(self,parent,title,demo,servercomm):
-        wx.Frame.__init__(self,parent,title=title,size=(1000,800))
+        wx.Frame.__init__(self,parent,title=title)
         self.demo=demo
         self.servercomm=servercomm
 
