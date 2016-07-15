@@ -11,7 +11,7 @@ def process(frameno,nfiles,getdata,newdata,pipe,demo,servercomm):
     # demo = object contaning demo-specific functions
     # servercomm = Servercomm object
 
-    print "Process initiated"
+    print("Process initiated")
 
     while True: #infinite loop
 

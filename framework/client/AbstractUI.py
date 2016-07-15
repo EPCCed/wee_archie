@@ -44,7 +44,7 @@ class AbstractUI(wx.Frame):
     @abc.abstractmethod
     def StartInteractor(self):
 
-        print "Starting interactor"
+        print("Starting interactor")
         self.renderer=vtk.vtkRenderer()
         self.vtkwidget.GetRenderWindow().AddRenderer(self.renderer)
         camera=self.renderer.GetActiveCamera()
@@ -95,7 +95,7 @@ class AbstractUI(wx.Frame):
     @abc.abstractmethod
     def StopSim(self):
 
-            print "Deleting Simulation"
+            print("Deleting Simulation")
             self.p.terminate()
             self.servercomm.DeleteSim()
             self.nfiles.value=0
@@ -139,14 +139,14 @@ class AbstractUI(wx.Frame):
     #Make sure any background processes are killed off when the main window is closed
     @abc.abstractmethod
     def OnClose(self,evt):
-      print "Exiting Program..."
+      print("Exiting Program...")
       try:
           self.p.terminate()
-          print "Terminating processes"
+          print("Terminating processes")
       except:
-          print "no process to be terminated"
+          print("no process to be terminated")
       if self.servercomm.IsStarted():
-          print "Deleting simulation temp files"
+          print("Deleting simulation temp files")
           self.servercomm.DeleteSim()
-      print "Done!"
+      print("Done!")
       self.Destroy()
