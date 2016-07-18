@@ -5,7 +5,7 @@ import shutil
 import httplib
 import json
 import config as cfg
-from runsim import RunSim
+from simulation_runner import SimulationRunner
 from logging.handlers import RotatingFileHandler
 from subprocess import Popen, PIPE
 from flask import Flask, request, render_template, redirect, g, send_from_directory
@@ -58,7 +58,7 @@ def display_simulation(simid):
         configfile = ffs.save_file(request.files['fileToUpload'], instancedirectory, "config.txt")
         with fdb.SimulationInstanceConnector(cfg.DATABASE_CONNECTION) as conn:
             conn.createInstance(siminstance, str(simid), cfg.STATUS_NAMES['ready'])
-        thread_run_simulation = RunSim(kwargs={
+        thread_run_simulation = SimulationRunner(kwargs={
             'simid': simid,
             'instanceid': siminstance,
             'pool': threads,

@@ -94,3 +94,6 @@ galaxy/data
 # log and generated db files
 *.log
 *.db
+
+#pycharm project stuff
+.idea/
