@@ -55,7 +55,7 @@ class SimulationRunner(threading.Thread):
         The status is updated in the database before and after execution.
         :return:
         """
-        with fdb.SimulationInstanceConnector(cfg.DATABASE_CONNECTION) as conn:
+        with fdb.SimulationConnector(cfg.DATABASE_CONNECTION) as conn:
             executablefile = conn.getSimulationExecutable(self.kwargs['simid'])
         executablelist = []
         if executablefile['ExecutionPrefix'] is not None:
@@ -67,7 +67,7 @@ class SimulationRunner(threading.Thread):
         executablelist.append(self.OUTPUT_PREFIX + self.kwargs['output'])
         proc = Popen([' '.join(executablelist)], shell=True, stdout=PIPE)
         status = proc.poll()
-        with fdb.SimulationInstanceConnector(cfg.DATABASE_CONNECTION) as conn:
+        with fdb.SimulationConnector(cfg.DATABASE_CONNECTION) as conn:
             conn.updateInstance(self.kwargs['instanceid'],
                                 self.kwargs['simid'], cfg.STATUS_NAMES['running'])
         while status is None:
@@ -75,14 +75,14 @@ class SimulationRunner(threading.Thread):
             status = proc.poll()
         if status == 0:
             # update complete
-            with fdb.SimulationInstanceConnector(cfg.DATABASE_CONNECTION) as conn:
+            with fdb.SimulationConnector(cfg.DATABASE_CONNECTION) as conn:
                 conn.updateInstance(self.kwargs['instanceid'],
                                     self.kwargs['simid'], cfg.STATUS_NAMES['complete'])
         else:
             # update error
             if proc is not None:
                 proc.kill()
-            with fdb.SimulationInstanceConnector(cfg.DATABASE_CONNECTION) as conn:
+            with fdb.SimulationConnector(cfg.DATABASE_CONNECTION) as conn:
                 conn.updateInstance(self.kwargs['instanceid'],
                                     self.kwargs['simid'], cfg.STATUS_NAMES['error'])
         if self.kwargs['pool'] is not None:

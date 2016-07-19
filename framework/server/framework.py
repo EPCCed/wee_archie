@@ -33,7 +33,7 @@ def welcome_page():
 @app.route('/simulation', methods=['GET', 'POST'])
 def display_simulations():
     if request.method == 'GET':
-        with fdb.SimulationInstanceConnector(cfg.DATABASE_CONNECTION) as conn:
+        with fdb.SimulationConnector(cfg.DATABASE_CONNECTION) as conn:
             data = conn.getSimulations()
         return render_template('simulationlist.html', sims=data), httplib.OK
     if request.method == 'POST':
@@ -48,7 +48,7 @@ def display_simulation(simid):
     if request.method == 'GET':
         sim = None
         active = None
-        with fdb.SimulationInstanceConnector(cfg.DATABASE_CONNECTION) as conn:
+        with fdb.SimulationConnector(cfg.DATABASE_CONNECTION) as conn:
             sim = conn.getSimulation(simid)
             actives = conn.getInstancesOf(simid)
         return render_template('simulation_cfg.html', sim=sim, running=actives), httplib.OK
@@ -56,7 +56,7 @@ def display_simulation(simid):
         siminstance = str(uuid.uuid4())
         instancedirectory = ffs.create_results_directory(cfg.RESULTS_DIR, siminstance)
         configfile = ffs.save_file(request.files['fileToUpload'], instancedirectory, "config.txt")
-        with fdb.SimulationInstanceConnector(cfg.DATABASE_CONNECTION) as conn:
+        with fdb.SimulationConnector(cfg.DATABASE_CONNECTION) as conn:
             conn.createInstance(siminstance, str(simid), cfg.STATUS_NAMES['ready'])
         thread_run_simulation = SimulationRunner(kwargs={
             'simid': simid,
@@ -74,13 +74,13 @@ def display_simulation(simid):
 def get_instance_status(simid, instanceid):
     if request.method == 'GET':
         data = {}
-        with fdb.SimulationInstanceConnector(cfg.DATABASE_CONNECTION) as conn:
+        with fdb.SimulationConnector(cfg.DATABASE_CONNECTION) as conn:
             data['status'] = conn.getInstanceStatus(simid,instanceid)
         data['files'] = ffs.list_results_files(cfg.RESULTS_DIR, instanceid, cfg.OMITTED_FILES)
         return json.dumps(data), httplib.OK
     if request.method in {'POST', 'DELETE'}:
         ffs.delete_results_directory(cfg.RESULTS_DIR, instanceid)
-        with fdb.SimulationInstanceConnector(cfg.DATABASE_CONNECTION) as conn:
+        with fdb.SimulationConnector(cfg.DATABASE_CONNECTION) as conn:
             conn.deleteInstance(instanceid,simid)
         return redirect('/simulation/'+simid), httplib.FOUND
 
@@ -94,7 +94,7 @@ def get_datanames(simid, instanceid):
 @app.route('/simulation/<simid>/<instanceid>/data/<fileid>', methods=['GET', 'DELETE'])
 def get_results(simid, instanceid,fileid):
     if request.method == "GET":
-        with fdb.SimulationInstanceConnector(cfg.DATABASE_CONNECTION) as conn:
+        with fdb.SimulationConnector(cfg.DATABASE_CONNECTION) as conn:
             active = conn.getInstanceStatus(simid,instanceid)
         if active in {cfg.STATUS_NAMES['ready'], cfg.STATUS_NAMES['error']}:
             return '', httplib.NO_CONTENT
