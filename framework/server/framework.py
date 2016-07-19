@@ -102,7 +102,7 @@ def display_simulation(simid):
 def get_instance_status(simid, instanceid):
     """
     GET - return current status object for instanceid
-    POST/DELETE - deletes the instance - need to add thread deletion
+    POST/DELETE - deletes the instance - need to add thread deletion and sim stop
     :param simid:
     :param instanceid:
     :return:
@@ -133,6 +133,14 @@ def get_datanames(simid, instanceid):
 
 @app.route('/simulation/<simid>/<instanceid>/data/<fileid>', methods=['GET', 'DELETE'])
 def get_results(simid, instanceid,fileid):
+    """
+    GET - return data file if exists
+    DELETE - delete data file if exists
+    :param simid:
+    :param instanceid:
+    :param fileid:
+    :return:
+    """
     if request.method == "GET":
         with fdb.SimulationConnector(cfg.DATABASE_CONNECTION) as conn:
             active = conn.getInstanceStatus(simid,instanceid)
