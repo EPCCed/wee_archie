@@ -1,3 +1,6 @@
+""" framework.py defines the flask app and methods for dealing
+    with different request types in the frame work.
+"""
 import os
 import logging
 import uuid
@@ -12,26 +15,43 @@ from flask import Flask, request, render_template, redirect, g, send_from_direct
 import frameworkdb as fdb
 import frameworkfiles as ffs
 
+# Create exportable app
 app = Flask(__name__)
+# Create and attach logger to app
 handler = RotatingFileHandler('error.log', maxBytes=100000, backupCount=1)
 handler.setLevel(logging.DEBUG)
 app.logger.addHandler(handler)
+# Track for threads for running simulations (not fully utilised)
 threads = {}
 
 def get_cluster_status():
+    """ Holder method - will be removed in next revision
+    :return:
+    """
     proc = Popen('env', shell=True, stdout=PIPE)
     return proc.communicate()[0]
 
 def get_cluster_history():
+    """ Holder method - will be removed in next revision
+    :return:
+    """
     proc = Popen('env', shell=True, stdout=PIPE)
     return proc.communicate()[0]
 
 @app.route('/', methods=['GET'])
 def welcome_page():
+    """ Returns a static welcome page on root
+    :return:
+    """
     return app.send_static_file('index.html'), httplib.OK
 
 @app.route('/simulation', methods=['GET', 'POST'])
 def display_simulations():
+    """
+    GET /simulation will return a rendered page with a list of simulations
+    POST - not implemented
+    :return:
+    """
     if request.method == 'GET':
         with fdb.SimulationConnector(cfg.DATABASE_CONNECTION) as conn:
             data = conn.getSimulations()
@@ -41,10 +61,18 @@ def display_simulations():
 
 @app.route('/threads', methods=['GET'])
 def get_threads():
+    """ Return number of threads - to be revised
+    :return:
+    """
     return str(len(threads)), httplib.OK
 
 @app.route('/simulation/<simid>', methods=['GET', 'POST'])
 def display_simulation(simid):
+    """ GET - return information about the simulation simid
+    POST - start a new instance of simid with a config file and return an ID
+    :param simid:
+    :return:
+    """
     if request.method == 'GET':
         sim = None
         active = None
@@ -72,6 +100,13 @@ def display_simulation(simid):
 @app.route('/simulation/<simid>/<instanceid>', methods=['GET', 'POST', 'DELETE'])
 @app.route('/simulation/<simid>/<instanceid>/status', methods=['GET'])
 def get_instance_status(simid, instanceid):
+    """
+    GET - return current status object for instanceid
+    POST/DELETE - deletes the instance - need to add thread deletion
+    :param simid:
+    :param instanceid:
+    :return:
+    """
     if request.method == 'GET':
         data = {}
         with fdb.SimulationConnector(cfg.DATABASE_CONNECTION) as conn:
@@ -86,6 +121,11 @@ def get_instance_status(simid, instanceid):
 
 @app.route('/simulation/<simid>/<instanceid>/data', methods=['GET'])
 def get_datanames(simid, instanceid):
+    """ returns list of files in results in ascending order
+    :param simid:
+    :param instanceid:
+    :return:
+    """
     if request.method == 'GET':
         data = {}
         data['files'] = ffs.list_results_files(cfg.RESULTS_DIR, instanceid, cfg.OMITTED_FILES)
@@ -109,6 +149,9 @@ def get_results(simid, instanceid,fileid):
 
 @app.route('/status', methods=['GET'])
 def system_status():
+    """ Returns a rendered template with the environment. - to be revised
+    :return:
+    """
     cluster_status = get_cluster_status()
     return render_template('system_status.html', systemstatus = cluster_status), httplib.OK
 
@@ -117,6 +160,10 @@ def system_status():
 @app.route('/led', methods=['GET','POST'])
 @app.route('/led/current', methods=['GET'])
 def hello_world():
+    """
+    Ops not implemented yet.
+    :return:
+    """
     ffs.create_results_directory(cfg.BASE_DIR,'obbb')
     return 'Op not implemented', httplib.NOT_IMPLEMENTED
 
