@@ -40,8 +40,7 @@ class SimulationRunner(threading.Thread):
         :param verbose: inherited parameter
         :return: instance
         """
-        threading.Thread.__init__(self, group=group, target=target, name=name,
-                                  verbose=verbose)
+        threading.Thread.__init__(self, group=group, target=target, name=name)
         self.args = args
         self.kwargs = kwargs
         return

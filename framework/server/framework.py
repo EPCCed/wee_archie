@@ -5,7 +5,7 @@ import os
 import logging
 import uuid
 import shutil
-import httplib
+import httpcodes
 import json
 import config as cfg
 from simulation_runner import SimulationRunner
@@ -43,7 +43,7 @@ def welcome_page():
     """ Returns a static welcome page on root
     :return:
     """
-    return app.send_static_file('index.html'), httplib.OK
+    return app.send_static_file('index.html'), httpcodes.OK
 
 @app.route('/simulation', methods=['GET', 'POST'])
 def display_simulations():
@@ -55,16 +55,16 @@ def display_simulations():
     if request.method == 'GET':
         with fdb.SimulationConnector(cfg.DATABASE_CONNECTION) as conn:
             data = conn.getSimulations()
-        return render_template('simulationlist.html', sims=data), httplib.OK
+        return render_template('simulationlist.html', sims=data), httpcodes.OK
     if request.method == 'POST':
-        return 'Op not implemented', httplib.NOT_IMPLEMENTED
+        return 'Op not implemented', httpcodes.NOT_IMPLEMENTED
 
 @app.route('/threads', methods=['GET'])
 def get_threads():
     """ Return number of threads - to be revised
     :return:
     """
-    return str(len(threads)), httplib.OK
+    return str(len(threads)), httpcodes.OK
 
 @app.route('/simulation/<simid>', methods=['GET', 'POST'])
 def display_simulation(simid):
@@ -79,7 +79,7 @@ def display_simulation(simid):
         with fdb.SimulationConnector(cfg.DATABASE_CONNECTION) as conn:
             sim = conn.getSimulation(simid)
             actives = conn.getInstancesOf(simid)
-        return render_template('simulation_cfg.html', sim=sim, running=actives), httplib.OK
+        return render_template('simulation_cfg.html', sim=sim, running=actives), httpcodes.OK
     if request.method == 'POST':
         siminstance = str(uuid.uuid4())
         instancedirectory = ffs.create_results_directory(cfg.RESULTS_DIR, siminstance)
@@ -95,7 +95,7 @@ def display_simulation(simid):
         })
         threads[siminstance] = thread_run_simulation
         thread_run_simulation.start()
-        return siminstance, httplib.CREATED
+        return siminstance, httpcodes.CREATED
 
 @app.route('/simulation/<simid>/<instanceid>', methods=['GET', 'POST', 'DELETE'])
 @app.route('/simulation/<simid>/<instanceid>/status', methods=['GET'])
@@ -112,12 +112,12 @@ def get_instance_status(simid, instanceid):
         with fdb.SimulationConnector(cfg.DATABASE_CONNECTION) as conn:
             data['status'] = conn.getInstanceStatus(simid,instanceid)
         data['files'] = ffs.list_results_files(cfg.RESULTS_DIR, instanceid, cfg.OMITTED_FILES)
-        return json.dumps(data), httplib.OK
+        return json.dumps(data), httpcodes.OK
     if request.method in {'POST', 'DELETE'}:
         ffs.delete_results_directory(cfg.RESULTS_DIR, instanceid)
         with fdb.SimulationConnector(cfg.DATABASE_CONNECTION) as conn:
             conn.deleteInstance(instanceid,simid)
-        return redirect('/simulation/'+simid), httplib.FOUND
+        return redirect('/simulation/'+simid), httpcodes.FOUND
 
 @app.route('/simulation/<simid>/<instanceid>/data', methods=['GET'])
 def get_datanames(simid, instanceid):
@@ -129,7 +129,7 @@ def get_datanames(simid, instanceid):
     if request.method == 'GET':
         data = {}
         data['files'] = ffs.list_results_files(cfg.RESULTS_DIR, instanceid, cfg.OMITTED_FILES)
-        return json.dumps(data), httplib.OK
+        return json.dumps(data), httpcodes.OK
 
 @app.route('/simulation/<simid>/<instanceid>/data/<fileid>', methods=['GET', 'DELETE'])
 def get_results(simid, instanceid,fileid):
@@ -145,14 +145,14 @@ def get_results(simid, instanceid,fileid):
         with fdb.SimulationConnector(cfg.DATABASE_CONNECTION) as conn:
             active = conn.getInstanceStatus(simid,instanceid)
         if active in {cfg.STATUS_NAMES['ready'], cfg.STATUS_NAMES['error']}:
-            return '', httplib.NO_CONTENT
+            return '', httpcodes.NO_CONTENT
         if ffs.check_results_exist(cfg.RESULTS_DIR, instanceid, fileid): 
-            return send_from_directory(ffs.get_results_directory(cfg.RESULTS_DIR, instanceid), fileid, as_attachment=True), httplib.OK
+            return send_from_directory(ffs.get_results_directory(cfg.RESULTS_DIR, instanceid), fileid, as_attachment=True), httpcodes.OK
         else:
-            return '', httplib.NO_CONTENT
+            return '', httpcodes.NO_CONTENT
     if request.method == "DELETE":
         ffs.delete_results_file(cfg.RESULTS_DIR,instanceid,fileid)
-        return '', httplib.NO_CONTENT
+        return '', httpcodes.NO_CONTENT
 
 
 @app.route('/status', methods=['GET'])
@@ -161,7 +161,7 @@ def system_status():
     :return:
     """
     cluster_status = get_cluster_status()
-    return render_template('system_status.html', systemstatus = cluster_status), httplib.OK
+    return render_template('system_status.html', systemstatus = cluster_status), httpcodes.OK
 
 @app.route('/status/performance', methods=['GET'])
 @app.route('/status/history', methods=['GET'])
@@ -173,5 +173,5 @@ def hello_world():
     :return:
     """
     ffs.create_results_directory(cfg.BASE_DIR,'obbb')
-    return 'Op not implemented', httplib.NOT_IMPLEMENTED
+    return 'Op not implemented', httpcodes.NOT_IMPLEMENTED
 
