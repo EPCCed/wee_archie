@@ -17,10 +17,7 @@ esac
 done
 
 
-files=/home/tsubic/workspace/wee_archie/data/bomex_dump_*nc
-
-
-for f in `ls -v /home/tsubic/workspace/wee_archie/data2/*.nc`
+for f in `ls -v /home/tsubic/workspace/weather/data100/*.nc`
 do
 cp $f $OUTPUT
 done
