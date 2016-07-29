@@ -47,10 +47,6 @@ class AbstractUI(wx.Frame):
         print("Starting interactor")
         self.renderer=vtk.vtkRenderer()
         self.vtkwidget.GetRenderWindow().AddRenderer(self.renderer)
-        camera=self.renderer.GetActiveCamera()
-        camera.SetFocalPoint(0.,0.,0.)
-        camera.SetPosition(50.,0.,0.)
-        camera.Roll(-90)
 
         mouse=vtk.vtkInteractorStyleTrackballCamera()
         self.vtkwidget.SetInteractorStyle(mouse)
@@ -66,7 +62,6 @@ class AbstractUI(wx.Frame):
         self.axisw.InteractiveOn();
 
 
-        self.vtkwidget.GetRenderWindow().Render()
 
 
     #start the simulation
