@@ -12,7 +12,8 @@ class WeatherWindow(client.AbstractUI):
         
         #call superclass' __init__
         client.AbstractUI.__init__(self,parent,title,demo,servercomm)
-        
+
+        self.vapor = False
         self.actors = {}
         self.mappers = {}
         self.filters = {}
@@ -37,6 +38,8 @@ class WeatherWindow(client.AbstractUI):
         self.buttons.append(wx.Button(self,label='>'))
         self.buttons.append(wx.Button(self,label='>>'))
 
+        self.buttons.append(wx.Button(self,label='Toggle Vapor'))
+
         #bind button clicks (wx.EVT_BUTTONT) to methods
         self.Bind(wx.EVT_BUTTON,self.StartStopSim,self.buttons[0])
         self.Bind(wx.EVT_BUTTON,self.play,self.buttons[1])
@@ -44,6 +47,8 @@ class WeatherWindow(client.AbstractUI):
         self.Bind(wx.EVT_BUTTON,self.stepback,self.buttons[3])
         self.Bind(wx.EVT_BUTTON,self.stepforward,self.buttons[4])
         self.Bind(wx.EVT_BUTTON,self.fastforward,self.buttons[5])
+
+        self.Bind(wx.EVT_BUTTON, self.togglevapor, self.buttons[6])
 
 
         #add a slider to control refresh rate
@@ -72,6 +77,8 @@ class WeatherWindow(client.AbstractUI):
         self.weesizer.Add(self.buttons[4],0.5,wx.EXPAND)
         self.weesizer.Add(self.buttons[5],0.5,wx.EXPAND)
 
+        self.buttonsizer.Add(self.buttons[6],1,wx.EXPAND)
+
         #add weesizer to the button sizer
         self.buttonsizer.Add(self.weesizer,1,wx.EXPAND)
 
@@ -94,6 +101,8 @@ class WeatherWindow(client.AbstractUI):
         self.buttons[3].Enable(False)
         self.buttons[4].Enable(False)
         self.buttons[5].Enable(False)
+
+        self.buttons[6].Enable(False)
         
         
         #add button sizer to the left panel of the main sizer, vtk widget to the right (with horizontal width ratio of 1:8)
@@ -163,9 +172,11 @@ class WeatherWindow(client.AbstractUI):
                 self.buttons[3].Enable(True)
                 self.buttons[4].Enable(True)
                 self.buttons[5].Enable(True)
-                
+                self.buttons[6].Enable(True)
+
+
                 self.playing=False
-                
+
                 #load the first data file
                 self.getdata.value=True
         
@@ -190,6 +201,7 @@ class WeatherWindow(client.AbstractUI):
                 self.buttons[3].Enable(False)
                 self.buttons[4].Enable(False)
                 self.buttons[5].Enable(False)
+                self.buttons[6].Enable(False)
                 
                 try:
                     self.renderer.RemoveActor(self.actor)
@@ -259,7 +271,15 @@ class WeatherWindow(client.AbstractUI):
         self.getdata.value=True
         self.buttons[1].SetLabel("Play")
 
+    def togglevapor(self, e):
+        if self.vapor is False:
+            self.vapor = True
+        else:
+            self.vapor = False
 
+        if self.timer.IsRunning():
+            self.timer.Stop()
+            self.timer.Start()
 
     def UpdateSlider(self,e):
         #this method runs every time the slider is moved. It sets the new refreshrate, updates the refreshrate GUI text, and stops and starts the timer with the new framerate (if it is on)

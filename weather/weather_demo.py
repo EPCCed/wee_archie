@@ -35,7 +35,8 @@ class WeatherDemo(client.AbstractDemo):
         #unpack  data transfer object
         data = dto.GetData()
 
-# ############### VAPOR FIELD ####################################
+# ############### VAPOR FIELD  PLANE####################################
+        print(win.vapor)
         plane = RenderVaporPlane(data[0])
          #update mapper
 
@@ -76,34 +77,45 @@ class WeatherDemo(client.AbstractDemo):
             win.actors['CloudActor'].SetMapper(win.mappers['CloudMapper'])
 
 #####VAPOR POINTZ########
+        if win.vapor is True:
 
-        Vglyph3D, Vcolors, Vcol = RenderVapor(data[0])
+            Vglyph3D, Vcolors, Vcol = RenderVapor(data[0])
 
-        # update mapper
-        try:
-            win.mappers['VaporPMapper']
-        except:
-            win.mappers['VaporPMapper'] = vtk.vtkPolyDataMapper()
+            # update mapper
+            try:
+                win.mappers['VaporPMapper']
+            except:
+                win.mappers['VaporPMapper'] = vtk.vtkPolyDataMapper()
 
-        win.mappers['VaporPMapper'].SetInputConnection(Vglyph3D.GetOutputPort())
-        win.mappers['VaporPMapper'].SetScalarModeToUsePointFieldData()
-        win.mappers['VaporPMapper'].SetScalarRange(0, 3)
-        win.mappers['VaporPMapper'].SelectColorArray("Vcol")  # // !!!to set color (nevertheless you will have nothing)
-        win.mappers['VaporPMapper'].SetLookupTable(Vcolors)
+            win.mappers['VaporPMapper'].SetInputConnection(Vglyph3D.GetOutputPort())
+            win.mappers['VaporPMapper'].SetScalarModeToUsePointFieldData()
+            win.mappers['VaporPMapper'].SetScalarRange(0, 3)
+            win.mappers['VaporPMapper'].SelectColorArray("Vcol")  # // !!!to set color (nevertheless you will have nothing)
+            win.mappers['VaporPMapper'].SetLookupTable(Vcolors)
 
-        try:  # does the actor exist? if not, create one
-            win.actors['VaporPActor']
-        except:
-            win.actors['VaporPActor'] = vtk.vtkActor()
-            #win.renderer.AddActor(win.actors['VaporPActor'])
-            win.actors['VaporPActor'].SetMapper(win.mappers['VaporPMapper'])
+            try:  # does the actor exist? if not, create one
+                win.actors['VaporPActor']
+            except:
+                win.actors['VaporPActor'] = vtk.vtkActor()
+                win.actors['VaporPActor'].GetProperty().SetOpacity(0.1)
+                win.actors['VaporPActor'].SetMapper(win.mappers['VaporPMapper'])
+
+            win.renderer.AddActor(win.actors['VaporPActor'])
+        else:
+            try:
+                win.renderer.RemoveActor(win.actors['VaporPActor'])
+            except:
+                print('lala')
+
 
         try:
             win.camera
         except:
             win.camera = win.renderer.GetActiveCamera()
-            win.camera.SetPosition(0., 0., 200.)
-
+            win.camera.SetFocalPoint(32,37,5)
+            win.camera.Azimuth(110)
+            win.camera.Elevation(50)
+            win.camera.Dolly(0.3)
 
         outlineglyph3D, outlinecolors, outlinecol = RenderOutline()
 
@@ -249,35 +261,27 @@ def RenderVapor(vapor):
 
     nc = vtk.vtkNamedColors()
 
+    tableSize = 64 * 76 * 10
     lut = vtk.vtkLookupTable()
-    lut.SetNumberOfTableValues(10)
-    lut.SetTableValue(0, 1.0, 1.0, 1.0, 1.0)  # black
-    #lut.SetTableValue(0, nc.GetColor4d("Black"),1)
+    lut.SetNumberOfTableValues(tableSize)
+    lut.Build()
 
-    lut.SetTableValue(1, 0.8901960784313725, 0.8117647058823529, 0.3411764705882353, 0.5)
-    lut.SetTableValue(2, 1.0, 0.38823529411764707, 0.2784313725490196, 0.5)
-    lut.SetTableValue(3, 0.9607843137254902, 0.8705882352941177, 0.7019607843137254, 0.5)
-    lut.SetTableValue(4,0.9019607843137255, 0.9019607843137255, 0.9803921568627451, 0.5)
-    lut.SetTableValue(5, 1.0, 0.49019607843137253, 0.25098039215686274, 0.5)
-    lut.SetTableValue(6, 0.5294117647058824, 0.14901960784313725, 0.3411764705882353, 0.5)
-    lut.SetTableValue(7,0.9803921568627451, 0.5019607843137255, 0.4470588235294118, 0.5)
-    lut.SetTableValue(8, 0.7411764705882353, 0.9882352941176471, 0.788235294117647, 0.5)
-    lut.SetTableValue(9, 0.2, 0.6313725490196078, 0.788235294117647, 0.5)
-    #
-    # print( nc.GetColor4d("Banana"))
-    # print( nc.GetColor4d("Tomato"))
-    # print(nc.GetColor4d("Wheat"))
-    # print(nc.GetColor4d("Lavender"))
-    # print(nc.GetColor4d("Flesh"))
-    # print(nc.GetColor4d("Raspberry"))
-    # print(nc.GetColor4d("Salmon"))
-    # print(nc.GetColor4d("Mint"))
-    # print(nc.GetColor4d("Peacock"))
+    # Fill in a few known colors, the rest will be generated if needed
+    lut.SetTableValue(0, nc.GetColor4d("Black"))
+    lut.SetTableValue(1, nc.GetColor4d("Banana"))
+    lut.SetTableValue(2, nc.GetColor4d("Tomato"))
+    lut.SetTableValue(3, nc.GetColor4d("Wheat"))
+    lut.SetTableValue(4, nc.GetColor4d("Lavender"))
+    lut.SetTableValue(5, nc.GetColor4d("Flesh"))
+    lut.SetTableValue(6, nc.GetColor4d("Raspberry"))
+    lut.SetTableValue(7, nc.GetColor4d("Salmon"))
+    lut.SetTableValue(8, nc.GetColor4d("Mint"))
+    lut.SetTableValue(9, nc.GetColor4d("Peacock"))
 
     for k in range(10):
         for j in range(64):
             for i in range(76):
-                if vapor[k][j][i] > 0.5:
+                if vapor[k][j][i] > 0.4:
                     points.InsertNextPoint(j, i, k)
                     scales.InsertNextValue(1)
                     rgb = [0.0, 0.0, 0.0]
