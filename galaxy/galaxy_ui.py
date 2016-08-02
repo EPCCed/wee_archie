@@ -3,18 +3,20 @@ import wx
 import vtk
 
 
+#specify which UI to use
+UI = client.AbstractvtkUI
 
 
 # Derive the demo-specific GUI class from the AbstractUI class
-class GalaxyWindow(client.AbstractUI):
-    
+class GalaxyWindow(UI):
+
     def __init__(self,parent,title,demo,servercomm):
-        
+
         #call superclass' __init__
-        client.AbstractUI.__init__(self,parent,title,demo,servercomm)
-        
-        
-        
+        UI.__init__(self,parent,title,demo,servercomm)
+
+
+
         #set up sizers that allow you to position window elements easily
 
         #main sizer - arrange items horizontally on screen (controls on left, vtk interactor on right)
@@ -23,8 +25,8 @@ class GalaxyWindow(client.AbstractUI):
         self.buttonsizer=wx.BoxSizer(wx.VERTICAL)
         #sizer for rewind, step forward, step back and fast forward buttons
         self.weesizer=wx.BoxSizer(wx.HORIZONTAL)
-        
-        
+
+
         #create 'array' of buttons
         self.buttons=[]
 
@@ -92,8 +94,8 @@ class GalaxyWindow(client.AbstractUI):
         self.buttons[3].Enable(False)
         self.buttons[4].Enable(False)
         self.buttons[5].Enable(False)
-        
-        
+
+
         #add button sizer to the left panel of the main sizer, vtk widget to the right (with horizontal width ratio of 1:8)
         self.mainsizer.Add(self.buttonsizer,1,wx.EXPAND)
         self.mainsizer.Add(self.vtkwidget,2,wx.EXPAND)
@@ -102,58 +104,86 @@ class GalaxyWindow(client.AbstractUI):
         self.SetSizer(self.mainsizer)
         self.SetAutoLayout(1)
         self.mainsizer.Fit(self)
-        
+
         #create mapper
         self.mapper=vtk.vtkPolyDataMapper()
-        
+
         self.StartInteractor()
 
         #show window
         self.Show()
 
 
-    
+
 
     def StartInteractor(self):
-        client.AbstractUI.StartInteractor(self)
+        UI.StartInteractor(self)
+
+        #set up camera position
+        camera=self.renderer.GetActiveCamera()
+        camera.SetFocalPoint(0.,0.,0.)
+        camera.SetPosition(50.,0.,0.)
+        camera.Roll(-90)
+
+        #create some axes to indicate the orientation of the galaxy
+        axes = vtk.vtkAxesActor()
+        self.axisw=vtk.vtkOrientationMarkerWidget()
+        self.axisw.SetOutlineColor( 0.9300, 0.5700, 0.1300 );
+        self.axisw.SetOrientationMarker( axes );
+        self.axisw.SetInteractor( self.vtkwidget._Iren );
+        self.axisw.SetViewport( 0.0, 0.0, 0.3, 0.3 );
+        self.axisw.SetEnabled( 1 );
+        self.axisw.InteractiveOn();
+
+
+        self.vtkwidget.GetRenderWindow().Render()
 
 
 
 
     def StartSim(self,config):
-        client.AbstractUI.StartSim(self,config)
-        
-        
-        
-        
+        UI.StartSim(self,config)
+
+
+
+
     def StopSim(self):
-        client.AbstractUI.StopSim(self)
-        
-        
-        
-        
+        UI.StopSim(self)
+
+
+
+
     def TimerCallback(self,e):
-        client.AbstractUI.TimerCallback(self,e)
-        
+        UI.TimerCallback(self,e)
+
         self.logger.SetValue("Frame %d of %d"%(self.CurrentFrame,self.nfiles.value-1))
-        
-            
-            
-            
-    
+
+
+
+    def OnClose(self,e):
+        UI.OnClose(self,e)
+
+
+
+    #----------------------------------------------------------------------
+    #------------- New methods specific to demo go here -------------------
+    #----------------------------------------------------------------------
+
+
+
     def StartStopSim(self,e):
-        
+
         #if simulation is not started then start a new simulation
         if not self.servercomm.IsStarted():
-            
+
             dlg=wx.MessageDialog(self,"Do you wish to continue?","This will start a simulation",wx.OK|wx.CANCEL)
-            
+
             if dlg.ShowModal() == wx.ID_OK:
-            
+
                 config="config.txt"
-                
+
                 self.StartSim(config)
-                
+
                 self.buttons[0].SetLabel("Stop Simulaton")
 
                 self.buttons[1].Enable(True)
@@ -161,51 +191,44 @@ class GalaxyWindow(client.AbstractUI):
                 self.buttons[3].Enable(True)
                 self.buttons[4].Enable(True)
                 self.buttons[5].Enable(True)
-                
+
                 self.playing=False
-                
+
                 #load the first data file
                 self.getdata.value=True
-        
+
         #if simulation is started then stop simulation
         else:
-            
+
             dlg=wx.MessageDialog(self,"Are you sure?","This will stop the current simulation.",wx.OK|wx.CANCEL)
-            
+
             if dlg.ShowModal() == wx.ID_OK:
-                
+
                 self.StopSim()
-                
+
                 self.buttons[0].SetLabel("Start Simulation")
-                
+
                 self.logger.SetValue("")
-                
+
                 self.playing=False
-                
+
                 self.buttons[1].SetLabel("Play")
                 self.buttons[1].Enable(False)
                 self.buttons[2].Enable(False)
                 self.buttons[3].Enable(False)
                 self.buttons[4].Enable(False)
                 self.buttons[5].Enable(False)
-                
+
                 try:
                     self.renderer.RemoveActor(self.actor)
                     del self.actor
                 except:
                     pass
                 self.vtkwidget.GetRenderWindow().Render()
-            
-            
-    
-    def OnClose(self,e):
-        client.AbstractUI.OnClose(self,e)
-    
-    
 
-    #----------------------------------------------------------------------
-    #------------- New methods specific to demo go here -------------------
-    #----------------------------------------------------------------------
+
+
+
 
 
     #play or pause (depending upon whether the 'movie' is paused or playing )
@@ -272,8 +295,3 @@ class GalaxyWindow(client.AbstractUI):
         if self.timer.IsRunning():
             self.timer.Stop()
             self.timer.Start(self.refreshrate*1000)
-
- 
-        
-
-

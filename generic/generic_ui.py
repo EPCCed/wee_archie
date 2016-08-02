@@ -1,17 +1,16 @@
 import client
-import wx
 import vtk
 
+#select the UI abstract superclass to derive from
+UI=client.AbstractvtkUI
 
-
-
-# Derive the demo-specific GUI class from the AbstractUI class
-class GenericWindow(client.AbstractUI):
+# Derive the demo-specific GUI class from the Abstract??UI class
+class GenericWindow(UI):
 
     def __init__(self,parent,title,demo,servercomm):
 
         #call superclass' __init__
-        client.AbstractUI.__init__(self,parent,title,demo,servercomm)
+        UI.__init__(self,parent,title,demo,servercomm)
 
         #INSERT CODE HERE TO SET LAYOUT OF WINDOW/ADD BUTTONS ETC
 
@@ -25,35 +24,35 @@ class GenericWindow(client.AbstractUI):
 
 
     def StartInteractor(self):
-        client.AbstractUI.StartInteractor(self)
+        UI.StartInteractor(self)
         #INSERT ANY CUSTOM CODE HERE
 
 
 
 
     def StartSim(self,config):
-        client.AbstractUI.StartSim(self,config)
+        UI.StartSim(self,config)
         #INSERT ANY CUSTOM CODE HERE
 
 
 
 
     def StopSim(self):
-        client.AbstractUI.StopSim(self)
+        UI.StopSim(self)
         #INSERT ANY CUSTOM CODE HERE
 
 
 
 
     def TimerCallback(self,e):
-        client.AbstractUI.TimerCallback(self,e)
+        UI.TimerCallback(self,e)
         #INSERT ANY CUSTOM CODE HERE
 
 
 
 
     def OnClose(self,e):
-        client.AbstractUI.OnClose(self,e)
+        UI.OnClose(self,e)
         #INSERT ANY CUSTOM CODE HERE
 
 
@@ -61,6 +60,3 @@ class GenericWindow(client.AbstractUI):
     #----------------------------------------------------------------------
     #------------- New methods specific to demo go here -------------------
     #----------------------------------------------------------------------
-
-
-    
