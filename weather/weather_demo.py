@@ -1,5 +1,6 @@
 import client
 import vtk
+import time
 
 #Data transfer object
 class DTO(client.AbstractDTO):
@@ -20,7 +21,8 @@ class WeatherDemo(client.AbstractDemo):
         vapor = (q[0] / 0.018) - 0.08  # return normalized vapor field data
 
         clouds = (q[1] - 0.00004)/ q[1].max()  # return normalized cloud data
-        data = [vapor, clouds]
+        rain = 0 # te(q[2]/q[2].max())
+        data = [vapor, clouds, rain]
 
         # create data transfer object and put the array into it
         dto = DTO()
@@ -31,12 +33,13 @@ class WeatherDemo(client.AbstractDemo):
 
     # Renders a frame with data contained within the data transfer object, data
     def RenderFrame(self, win, dto):
-
+        x, y, z = coords = [10, 64, 76]
         #unpack  data transfer object
         data = dto.GetData()
+        win.renderer.SetBackground(1,.7,1)
 
 # ############### VAPOR FIELD  PLANE####################################
-        print(win.vapor)
+        #print(win.vapor)
         plane = RenderVaporPlane(data[0])
          #update mapper
 
@@ -55,7 +58,7 @@ class WeatherDemo(client.AbstractDemo):
 
 ################# CLOUD FIELD #############################
 
-        glyph3D, colors, col, surf = RenderCloud(data[1])
+        glyph3D, colors, col, surf = RenderCloud(data[1], coords)
 
         # update mapper
         try:
@@ -79,7 +82,7 @@ class WeatherDemo(client.AbstractDemo):
 #####VAPOR POINTZ########
         if win.vapor is True:
 
-            Vglyph3D, Vcolors, Vcol = RenderVapor(data[0])
+            Vglyph3D, Vcolors, Vcol = RenderVapor(data[0], coords)
 
             # update mapper
             try:
@@ -112,7 +115,7 @@ class WeatherDemo(client.AbstractDemo):
             win.camera
         except:
             win.camera = win.renderer.GetActiveCamera()
-            win.camera.SetFocalPoint(32,37,5)
+            win.camera.SetFocalPoint(y/2,z/2,x/2)
             win.camera.Azimuth(110)
             win.camera.Elevation(50)
             win.camera.Dolly(0.3)
@@ -137,7 +140,17 @@ class WeatherDemo(client.AbstractDemo):
             outlineActor.GetProperty().SetColor(1, 1, 1)
             win.renderer.AddActor(outlineActor)
 
-        win.renderer.SetBackground(1,.7,1)
+
+        # # screenshot code:
+        w2if = vtk.vtkWindowToImageFilter()
+        w2if.SetInput(win.vtkwidget.GetRenderWindow())
+        w2if.Update()
+
+        writer = vtk.vtkPNGWriter()
+        savename = str(time.time()) + '.png'
+        writer.SetFileName(savename)
+        writer.SetInputData(w2if.GetOutput())
+        #writer.Write()
 
         win.vtkwidget.GetRenderWindow().Render()
 
@@ -184,7 +197,9 @@ def RenderOutline():
     glyph3D.Update()
 
     return glyph3D, colors, cols
-def RenderCloud(cloud):
+def RenderCloud(cloud,coords):
+
+    x,y,z = coords
 
     points = vtk.vtkPoints()
 
@@ -204,9 +219,9 @@ def RenderCloud(cloud):
     # colors.SetTableValue(3 ,1.0 ,1.0 ,0.0 ,1.0); # yellow
     # the last double value is for opacity (1->max, 0->min)
 
-    for k in range(10):
-        for j in range(64):
-            for i in range(76):
+    for k in range(x):
+        for j in range(y):
+            for i in range(z):
                 if cloud[k][j][i] > 0:
                     points.InsertNextPoint(j, i, k)
                     scales.InsertNextValue(3)  # random radius between 0 and 0.99
@@ -248,8 +263,9 @@ def RenderCloud(cloud):
 
 
     return glyph3D, colors, col, reverse
-def RenderVapor(vapor):
+def RenderVapor(vapor, coords):
 
+    x, y, z = coords
     points = vtk.vtkPoints()
 
     scales = vtk.vtkFloatArray()
@@ -261,7 +277,7 @@ def RenderVapor(vapor):
 
     nc = vtk.vtkNamedColors()
 
-    tableSize = 64 * 76 * 10
+    tableSize = x * y * z
     lut = vtk.vtkLookupTable()
     lut.SetNumberOfTableValues(tableSize)
     lut.Build()
@@ -278,10 +294,10 @@ def RenderVapor(vapor):
     lut.SetTableValue(8, nc.GetColor4d("Mint"))
     lut.SetTableValue(9, nc.GetColor4d("Peacock"))
 
-    for k in range(10):
-        for j in range(64):
-            for i in range(76):
-                if vapor[k][j][i] > 0.4:
+    for k in range(x):
+        for j in range(y):
+            for i in range(z):
+                if vapor[k][j][i] > 0.85:
                     points.InsertNextPoint(j, i, k)
                     scales.InsertNextValue(1)
                     rgb = [0.0, 0.0, 0.0]
