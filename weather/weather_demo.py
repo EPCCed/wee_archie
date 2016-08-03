@@ -21,7 +21,7 @@ class WeatherDemo(client.AbstractDemo):
         vapor = (q[0] / 0.018) - 0.08  # return normalized vapor field data
 
         clouds = (q[1] - 0.00004)/ q[1].max()  # return normalized cloud data
-        rain = 0 # te(q[2]/q[2].max())
+        rain = (q[2]/q[2].max())
         data = [vapor, clouds, rain]
 
         # create data transfer object and put the array into it
@@ -76,6 +76,7 @@ class WeatherDemo(client.AbstractDemo):
             win.actors['CloudActor']
         except:
             win.actors['CloudActor'] = vtk.vtkActor()
+            win.actors['CloudActor'].GetProperty().SetOpacity(0.6)
             win.renderer.AddActor(win.actors['CloudActor'])
             win.actors['CloudActor'].SetMapper(win.mappers['CloudMapper'])
 
@@ -100,7 +101,7 @@ class WeatherDemo(client.AbstractDemo):
                 win.actors['VaporPActor']
             except:
                 win.actors['VaporPActor'] = vtk.vtkActor()
-                win.actors['VaporPActor'].GetProperty().SetOpacity(0.1)
+                win.actors['VaporPActor'].GetProperty().SetOpacity(0.2)
                 win.actors['VaporPActor'].SetMapper(win.mappers['VaporPMapper'])
 
             win.renderer.AddActor(win.actors['VaporPActor'])
@@ -110,7 +111,30 @@ class WeatherDemo(client.AbstractDemo):
             except:
                 print('lala')
 
+###########RAIN MASS
 
+        Rglyph3D, Rcolors, Rcol = RenderRain(data[2], coords)
+
+        # update mapper
+        try:
+            win.mappers['RainMapper']
+        except:
+            win.mappers['RainMapper'] = vtk.vtkPolyDataMapper()
+        win.mappers['RainMapper'].SetInputConnection(Rglyph3D.GetOutputPort())
+        win.mappers['RainMapper'].SetScalarRange(0, 3)
+
+        win.mappers['RainMapper'].SetScalarModeToUsePointFieldData()
+        win.mappers['RainMapper'].SelectColorArray("Rcol")  # // !!!to set color (nevertheless you will have nothing)
+        win.mappers['RainMapper'].SetLookupTable(Rcolors)
+
+        try:  # does the actor exist? if not, create one
+            win.actors['RainActor']
+        except:
+            win.actors['RainActor'] = vtk.vtkActor()
+            win.actors['RainActor'].GetProperty().SetOpacity(0.1)
+            win.actors['RainActor'].SetMapper(win.mappers['RainMapper'])
+
+        win.renderer.AddActor(win.actors['RainActor'])
         try:
             win.camera
         except:
@@ -150,7 +174,7 @@ class WeatherDemo(client.AbstractDemo):
         savename = str(time.time()) + '.png'
         writer.SetFileName(savename)
         writer.SetInputData(w2if.GetOutput())
-        #writer.Write()
+        writer.Write()
 
         win.vtkwidget.GetRenderWindow().Render()
 
@@ -320,6 +344,64 @@ def RenderVapor(vapor, coords):
     glyph3D.Update()
 
     return glyph3D, lut, col
+def RenderRain(rain, coords):
+
+    x, y, z = coords
+    points = vtk.vtkPoints()
+
+    scales = vtk.vtkFloatArray()
+    scales.SetName("Rscales")
+
+    col = vtk.vtkUnsignedCharArray()
+    col.SetName('Rcol')  # Any name will work here.
+    col.SetNumberOfComponents(3)
+
+    nc = vtk.vtkNamedColors()
+
+    tableSize = x * y * z
+    lut = vtk.vtkLookupTable()
+    lut.SetNumberOfTableValues(tableSize)
+    lut.Build()
+
+    # Fill in a few known colors, the rest will be generated if needed
+    lut.SetTableValue(0, nc.GetColor4d("Black"))
+    lut.SetTableValue(1, nc.GetColor4d("Banana"))
+    lut.SetTableValue(2, nc.GetColor4d("Tomato"))
+    lut.SetTableValue(3, nc.GetColor4d("Wheat"))
+    lut.SetTableValue(4, nc.GetColor4d("Lavender"))
+    lut.SetTableValue(5, nc.GetColor4d("Flesh"))
+    lut.SetTableValue(6, nc.GetColor4d("Raspberry"))
+    lut.SetTableValue(7, nc.GetColor4d("Salmon"))
+    lut.SetTableValue(8, nc.GetColor4d("Mint"))
+    lut.SetTableValue(9, nc.GetColor4d("Peacock"))
+
+    for k in range(x):
+        for j in range(y):
+            for i in range(z):
+                if rain[k][j][i] > 0.000000000:
+                    points.InsertNextPoint(j, i, k)
+                    scales.InsertNextValue(1)
+                    rgb = [0.0, 0.0, 0.0]
+                    lut.GetColor(rain[k][j][i], rgb)
+                    ucrgb = list(map(int, [x * 255 for x in rgb]))
+                    col.InsertNextTuple3(ucrgb[0], ucrgb[1], ucrgb[2])
+
+    grid = vtk.vtkUnstructuredGrid()
+    grid.SetPoints(points)
+    grid.GetPointData().AddArray(scales)
+    grid.GetPointData().SetActiveScalars("Rscales")  # // !!!to set radius first
+    grid.GetPointData().AddArray(col)
+
+    sphere = vtk.vtkSphereSource()
+
+    glyph3D = vtk.vtkGlyph3D()
+
+    glyph3D.SetSourceConnection(sphere.GetOutputPort())
+    glyph3D.SetInputData(grid)
+    glyph3D.Update()
+
+    return glyph3D, lut, col
+
 def RenderVaporPlane(qn):
 
     #  Get the lookup tables mapping cell data to colors
