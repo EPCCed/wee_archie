@@ -12,7 +12,7 @@ subroutine writetofile(fname)
 
     real, allocatable, dimension(:,:) :: toppres, sidepres, sideu, sidev
     real, allocatable, dimension(:,:) ::  sideboundary
-    
+
     real :: frontarea
 
 
@@ -23,7 +23,7 @@ subroutine writetofile(fname)
 
     !update velocities
     call getv()
-    
+
     !populate global array
     call collate_data()
 
@@ -38,8 +38,8 @@ subroutine writetofile(fname)
         allocate(sideu(nx_global,ny_global), sidev(nx_global,ny_global))
 
         ! |v|^2
-        u2 = u_global*u_global + v_global*v_global 
-        
+        u2 = u_global*u_global + v_global*v_global
+
         ! incoming velocity
         u0=u2(1,ny_global/2)
 
@@ -49,7 +49,7 @@ subroutine writetofile(fname)
         pressure = bernoulli - 0.5*rho*u2 *(rho_air) * (airspeed*vconv)**2 !pressure as a function of position
 
         pressure=pressure/p_air!*(1-mask_global)
-        
+
 
         !calculate pressure on top/bottom boundary (pressure 1 gridcell up/down from boundary)
         toppres(:,:)=0
@@ -78,7 +78,7 @@ subroutine writetofile(fname)
                     exit
                 endif
             enddo
-            
+
             if (i .ne. nx) then
                 do i=nx_global,1,-1
                     if (mask_global(i,j) .eq. 1) then
@@ -107,12 +107,12 @@ subroutine writetofile(fname)
                 endif
             enddo
         enddo
-                
+
 
 
         plift = -sum( toppres*boundary_global)*dxx * p_air ! f = oint -p(yhat.da)
         pdrag = -sum( sidepres*sideboundary)*dyy*p_air !! f = oint -p(xhat.da)
-        
+
         !ram pressure:
         ! f = dp/dt = m*dv/dt.
         !in n seconds, u0*rho kg of air pass through each m^2 per unit time
@@ -121,10 +121,10 @@ subroutine writetofile(fname)
 
         ram =-sum(sideboundary*u0*(sideu-u0)) *(rho*rho_air) * (vconv*airspeed)**2 * dyy
         ramlift =-sum(sideboundary*u0*(sidev)) *(rho*rho_air) * (vconv*airspeed)**2 * dyy
-        
+
         lift=plift+ramlift
         drag=pdrag+ram
-        
+
         frontarea=0.
         do j=1,ny_global
             do i=1,nx_global
@@ -132,20 +132,20 @@ subroutine writetofile(fname)
             enddo
         enddo
         frontarea = frontarea*dyy
-             
+
         print*,'frontarea=',frontarea
         !calculate lift and drag coefficients
         ! C_l = lift/(1/2 rho u^2) / A
-        
+
         c_lift = lift / (0.5*rho*u0*u0*rho_air * (vconv*airspeed)**2 )/frontarea
-        
+
         !c_d = drag /(1/2*rh*u^2)/A
-        
+
         c_drag= drag / (0.5*rho*u0*u0*rho_air * (vconv*airspeed)**2 )/frontarea
-        
-        
-        
-        
+
+
+
+
         print*,"-------------------------------------------------------------------------------"
         print *, "pressure lift=", plift
         print *, "ram lift     =", ramlift
@@ -160,8 +160,8 @@ subroutine writetofile(fname)
         print *, "Lift Coefficient=",c_lift
         print *, "Drag Coefficient=",c_drag
         print *, ''
-        
-    
+
+
 
 
 
@@ -170,14 +170,14 @@ subroutine writetofile(fname)
         open (unit=10,file=fname,access='stream',status='REPLACE')
         write(10) nx_global,ny_global
         write(10) x_global, y_global
-        write(10) psi_global
+        write(10) psi_global/(1-mask_global)
         write(10) mask_global
         write(10) u_global, v_global
-        write(10) u2, pressure
-        write(10) vort_global
+        write(10) u2/(1-mask_global), pressure/(1-mask_global)
+        write(10) vort_global/(1-mask_global)
         write(10) plift, ramlift, pdrag, ram, lift, drag
         close(10)
-        
+
         print *, "Written '",fname,"' to file."
         print*,"-------------------------------------------------------------------------------"
 
