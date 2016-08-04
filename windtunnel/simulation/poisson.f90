@@ -7,7 +7,6 @@ subroutine poisson(n)
     integer :: n, it
     integer :: i, j
 
-    !$OMP PARALLEL
 
     do it=1,n
         !$OMP DO PRIVATE(j)
@@ -43,6 +42,6 @@ subroutine poisson(n)
         !$OMP END SINGLE
 
     enddo
-    !$OMP END PARALLEL
+
 
 end subroutine

@@ -3,13 +3,12 @@ subroutine getv()
 
     use vars
     use parallel
-    
+
     implicit none
-    
+
     integer :: i, j
-    
-    !$OMP PARALLEL
-    
+
+
     !calculate velocities
     !$OMP DO PRIVATE(j,i)
     do j=1,ny
@@ -25,20 +24,20 @@ subroutine getv()
     if (down .eq. MPI_PROC_NULL) u(:,1) = u(:,2)
     if (up .eq. MPI_PROC_NULL) u(:,ny)=u(:,ny-1)
     !$OMP END SINGLE
-    
-    
+
+
     !$OMP DO PRIVATE(j)
     do j=1,ny
         !apply side
         v(1,j) = v(2,j)
         v(nx,j)=v(nx-1,j)
-        
+
         !ensure u and v are zero inside the object
         u(:,j)=u(:,j)*(1-mask(:,j))
         v(:,j)=v(:,j)*(1-mask(:,j))
     enddo
     !$OMP END DO
-    
-    !$OMP END PARALLEL
+
+
 
 end subroutine

@@ -25,7 +25,7 @@ subroutine navier_stokes()
     vmax=1.
     vmax=vmax*vmax
 
-    !$OMP PARALLEL
+
 
     !$OMP DO PRIVATE(uu,vv,v2,r,i, deltax, deltay, dwdx, dwdy)
     do j=1,ny
@@ -85,9 +85,10 @@ subroutine navier_stokes()
     enddo
     !$OMP END DO
 
-    !$OMP END PARALLEL
 
+    !$OMP SINGLE
     call haloswap(vort)
+    !$OMP END SINGLE
 
 
 end subroutine
