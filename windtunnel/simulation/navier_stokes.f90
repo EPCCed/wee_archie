@@ -25,18 +25,18 @@ subroutine navier_stokes()
     vmax=1.
     vmax=vmax*vmax
 
-    !$OMP PARALLEL 
+    !$OMP PARALLEL
 
-    !$OMP DO PRIVATE(uu,vv,v2,r,i, deltax, deltay, dwdx, dwdy) 
+    !$OMP DO PRIVATE(uu,vv,v2,r,i, deltax, deltay, dwdx, dwdy)
     do j=1,ny
         do i=1,nx
             if (mask(i,j) .eq. 0) then
                 !advection
-                
+
                 uu=u(i,j)
                 vv=v(i,j)
                 v2=uu*uu+vv*vv
-                
+
                 if (v2 .gt. vmax) then
                     v2 = sqrt(vmax/v2)
                     uu=uu*v2
@@ -47,22 +47,22 @@ subroutine navier_stokes()
                 ! derivitive that is being advected into the gridcell)
                 deltax = uu*dt/dx
                 dwdx = (1-deltax)*(vort(i+1,j)-vort(i,j)) + (1+deltax)*(vort(i,j)-vort(i-1,j))
-                
+
                 deltay = vv*dt/dy
                 dwdy = (1-deltay)*(vort(i,j+1)-vort(i,j)) + (1+deltay)*(vort(i,j)-vort(i,j-1))
-                
+
                 dw(i,j) = 0.5*(-uu*dwdx - vv*dwdy)
-                
-                
-    !             dw(i,j) = -uu*(vort(i+1,j)-vort(i-1,j))/2./dx - vv*(vort(i,j+1)-vort(i,j-1))/2./dy 
-                
+
+
+    !             dw(i,j) = -uu*(vort(i+1,j)-vort(i-1,j))/2./dx - vv*(vort(i,j+1)-vort(i,j-1))/2./dy
+
                 !diffusion
-            
+
                 r=r0
-            
+
                 dw(i,j)= dw(i,j) + 1./r *( (vort(i+1,j) - 2.*vort(i,j) + vort(i-1,j) )/dx/dx &
                     + (vort(i,j+1) - 2.*vort(i,j) + vort(i,j-1))/dy/dy )
-                
+
             endif
         enddo
     enddo
@@ -88,6 +88,6 @@ subroutine navier_stokes()
     !$OMP END PARALLEL
 
     call haloswap(vort)
-            
+
 
 end subroutine

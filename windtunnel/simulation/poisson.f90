@@ -15,7 +15,7 @@ subroutine poisson(n)
             psidum(:,j) = psi(:,j)
         enddo
         !$OMP END DO
-        
+
         !$OMP DO PRIVATE(i,j)
         do j=1,ny
             do i=1,nx
@@ -27,23 +27,22 @@ subroutine poisson(n)
             enddo
         enddo
         !$OMP END DO
-        
+
         !$OMP DO PRIVATE(j)
         do j=1,ny
             psi(nx+1,j) = 2.*psi(nx,j) - psi(nx-1,j)
         enddo
         !$OMP END DO
-        
+
         !$OMP SINGLE
         call haloswap(psi)
-        
-        
+
+
         if (down .eq. MPI_PROC_NULL) psi(:,0) = 2*psi(:,1) - psi(:,2)
         if (up .eq. MPI_PROC_NULL) psi(:,ny+1) = 2*psi(:,ny) - psi(:,ny-1)
         !$OMP END SINGLE
-        
+
     enddo
     !$OMP END PARALLEL
 
 end subroutine
-
