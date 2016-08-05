@@ -10,10 +10,10 @@ subroutine writetofile(fname)
     real :: bernoulli
     integer :: i, j
 
-    real, allocatable, dimension(:,:) :: toppres, sidepres, sideu, sidev
-    real, allocatable, dimension(:,:) ::  sideboundary
+    real, allocatable, dimension(:,:) :: toppres, sidepres, du, dv
+    real, allocatable, dimension(:,:) ::  sideboundary, toptheta, sidetheta
 
-    real :: frontarea
+    real :: frontarea, toparea
 
 
     real :: plift, pdrag, ram, ramlift, lift, drag
@@ -35,7 +35,8 @@ subroutine writetofile(fname)
         allocate(sideboundary(nx_global,ny_global))
 
         allocate(toppres(nx_global,ny_global), sidepres(nx_global,ny_global))
-        allocate(sideu(nx_global,ny_global), sidev(nx_global,ny_global))
+        allocate(du(nx_global,ny_global), dv(nx_global,ny_global))
+        allocate(toptheta(nx_global,ny_global),sidetheta(nx_global,ny_global))
 
         ! |v|^2
         u2 = u_global*u_global + v_global*v_global
@@ -53,13 +54,16 @@ subroutine writetofile(fname)
 
         !calculate pressure on top/bottom boundary (pressure 1 gridcell up/down from boundary)
         toppres(:,:)=0
+        toptheta(:,:)=0
         do j=1,ny_global
             do i=1,nx_global
                 if (boundary_global(i,j) .ne. 0) then
                     if (boundary_global(i,j) .eq. 1) then !top
-                        toppres(i,j) = pressure(i,j+1)
+                        toppres(i,j) = pressure(i,j+2)
+                        !toptheta(i,j) = atan(v_global(1,j+2),u_global(i,j+2))
                     else !bottom
-                        toppres(i,j) = pressure(i,j-1)
+                        toppres(i,j) = pressure(i,j-2)
+                        !toptheta(i,j) = atan(v_global(1,j-2),u_global(i,j-2))
                     endif
                 endif
             enddo
@@ -92,22 +96,27 @@ subroutine writetofile(fname)
         !get pressure and u,v on side boundary
 
         sidepres=0
-        sidev=0
-        sideu=0
+        dv=0
+        du=0
+    !    sidetheta(:,:)=0.
         do j=1,ny_global
             do i=1,nx_global
                 if (sideboundary(i,j) .ne. 0) then
                     if (sideboundary(i,j) .lt. 0) then !front
-                        sidepres(i,j) = pressure(i-1,j)
-                        sidev(i,j) = v_global(i-1,j)
-                        sideu(i,j)= u_global(i-1,j)
+                        sidepres(i,j) = pressure(i-2,j)
+                        dv(i,j) = v_global(i-2,j)
+                        du(i,j)= abs(u_global(i-2,j)-sqrt(u0))
+                        !sidetheta(i,j) = atan(v_global(i-2,j),u_global(i-2,j))
                     else !back
-                        sidepres(i,j) = pressure(i+1,j)
+                        sidepres(i,j) = pressure(i+2,j)
+                        !sidetheta(i,j) = atan(v_global(i+2,j),u_global(i+2,j))
                     endif
                 endif
             enddo
         enddo
 
+        !toptheta(:,:)=0.
+        !sidetheta(:,:) = 3.141592/2.
 
 
         plift = -sum( toppres*boundary_global)*dxx * p_air ! f = oint -p(yhat.da)
@@ -119,29 +128,27 @@ subroutine writetofile(fname)
         ! if the gas changes velocity by dv then
         ! f = u0*rho*dv
 
-        ram =-sum(sideboundary*u0*(sideu-u0)) *(rho*rho_air) * (vconv*airspeed)**2 * dyy
-        ramlift =-sum(sideboundary*u0*(sidev)) *(rho*rho_air) * (vconv*airspeed)**2 * dyy
+        ram =-sum(sideboundary*sqrt(u0)*du) *(rho*rho_air) * (vconv*airspeed)**2 * dyy
+        ramlift =-sum(sideboundary*sqrt(u0)*(dv)) *(rho*rho_air) * (vconv*airspeed)**2 * dyy
 
         lift=plift+ramlift
         drag=pdrag+ram
 
-        frontarea=0.
-        do j=1,ny_global
-            do i=1,nx_global
-                if (sideboundary(i,j) .eq. -1) frontarea=frontarea+1
-            enddo
-        enddo
-        frontarea = frontarea*dyy
 
-        print*,'frontarea=',frontarea
+        frontarea=sum(abs(sideboundary))/2*dyy
+        !print*,"frontarea=",frontarea
+
+        toparea=sum(abs(boundary_global))/2*dxx
+        !print*,'toparea=',toparea
+
         !calculate lift and drag coefficients
         ! C_l = lift/(1/2 rho u^2) / A
 
-        c_lift = lift / (0.5*rho*u0*u0*rho_air * (vconv*airspeed)**2 )/frontarea
+        c_lift = lift / (0.5*rho*u0*rho_air * (vconv*airspeed)**2 )/toparea
 
         !c_d = drag /(1/2*rh*u^2)/A
 
-        c_drag= drag / (0.5*rho*u0*u0*rho_air * (vconv*airspeed)**2 )/frontarea
+        c_drag= drag / (0.5*rho*u0*rho_air * (vconv*airspeed)**2 )/frontarea
 
 
 
