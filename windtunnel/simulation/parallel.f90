@@ -59,6 +59,12 @@ module parallel
         !find the processes above and below the current one
         call MPI_Cart_shift(comm,0,1,down,up,ierr)
 
+        if (irank .eq. 0) then
+            print*,"Running on ",isize," processes"
+            print*,"With",threads," threads per process"
+            print*,"Total parallel regions=",isize*threads
+        endif
+
 
     end subroutine
 

@@ -185,7 +185,7 @@ class WindTunnelWindow(UI):
         self.simbutton.Show()
         self.loadradio.Show()
         self.radiobox.Show()
-        self.button.Show()
+        #self.button.Show()
         self.logger.Show()
 
 
@@ -194,7 +194,7 @@ class WindTunnelWindow(UI):
         self.buttonsizer.Add(self.loadradio)
         #self.buttonsizer.Add(self.loadbutton,1,wx.EXPAND)
         self.buttonsizer.Add(self.radiobox)
-        self.buttonsizer.Add(self.button,1,wx.EXPAND)
+        #self.buttonsizer.Add(self.button,1,wx.EXPAND)
         self.buttonsizer.AddStretchSpacer(12)
         self.buttonsizer.Add(self.logger,1,wx.EXPAND)
 

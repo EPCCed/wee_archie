@@ -8,8 +8,8 @@ implicit none
     !grid parameters
 
     !number of cells in x and y direction (global)
-    integer, parameter :: nx_global = 512
-    integer, parameter :: ny_global = 512
+    integer, parameter :: nx_global = 576
+    integer, parameter :: ny_global = 576
 
     !number of cells in x and y direction (local)
     integer :: nx, ny
