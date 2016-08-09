@@ -251,18 +251,18 @@ class WindTunnelWindow(UI):
         self.buttonsizer.Add(self.shaperadio)
         self.buttonsizer.AddStretchSpacer(1)
         self.buttonsizer.Add(self.angletext)
-        self.buttonsizer.Add(self.angleslider)
+        self.buttonsizer.Add(self.angleslider,1,wx.EXPAND)
         if self.shaperadio.GetSelection() == 0:
             self.buttonsizer.Add(self.atext)
-            self.buttonsizer.Add(self.aslider)
+            self.buttonsizer.Add(self.aslider,1,wx.EXPAND)
             self.buttonsizer.Add(self.btext)
-            self.buttonsizer.Add(self.bslider)
+            self.buttonsizer.Add(self.bslider,1,wx.EXPAND)
             print("Ellipse")
         else:
             self.buttonsizer.Add(self.atext)
-            self.buttonsizer.Add(self.mslider)
+            self.buttonsizer.Add(self.mslider,1,wx.EXPAND)
             self.buttonsizer.Add(self.btext)
-            self.buttonsizer.Add(self.tslider)
+            self.buttonsizer.Add(self.tslider,1,wx.EXPAND)
             print("Aerofoil")
 
 
