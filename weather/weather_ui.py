@@ -94,20 +94,20 @@ class WeatherWindow(client.AbstractUI):
         # add a slider to control Wind power
         self.windtext = wx.StaticText(self, label="Wind power: ...")
         self.windslider = wx.Slider(self, wx.ID_ANY, value=5, minValue=1, maxValue=20)  # must be integer
-        str = "Wind power: %3.1f s" % self.windslider.GetValue()
+        str = "Wind power: %3.1f" % self.windslider.GetValue()
         self.windtext.SetLabel(str)
         self.Bind(wx.EVT_SCROLL, self.UpdateWindSlider, self.windslider)
 
         # add a slider to control Temperature
         self.temptext = wx.StaticText(self, label="Temperature: ...")
-        self.tempslider = wx.Slider(self, wx.ID_ANY, value=5, minValue=1, maxValue=20)  # must be integer
-        str = "Temperature: %3.1f" % self.tempslider.GetValue()
+        self.tempslider = wx.Slider(self, wx.ID_ANY, value=15, minValue=0, maxValue=40)  # must be integer
+        str = "Temperature: %3.1f °C" % self.tempslider.GetValue()
         self.temptext.SetLabel(str)
         self.Bind(wx.EVT_SCROLL, self.UpdateTempSlider, self.tempslider)
 
         # add a slider to control Pressure
         self.pressuretext = wx.StaticText(self, label="Pressure: ...")
-        self.pressureslider = wx.Slider(self, wx.ID_ANY, value=5, minValue=1, maxValue=20)  # must be integer
+        self.pressureslider = wx.Slider(self, wx.ID_ANY, value=100000, minValue=80000, maxValue=120000)  # must be integer
         str = "Pressurer: %3.1f" % self.windslider.GetValue()
         self.pressuretext.SetLabel(str)
         self.Bind(wx.EVT_SCROLL, self.UpdatePressureSlider, self.pressureslider)
@@ -238,15 +238,15 @@ class WeatherWindow(client.AbstractUI):
         
         #if simulation is not started then start a new simulation
         if not self.servercomm.IsStarted():
-            
+            self.writeConfig()
+
             dlg=wx.MessageDialog(self,"Do you wish to continue?","This will start a simulation",wx.OK|wx.CANCEL)
             
             if dlg.ShowModal() == wx.ID_OK:
 
                 # write to config
 
-                self.writeConfig()
-            
+
                 config="config.mcf"
                 
                 self.StartSim(config)
@@ -384,7 +384,7 @@ class WeatherWindow(client.AbstractUI):
         str =  "Wind power: %3.1f"%self.windslider.GetValue()
         self.windtext.SetLabel(str)
     def UpdateTempSlider(self, e):
-        str =  "Temperature: %3.1f"%self.tempslider.GetValue()
+        str =  "Temperature: %3.1f °C"%self.tempslider.GetValue()
         self.temptext.SetLabel(str)
     def UpdatePressureSlider(self, e):
         str = "Pressure: %3.1f" % self.pressureslider.GetValue()
@@ -448,29 +448,29 @@ class WeatherWindow(client.AbstractUI):
         f = open('config.mcf', 'w+')
 
         f.write('global_configuration = my_global_config')
-        f.write('surface_pressure = ', self.pressureslider.GetValue())
-        f.write('surface_reference_pressure = ', self.pressureslider.GetValue())
-        f.write('fixed_cloud_number = 1.0e9')
+        f.write('\nsurface_pressure = ' + str(self.pressureslider.GetValue()))
+        f.write('\nsurface_reference_pressure = ' + str(self.pressureslider.GetValue()))
+        f.write('\nfixed_cloud_number = 1.0e9')
 
         #switch sef.timeofyear
-        f.write('f_force_pl_q = -1.2e-8, -1.2e-8, 0.0, 0.0')
+        f.write('\nf_force_pl_q = -1.2e-8, -1.2e-8, 0.0, 0.0')
 
-        f.write('surface_latent_heat_flux = 260.052')
-        f.write('surface_sensible_heat_flux = 16.04')
+        f.write('\nsurface_latent_heat_flux = 260.052')
+        f.write('\nsurface_sensible_heat_flux = 16.04')
 
-        f.write('f_init_pl_q = 17.0e-3, 16.3e-3, 10.7e-3, 4.2e-3, 3.0e-3')
+        f.write('\nf_init_pl_q = 17.0e-3, 16.3e-3, 10.7e-3, 4.2e-3, 3.0e-3')
 
 
-        f.write('z_init_pl_u = 0.0, 700.0, 3000.')
-        f.write('f_init_pl_u = -18.75, -18.75, -14.61')
+        f.write('\nz_init_pl_u = 0.0, 700.0, 3000.')
+        f.write('\nf_init_pl_u = -18.75, -18.75, -14.61')
 
-        f.write('thref0 = 268.7')
+        f.write('\nthref0 = 268.7')
 
-        f.write('z_init_pl_theta = 0.0, 520.0, 1480., 2000., 3000.')
+        f.write('\nz_init_pl_theta = 0.0, 520.0, 1480., 2000., 3000.')
 
-        temp = self.tempslider.GetValue()
-        f.write('f_init_pl_theta = ',temp, ' ', temp, ' ', temp, ' ', temp)
+        temp = str(self.tempslider.GetValue()  + 273.15)
+        f.write('\nf_init_pl_theta = ' + temp + ' ' + temp + ' ' + temp + ' ' + temp)
 
-        f.write('checkpoint_file = "runs/1/bomex_dump.nc"')
+        f.write('\ncheckpoint_file = "runs/1/bomex_dump.nc"')
 
         f.close()
