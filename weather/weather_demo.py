@@ -1,5 +1,6 @@
 import client
 import vtk
+import random
 import time
 
 #Data transfer object
@@ -36,7 +37,7 @@ class WeatherDemo(client.AbstractDemo):
         x, y, z = coords = [10, 64, 76]
         #unpack  data transfer object
         data = dto.GetData()
-        win.renderer.SetBackground(1,.7,1)
+        win.renderer.SetBackground(0.22,.67,.87)
 
 # ############### VAPOR FIELD  PLANE####################################
         #print(win.vapor)
@@ -80,7 +81,53 @@ class WeatherDemo(client.AbstractDemo):
             win.renderer.AddActor(win.actors['CloudActor'])
             win.actors['CloudActor'].SetMapper(win.mappers['CloudMapper'])
 
-#####VAPOR POINTZ########
+        ################# SEA  #############################
+
+        Sglyph3D, Ssurf = RenderSea(data[1], coords)
+
+        # update mapper
+        try:
+            win.mappers['SeaMapper']
+        except:
+            win.mappers['SeaMapper'] = vtk.vtkPolyDataMapper()
+
+        win.mappers['SeaMapper'].SetInputConnection(Ssurf.GetOutputPort())
+        win.mappers['SeaMapper'].SetScalarModeToUsePointFieldData()
+        win.mappers['SeaMapper'].SetScalarRange(0, 3)
+
+        try:  # does the actor exist? if not, create one
+            win.actors['SeaActor']
+        except:
+            win.actors['SeaActor'] = vtk.vtkActor()
+            win.actors['SeaActor'].GetProperty().SetOpacity(0.9)
+            win.actors['SeaActor'].GetProperty().SetColor(0., 0., 0.7)
+            win.renderer.AddActor(win.actors['SeaActor'])
+            win.actors['SeaActor'].SetMapper(win.mappers['SeaMapper'])
+        ################# LAND  #############################
+
+        Lglyph3D, Lsurf = RenderLand(coords)
+
+        # update mapper
+        try:
+            win.mappers['LandMapper']
+        except:
+            win.mappers['LandMapper'] = vtk.vtkPolyDataMapper()
+
+            win.mappers['LandMapper'].SetInputConnection(Lsurf.GetOutputPort())
+            win.mappers['LandMapper'].SetScalarModeToUsePointFieldData()
+            win.mappers['LandMapper'].SetScalarRange(0, 3)
+
+        try:  # does the actor exist? if not, create one
+            win.actors['LandActor']
+        except:
+            win.actors['LandActor'] = vtk.vtkActor()
+            win.actors['LandActor'].GetProperty().SetOpacity(0.9)
+            win.actors['LandActor'].GetProperty().SetColor(0.475, 0.31, 0.09)
+            win.renderer.AddActor(win.actors['LandActor'])
+            win.actors['LandActor'].SetMapper(win.mappers['LandMapper'])
+
+
+            #####VAPOR POINTZ########
         if win.vapor is True:
 
             Vglyph3D, Vcolors, Vcol = RenderVapor(data[0], coords)
@@ -109,7 +156,7 @@ class WeatherDemo(client.AbstractDemo):
             try:
                 win.renderer.RemoveActor(win.actors['VaporPActor'])
             except:
-                print('lala')
+                pass
 
 ###########RAIN MASS
 
@@ -162,7 +209,7 @@ class WeatherDemo(client.AbstractDemo):
             outlineActor = vtk.vtkActor()
             outlineActor.SetMapper(outlineMapper)
             outlineActor.GetProperty().SetColor(1, 1, 1)
-            win.renderer.AddActor(outlineActor)
+            #win.renderer.AddActor(outlineActor)
 
 
         # # screenshot code:
@@ -174,7 +221,7 @@ class WeatherDemo(client.AbstractDemo):
         savename = str(time.time()) + '.png'
         writer.SetFileName(savename)
         writer.SetInputData(w2if.GetOutput())
-        writer.Write()
+        #writer.Write()
 
         win.vtkwidget.GetRenderWindow().Render()
 
@@ -378,7 +425,7 @@ def RenderRain(rain, coords):
     for k in range(x):
         for j in range(y):
             for i in range(z):
-                if rain[k][j][i] > 0.000000000:
+                if rain[k][j][i] > 0.0000001:
                     points.InsertNextPoint(j, i, k)
                     scales.InsertNextValue(1)
                     rgb = [0.0, 0.0, 0.0]
@@ -401,6 +448,106 @@ def RenderRain(rain, coords):
     glyph3D.Update()
 
     return glyph3D, lut, col
+def RenderSea(sealevel, coords):
+
+    x,y,z = coords
+
+    points = vtk.vtkPoints()
+
+    sealevel = 1
+
+    for k in range(x):
+        for j in range(-20, y-25):
+            for i in range(-10,sealevel):
+                points.InsertNextPoint(j, i, k)
+
+    for k in range(x):
+        for j in range(-20, y-25):
+            for i in range(sealevel,sealevel+1):
+                if random.random()>0.9:
+                    points.InsertNextPoint(j, i, k)
+
+    grid = vtk.vtkUnstructuredGrid()
+    grid.SetPoints(points)
+
+    sphere = vtk.vtkSphereSource()
+
+    glyph3D = vtk.vtkGlyph3D()
+
+    glyph3D.SetSourceConnection(sphere.GetOutputPort())
+    glyph3D.SetInputData(grid)
+    glyph3D.Update()
+
+    polydata = vtk.vtkPolyData()
+
+    polydata.SetPoints(points)
+
+    splatter = vtk.vtkGaussianSplatter()
+
+    splatter.SetInputData(polydata)
+    #splatter.SetSampleDimensions(50, 50, 50)
+    splatter.SetRadius(0.03)
+    #splatter.ScalarWarpingOff()
+
+    cf = vtk.vtkContourFilter()
+    cf.SetInputConnection(splatter.GetOutputPort())
+    cf.SetValue(0, 0.01)
+
+    reverse = vtk.vtkReverseSense()
+    reverse.SetInputConnection(cf.GetOutputPort())
+    reverse.ReverseCellsOn()
+    reverse.ReverseNormalsOn()
+
+
+    return glyph3D, reverse
+def RenderLand(coords):
+
+    x,y,z = coords
+
+    points = vtk.vtkPoints()
+
+    for k in range(x):
+        for j in range(y-25, y+20):
+            for i in range(-5,3):
+                points.InsertNextPoint(j, i, k)
+
+    for k in range(x):
+        for j in range(y-25, y+20):
+            for i in range(3,4):
+                if random.random()>0.9:
+                    points.InsertNextPoint(j, i, k)
+
+    grid = vtk.vtkUnstructuredGrid()
+    grid.SetPoints(points)
+
+    sphere = vtk.vtkSphereSource()
+
+    glyph3D = vtk.vtkGlyph3D()
+
+    glyph3D.SetSourceConnection(sphere.GetOutputPort())
+    glyph3D.SetInputData(grid)
+    glyph3D.Update()
+
+    polydata = vtk.vtkPolyData()
+
+    polydata.SetPoints(points)
+
+    splatter = vtk.vtkGaussianSplatter()
+
+    splatter.SetInputData(polydata)
+    splatter.SetRadius(0.03)
+
+    cf = vtk.vtkContourFilter()
+    cf.SetInputConnection(splatter.GetOutputPort())
+    cf.SetValue(0, 0.05)
+
+    reverse = vtk.vtkReverseSense()
+    reverse.SetInputConnection(cf.GetOutputPort())
+    reverse.ReverseCellsOn()
+    reverse.ReverseNormalsOn()
+
+
+    return glyph3D, reverse
 
 def RenderVaporPlane(qn):
 
