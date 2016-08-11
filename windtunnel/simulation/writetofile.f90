@@ -166,6 +166,7 @@ subroutine writetofile(fname)
         print *, ' ----------------------------------'
         print *, "Lift Coefficient=",c_lift
         print *, "Drag Coefficient=",c_drag
+        print *, "Lift to drag    =",lift/drag
         print *, ''
 
 

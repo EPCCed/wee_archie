@@ -48,6 +48,7 @@ implicit none
     real :: rho_air = 1.3 !kg/m^3
     real :: p_air = 100000. !Pa
     real :: vconv = 1000./3600. !kmph - m/s
+    real :: pi=3.141592
 
 
     !iteration parameters
