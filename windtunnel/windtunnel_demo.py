@@ -164,4 +164,5 @@ class WindTunnelDemo(client.AbstractDemo):
 
         (dum,dum,lift,dum,dum,drag)=data.GetForces()
 
-        win.logger.SetValue("Lift=%d   Drag=%d"%(lift,drag))
+        win.logger.SetValue("Lift= %6.1f kN \nDrag= %6.1f kN \nLift/Drag= %6.3f"%(lift/1000,drag/1000,lift/drag))
+        win.logger.Refresh()

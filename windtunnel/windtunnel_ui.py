@@ -45,15 +45,16 @@ class WindTunnelWindow(UI):
 
         self.radiobox=wx.RadioBox(self,wx.ID_ANY,label="Variable",choices=["Flow","Pressure", "Vorticity","Velocity"],majorDimension=2,style=wx.RA_SPECIFY_COLS)
 
-        self.button=wx.Button(self,wx.ID_ANY,label="Go")
 
-        self.Bind(wx.EVT_BUTTON,self.UpdateResults,self.button)
+
+
         self.Bind(wx.EVT_RADIOBOX,self.UpdateResults,self.radiobox)
         self.Bind(wx.EVT_RADIOBOX,self.UpdateResults,self.loadradio)
 
-        self.logger = wx.TextCtrl(self, style=wx.TE_READONLY)
+        self.logger = wx.TextCtrl(self, style=wx.TE_READONLY|wx.TE_MULTILINE,size=(-1,55))
 
-        self.logger.SetValue("")
+        self.logger.SetValue(" \n \n")
+        self.logger.Refresh()
 
 
         #controls for setting up simulation
@@ -63,8 +64,8 @@ class WindTunnelWindow(UI):
 
         self.angleslider=wx.Slider(self,wx.ID_ANY,value=0,minValue=-45,maxValue=45)
 
-        self.aslider=wx.Slider(self,wx.ID_ANY,value=10,minValue=2,maxValue=10)
-        self.bslider=wx.Slider(self,wx.ID_ANY,value=10,minValue=2,maxValue=10)
+        self.aslider=wx.Slider(self,wx.ID_ANY,value=6,minValue=2,maxValue=10)
+        self.bslider=wx.Slider(self,wx.ID_ANY,value=6,minValue=2,maxValue=10)
 
         self.mslider=wx.Slider(self,wx.ID_ANY,value=0,minValue=-30,maxValue=30)
         self.tslider=wx.Slider(self,wx.ID_ANY,value=2,minValue=1,maxValue=6)
@@ -73,21 +74,25 @@ class WindTunnelWindow(UI):
         self.atext=wx.StaticText(self,label="Red Axis = 1")
         self.btext=wx.StaticText(self,label="Green Axis = 1")
 
-        #self.Bind(wx.EVT_RADIOBOX,self.GetShape,self.shaperadio)
+        self.ResetButton=wx.Button(self,wx.ID_ANY,label="Reset Options")
+
+
         self.Bind(wx.EVT_SLIDER,self.GetShape,self.aslider)
         self.Bind(wx.EVT_SLIDER,self.GetShape,self.bslider)
         self.Bind(wx.EVT_SLIDER,self.GetShape,self.mslider)
         self.Bind(wx.EVT_SLIDER,self.GetShape,self.tslider)
         self.Bind(wx.EVT_SLIDER,self.RotateShape,self.angleslider)
+        self.Bind(wx.EVT_BUTTON,self.reset,self.ResetButton)
 
 
 
-
-
-        #self.ShowResultsControls()
         self.ShowSetupControls()
 
         self.resultsscreen=False
+
+        # self.dto = self.demo.GetVTKData()
+        # self.ShowResultsControls()
+        # self.resultsscreen=True
 
 
         self.mainsizer.Add(self.buttonsizer)
@@ -95,14 +100,8 @@ class WindTunnelWindow(UI):
 
 
 
-
-
-        # self.sizer = wx.BoxSizer(wx.VERTICAL)
-        # self.sizer.Add(self.canvas, 1, wx.LEFT | wx.TOP | wx.GROW)
         self.SetSizer(self.mainsizer)
         self.Fit()
-
-        #self.plot()
 
 
 
@@ -166,7 +165,10 @@ class WindTunnelWindow(UI):
 
     def SwapScreens(self,e):
         if self.resultsscreen == True:
-            self.shaperadio.SetSelection(0)
+            #**** uncomment these to always reset shape options when setting up a new sim ********
+            #self.shaperadio.SetSelection(0)
+            #self.reset(0)
+            #*************************************************************************************
             self.ShowSetupControls()
             self.resultsscreen=False
         else:
@@ -185,17 +187,14 @@ class WindTunnelWindow(UI):
         self.simbutton.Show()
         self.loadradio.Show()
         self.radiobox.Show()
-        #self.button.Show()
         self.logger.Show()
 
 
-        self.buttonsizer.Add(self.simbutton,1,wx.EXPAND)
-        self.buttonsizer.AddStretchSpacer(1)
+        self.buttonsizer.Add(self.simbutton,1,wx.EXPAND|wx.TOP)
+        self.buttonsizer.AddStretchSpacer(0)
         self.buttonsizer.Add(self.loadradio)
-        #self.buttonsizer.Add(self.loadbutton,1,wx.EXPAND)
         self.buttonsizer.Add(self.radiobox)
-        #self.buttonsizer.Add(self.button,1,wx.EXPAND)
-        self.buttonsizer.AddStretchSpacer(12)
+        self.buttonsizer.AddStretchSpacer(4.5)
         self.buttonsizer.Add(self.logger,1,wx.EXPAND)
 
 
@@ -211,7 +210,6 @@ class WindTunnelWindow(UI):
         self.simbutton.Hide()
         self.loadradio.Hide()
         self.radiobox.Hide()
-        self.button.Hide()
         self.logger.Hide()
 
 
@@ -230,6 +228,7 @@ class WindTunnelWindow(UI):
         self.atext.Show()
         self.btext.Show()
         self.angleslider.Show()
+        self.ResetButton.Show()
 
 
 
@@ -264,6 +263,8 @@ class WindTunnelWindow(UI):
             self.buttonsizer.Add(self.btext)
             self.buttonsizer.Add(self.tslider,1,wx.EXPAND)
             print("Aerofoil")
+        self.buttonsizer.AddStretchSpacer(11)
+        self.buttonsizer.Add(self.ResetButton,1,wx.EXPAND)
 
 
         self.buttonsizer.Layout()
@@ -286,6 +287,17 @@ class WindTunnelWindow(UI):
         self.angletext.Hide()
         self.atext.Hide()
         self.btext.Hide()
+        self.ResetButton.Hide()
+
+    def reset(self,e):
+        self.aslider.SetValue(6)
+        self.bslider.SetValue(6)
+        self.angleslider.SetValue(0)
+        self.mslider.SetValue(0)
+        self.tslider.SetValue(2)
+        self.GetShape(0)
+
+
 
 
     def SwapShape(self,e):
