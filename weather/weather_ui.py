@@ -15,6 +15,7 @@ class WeatherWindow(client.AbstractUI):
 
         self.vapor = False
         self.timeoofyear = None
+        self.rainmass = 0
         self.water = 0
         self.actors = {}
         self.mappers = {}
@@ -447,7 +448,7 @@ class WeatherWindow(client.AbstractUI):
 
         f = open('config.mcf', 'w+')
 
-        f.write('global_configuration = my_global_config')
+        f.write('global_configuration = outreach_config')
         f.write('\nsurface_pressure = ' + str(self.pressureslider.GetValue()))
         f.write('\nsurface_reference_pressure = ' + str(self.pressureslider.GetValue()))
         f.write('\nfixed_cloud_number = 1.0e9')
@@ -464,11 +465,12 @@ class WeatherWindow(client.AbstractUI):
         f.write('\nz_init_pl_u = 0.0, 700.0, 3000.')
         f.write('\nf_init_pl_u = -18.75, -18.75, -14.61')
 
-        f.write('\nthref0 = 268.7')
+        temp = str(self.tempslider.GetValue() + 273.15)
+
+        f.write('\nthref0 = ' + temp)
 
         f.write('\nz_init_pl_theta = 0.0, 520.0, 1480., 2000., 3000.')
 
-        temp = str(self.tempslider.GetValue()  + 273.15)
         f.write('\nf_init_pl_theta = ' + temp + ' ' + temp + ' ' + temp + ' ' + temp)
 
         f.write('\ncheckpoint_file = "runs/1/bomex_dump.nc"')
