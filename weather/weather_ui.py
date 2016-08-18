@@ -1,9 +1,7 @@
 import client
 import wx
+from wx.lib.masked import *
 import vtk
-
-
-
 
 # Derive the demo-specific GUI class from the AbstractUI class
 class WeatherWindow(client.AbstractUI):
@@ -13,10 +11,15 @@ class WeatherWindow(client.AbstractUI):
         #call superclass' __init__
         client.AbstractUI.__init__(self,parent,title,demo,servercomm)
 
+        self.fullscreen = False
         self.vapor = False
-        self.timeoofyear = None
+        self.timeofyear = None
         self.rainmass = 0
-        self.water = 0
+        self.cropslevel = 0
+        self.waterlevel = 0
+        self.numberofcores = 0
+        self.columnsinX = 0
+        self.columnsinY = 0
         self.actors = {}
         self.mappers = {}
         self.filters = {}
@@ -29,12 +32,6 @@ class WeatherWindow(client.AbstractUI):
         self.buttonsizer=wx.BoxSizer(wx.VERTICAL)
         #sizer for rewind, step forward, step back and fast forward buttons
         self.weesizer=wx.BoxSizer(wx.HORIZONTAL)
-
-        self.timeofyearsizer=wx.BoxSizer(wx.HORIZONTAL)
-
-        self.watersizer = wx.BoxSizer(wx.HORIZONTAL)
-
-
         
         #create 'array' of buttons
         self.buttons=[]
@@ -58,9 +55,6 @@ class WeatherWindow(client.AbstractUI):
         self.buttons.append(wx.Button(self, label='Middle'))
         self.buttons.append(wx.Button(self, label='High'))
 
-
-
-
         #bind button clicks (wx.EVT_BUTTONT) to methods
         self.Bind(wx.EVT_BUTTON,self.StartStopSim,self.buttons[0])
         self.Bind(wx.EVT_BUTTON,self.play,self.buttons[1])
@@ -80,11 +74,25 @@ class WeatherWindow(client.AbstractUI):
         self.Bind(wx.EVT_BUTTON, self.setWaterMiddle, self.buttons[12])
         self.Bind(wx.EVT_BUTTON, self.setWaterHigh, self.buttons[13])
 
+        #Adding dropdown menu and text fields for core numbers and decomposition topology
+        self.coretext1 = wx.StaticText(self,label="Cores per Pi:")
+        self.coretext2 = wx.StaticText(self,label="Columns in X:")
+        self.coretext3 = wx.StaticText(self,label="Columns in Y:")
+
+        sampleList = ['1','2','3','4']
+        self.corenum = wx.ComboBox(self,size=wx.DefaultSize, choices=sampleList, value='4') #number of cores used per Pi
+        self.columnsizex = NumCtrl(self, id=wx.ID_ANY, allowNegative = False, value=2)#number of columns each core gets in X
+        self.columnsizey = NumCtrl(self, id=wx.ID_ANY, allowNegative = False, value=16) #number of columns each core gets in Y
+
+        self.Bind(EVT_NUM, self.setCoreNum, self.corenum)
+        self.Bind(EVT_NUM, self.setColumnSizeX, self.columnsizex)
+        self.Bind(EVT_NUM, self.setColumnSizeY, self.columnsizey)
+
 
         #add a slider to control refresh rate
         #text box to display slider value
         self.text=wx.StaticText(self,label="Refreshrate =...")
-        self.slider=wx.Slider(self,wx.ID_ANY,value=5,minValue=1,maxValue=20) #must be integer
+        self.slider=wx.Slider(self,wx.ID_ANY,value=5, minValue=1, maxValue=20) #must be integer
         self.sliderdt=0.1 #slider interval
         self.refreshrate=(self.slider.GetValue() * self.sliderdt)
         str="Refresh rate: %3.1f"%self.refreshrate
@@ -101,7 +109,7 @@ class WeatherWindow(client.AbstractUI):
 
         # add a slider to control Temperature
         self.temptext = wx.StaticText(self, label="Temperature: ...")
-        self.tempslider = wx.Slider(self, wx.ID_ANY, value=15, minValue=0, maxValue=40)  # must be integer
+        self.tempslider = wx.Slider(self, wx.ID_ANY, value=25, minValue=0, maxValue=40)  # must be integer
         str = "Temperature: %3.1f °C" % self.tempslider.GetValue()
         self.temptext.SetLabel(str)
         self.Bind(wx.EVT_SCROLL, self.UpdateTempSlider, self.tempslider)
@@ -109,11 +117,9 @@ class WeatherWindow(client.AbstractUI):
         # add a slider to control Pressure
         self.pressuretext = wx.StaticText(self, label="Pressure: ...")
         self.pressureslider = wx.Slider(self, wx.ID_ANY, value=100000, minValue=80000, maxValue=120000)  # must be integer
-        str = "Pressurer: %3.1f" % self.windslider.GetValue()
+        str = "Pressure: %3.1f" % self.pressureslider.GetValue()
         self.pressuretext.SetLabel(str)
         self.Bind(wx.EVT_SCROLL, self.UpdatePressureSlider, self.pressureslider)
-
-
 
         #add buttons to the button (vertical) sizer
         self.buttonsizer.Add(self.buttons[0],1,wx.EXPAND)
@@ -147,6 +153,7 @@ class WeatherWindow(client.AbstractUI):
         self.timeofyeartext = wx.StaticText(self, label="Time of year: ")
         self.buttonsizer.Add(self.timeofyeartext, 1, wx.EXPAND)
 
+        self.timeofyearsizer=wx.BoxSizer(wx.HORIZONTAL)
         self.timeofyearsizer.Add(self.buttons[6],0.5,wx.EXPAND)
         self.timeofyearsizer.Add(self.buttons[7],0.5,wx.EXPAND)
         self.timeofyearsizer.Add(self.buttons[8],0.5,wx.EXPAND)
@@ -156,21 +163,32 @@ class WeatherWindow(client.AbstractUI):
         self.watertext = wx.StaticText(self, label="Amount of water: ")
         self.buttonsizer.Add(self.watertext, 1, wx.EXPAND)
 
+        self.watersizer = wx.BoxSizer(wx.HORIZONTAL)
         self.watersizer.Add(self.buttons[11], 1, wx.EXPAND)
         self.watersizer.Add(self.buttons[12], 1, wx.EXPAND)
         self.watersizer.Add(self.buttons[13], 1, wx.EXPAND)
         self.buttonsizer.Add(self.watersizer, 1, wx.EXPAND)
 
+        self.buttonsizer.Add((10,10))
+
+        self.coreconfixtextsizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.coreconfixtextsizer.Add(self.coretext1, 1, wx.EXPAND)
+        self.coreconfixtextsizer.Add(self.coretext2, 1, wx.EXPAND)
+        self.coreconfixtextsizer.Add(self.coretext3, 1, wx.EXPAND)
+        self.buttonsizer.Add(self.coreconfixtextsizer, 1, wx.EXPAND)
+
+        self.coreconfigsizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.coreconfigsizer.Add(self.corenum, 1, wx.EXPAND)
+        self.coreconfigsizer.Add(self.columnsizex, 1, wx.EXPAND)
+        self.coreconfigsizer.Add(self.columnsizey, 1, wx.EXPAND)
+        self.buttonsizer.Add(self.coreconfigsizer, 1, wx.EXPAND)
 
         #add some vertical space
-        self.buttonsizer.Add((10,250))
+        self.buttonsizer.Add((10,200))
 
         #add slider to the sizer
         self.buttonsizer.Add(self.text,1,wx.EXPAND)
         self.buttonsizer.Add(self.slider,1,wx.EXPAND)
-
-
-
 
         #text at bottom that displays the current frame number
         self.logger = wx.TextCtrl(self, style=wx.TE_READONLY)
@@ -186,7 +204,6 @@ class WeatherWindow(client.AbstractUI):
 
         self.buttons[10].Enable(False)
 
-        
         
         #add button sizer to the left panel of the main sizer, vtk widget to the right (with horizontal width ratio of 1:8)
         self.mainsizer.Add(self.buttonsizer,1,wx.EXPAND)
@@ -206,34 +223,23 @@ class WeatherWindow(client.AbstractUI):
         self.Show()
 
 
-    
-
     def StartInteractor(self):
         client.AbstractUI.StartInteractor(self)
 
 
-
-
     def StartSim(self,config):
         client.AbstractUI.StartSim(self,config)
-        
-        
-        
+
         
     def StopSim(self):
         client.AbstractUI.StopSim(self)
-        
-        
-        
+
         
     def TimerCallback(self,e):
         client.AbstractUI.TimerCallback(self,e)
         
         self.logger.SetValue("Frame %d of %d"%(self.CurrentFrame,self.nfiles.value-1))
-        
-            
-            
-            
+
     
     def StartStopSim(self,e):
         
@@ -249,7 +255,7 @@ class WeatherWindow(client.AbstractUI):
 
 
                 config="config.mcf"
-                
+                #config  = "config_nice.mcf"
                 self.StartSim(config)
                 
                 self.buttons[0].SetLabel("Stop Simulaton")
@@ -329,7 +335,7 @@ class WeatherWindow(client.AbstractUI):
         self.frameno.value=0
         self.getdata.value=True
         self.buttons[1].SetLabel("Play")
-
+        self.rainmass = 0
 
     #go to the latest frame
     def fastforward(self,e):
@@ -428,51 +434,78 @@ class WeatherWindow(client.AbstractUI):
         self.buttons[12].Enable(True)
         self.buttons[13].Enable(True)
 
-        self.water = 1
+        self.waterlevel = 1
 
     def setWaterMiddle(self, e):
         self.buttons[11].Enable(True)
         self.buttons[12].Enable(False)
         self.buttons[13].Enable(True)
 
-        self.water = 2
+        self.waterlevel = 2
 
     def setWaterHigh(self, e):
         self.buttons[11].Enable(True)
         self.buttons[12].Enable(True)
         self.buttons[13].Enable(False)
 
-        self.water = 3
+        self.waterlevel = 3
+
+    def setCoreNum(self):
+        self.numberofcores = self.corenum.GetValue()
+
+    def setColumnSizeX(self):
+        self.columnsinX = self.columnsizex.GetValue()
+
+    def setColumnSizeY(self):
+        self.columnsinY = self.columnsizey.GetValue()
 
     def writeConfig(self):
 
+        # because the events or something does not work for setting there values, set them here
+        self.numberofcores = self.corenum.GetValue()
+        self.columnsinX = self.columnsizex.GetValue()
+        self.columnsinY = self.columnsizey.GetValue()
+
         f = open('config.mcf', 'w+')
 
-        f.write('global_configuration = outreach_config')
-        f.write('\nsurface_pressure = ' + str(self.pressureslider.GetValue()))
-        f.write('\nsurface_reference_pressure = ' + str(self.pressureslider.GetValue()))
-        f.write('\nfixed_cloud_number = 1.0e9')
+        f.write('global_configuration=outreach_config')
+
+        #pressure settings
+        f.write('\nsurface_pressure=' + str(self.pressureslider.GetValue()))
+        f.write('\nsurface_reference_pressure=' + str(self.pressureslider.GetValue()))
+        f.write('\nfixed_cloud_number=1.0e9')
 
         #switch sef.timeofyear
-        f.write('\nf_force_pl_q = -1.2e-8, -1.2e-8, 0.0, 0.0')
 
-        f.write('\nsurface_latent_heat_flux = 260.052')
-        f.write('\nsurface_sensible_heat_flux = 16.04')
+        f.write('\nf_force_pl_q=-1.2e-8, -1.2e-8, 0.0, 0.0')
 
-        f.write('\nf_init_pl_q = 17.0e-3, 16.3e-3, 10.7e-3, 4.2e-3, 3.0e-3')
+        f.write('\nsurface_latent_heat_flux=200.052')
+        f.write('\nsurface_sensible_heat_flux=16.04')
 
+        #amount of water
+        f.write('\nz_init_pl_q=0.0, 520.0, 1480., 2000., 3000.')
+        f.write('\nf_init_pl_q=17.0e-3, 16.3e-3, 10.7e-3, 4.2e-3, 3.0e-3')
 
-        f.write('\nz_init_pl_u = 0.0, 700.0, 3000.')
-        f.write('\nf_init_pl_u = -18.75, -18.75, -14.61')
+        # wind config
 
-        temp = str(self.tempslider.GetValue() + 273.15)
+        winforce = self.windslider.GetValue()
 
-        f.write('\nthref0 = ' + temp)
+        f.write('\nz_init_pl_u=0.0, 700.0, 3000.')
+        f.write('\nf_init_pl_u=' + str(round(winforce*-1.7,2)) + ', ' + str(round(winforce*-1.6,2)) + ', ' + str(winforce*-0.8))
 
-        f.write('\nz_init_pl_theta = 0.0, 520.0, 1480., 2000., 3000.')
+        # temperature settings
+        tempstr = str(self.tempslider.GetValue() + 273.15)
+        temperature = self.tempslider.GetValue() + 273.15
 
-        f.write('\nf_init_pl_theta = ' + temp + ' ' + temp + ' ' + temp + ' ' + temp)
+        f.write('\nthref0 = ' + tempstr)
 
-        f.write('\ncheckpoint_file = "runs/1/bomex_dump.nc"')
+        f.write('\nz_init_pl_theta=0.0, 520.0, 1480., 2000., 3000.')
+
+        f.write('\nf_init_pl_theta=' + tempstr + ', ' + tempstr + ', ' + str(temperature+2) + ', ' + str(temperature+5) + ', ' + str(temperature+7))
+
+        #core number and decomposition
+        f.write('\ncores_per_pi=' + str(self.corenum.GetValue()))
+        f.write('\nnum_px=' + str(self.columnsizex.GetValue()))
+        f.write('\nnum_py=' + str(self.columnsizey.GetValue()))
 
         f.close()

@@ -71,7 +71,7 @@ class WeatherDemo(client.AbstractDemo):
 
         ################# SEA  #############################
 
-        Sglyph3D, Ssurf = RenderSea(data[1], coords)
+        Sglyph3D, Ssurf = RenderSea(win.waterlevel, coords)
 
         # update mapper
         try:
@@ -174,9 +174,17 @@ class WeatherDemo(client.AbstractDemo):
     ################## CROPS
 
         win.rainmass += sum(sum(rm))
-        print(win.rainmass)
+        #print(int(win.rainmass*2))
 
-        crops = RenderCrops(5, coords)
+        if win.rainmass < 1.5:
+            win.cropslevel = int(win.rainmass * 3) + 2
+        else:
+            if win.cropslevel > 4:
+                win.cropslevel -= 1
+            else:
+                win.cropslevel = 4
+
+        crops = RenderCrops(win.cropslevel, coords)
 
         # update mapper
         try:
@@ -196,40 +204,50 @@ class WeatherDemo(client.AbstractDemo):
 
         win.renderer.AddActor(win.actors['CropsActor'])
 
-########### CAMERA SETTINGS
+        if win.rainmass > 1.5:
+            win.actors['CropsActor'].GetProperty().SetColor(0, 0, 0)
+
+        ########### CAMERA SETTINGS
 
         try:
             win.camera
         except:
             win.camera = win.renderer.GetActiveCamera()
-            win.camera.SetFocalPoint(y/2,z/2,x/2)
-            win.camera.Azimuth(110)
-            win.camera.Elevation(50)
-            win.camera.Dolly(0.3)
+            win.camera.SetFocalPoint(int(x/2),int(y/2),int(z/2))
+            win.camera.Roll(80)
+            win.camera.Dolly(0.25)
+            win.camera.Elevation(70)
+            win.camera.Roll(50)
+            win.camera.Azimuth(180)
+            win.camera.Elevation(-30)
 
 
+            #win.camera.Elevation(50)
+            #win.camera.Azimuth(230)
+            #win.camera.Roll(260)
         ###########OUTLINE BOX
 
-        outlineglyph3D, outlinecolors, outlinecol = RenderOutline(coords)
+        print("Columns in xy", win.columnsinX, win.columnsinY)
+
+        RenderDecompGrid(coords, win.renderer, win.columnsinX, win.columnsinY)
 
         try:
             win.filters['Outline']
         except:
             win.filters['Outline'] = vtk.vtkOutlineFilter()
-            win.filters['Outline'].SetInputData(outlineglyph3D.GetOutput())
+            #win.filters['Outline'].SetInputData(outlineglyph3D.GetOutput())
 
             outlineMapper = vtk.vtkPolyDataMapper()
             outlineMapper.SetInputConnection(win.filters['Outline'].GetOutputPort())
             outlineMapper.SetScalarModeToUsePointFieldData()
             outlineMapper.SetScalarRange(0, 3)
             outlineMapper.SelectColorArray("cols")
-            outlineMapper.SetLookupTable(outlinecolors)
+            #outlineMapper.SetLookupTable(outlinecolors)
 
             outlineActor = vtk.vtkActor()
             outlineActor.SetMapper(outlineMapper)
             outlineActor.GetProperty().SetColor(1, 1, 1)
             #win.renderer.AddActor(outlineActor)
-
 
         # # screenshot code:
         w2if = vtk.vtkWindowToImageFilter()
@@ -242,8 +260,54 @@ class WeatherDemo(client.AbstractDemo):
         writer.SetInputData(w2if.GetOutput())
         #writer.Write()
 
+
+        #win.vtkwidget.GetRenderWindow.SetFullScreen(False)
+        if win.fullscreen == True:
+            win.vtkwidget.GetRenderWindow.SetFullScreen(True)
+
+
         win.vtkwidget.GetRenderWindow().Render()
 
+def RenderDecompGrid(coords, renderer, px, py):
+    x, y, z = coords
+
+    for i in range(1, int(y / py) + 1):
+        for j in range(1, int(x / px) + 1):
+            points = vtk.vtkPoints()
+
+            ### for the outline, don't ask
+            points.InsertNextPoint(0, 0, 0)
+
+            points.InsertNextPoint(0, py * i, 0)
+
+            points.InsertNextPoint(px * j, py * i, 0)
+            points.InsertNextPoint(px * j, 0, 0)
+
+            points.InsertNextPoint(0, 0, z)
+
+            grid = vtk.vtkUnstructuredGrid()
+            grid.SetPoints(points)
+
+            sphere = vtk.vtkSphereSource()
+
+            glyph3D = vtk.vtkGlyph3D()
+
+            glyph3D.SetSourceConnection(sphere.GetOutputPort())
+            glyph3D.SetInputData(grid)
+            glyph3D.Update()
+
+            filter = vtk.vtkOutlineFilter()
+
+            filter.SetInputData(glyph3D.GetOutput())
+
+            outlineMapper = vtk.vtkPolyDataMapper()
+            outlineMapper.SetInputConnection(filter.GetOutputPort())
+
+            outlineActor = vtk.vtkActor()
+            outlineActor.SetMapper(outlineMapper)
+            outlineActor.GetProperty().SetColor(1, 1, 1)
+
+            renderer.AddActor(outlineActor)
 
 def RenderOutline(coords):
 
@@ -294,7 +358,6 @@ def RenderOutline(coords):
 def RenderCloud(cloud,coords, rain):
 
     x,y,z = coords
-    print("Coods ", coords)
 
     points = vtk.vtkPoints()
 
@@ -328,7 +391,7 @@ def RenderCloud(cloud,coords, rain):
             for k in range(x):
                 if cloud[k][j][i] > 0:
                     #print(i,j,k)
-                    points.InsertNextPoint(j, i, k)
+                    points.InsertNextPoint(k, j, i)
                     scales.InsertNextValue(1)  # random radius between 0 and 0.99
                     #rgb = [0.0, 0.0, 0.0]
                     #lut.GetColor(rain[k][j][i], rgb)
@@ -463,7 +526,7 @@ def RenderRain(rain, coords):
         for j in range(y):
             for i in range(z):
                 if rain[k][j][i] > 0.0000001:
-                    points.InsertNextPoint(j, i, k)
+                    points.InsertNextPoint(k, j, i)
                     scales.InsertNextValue(1)
                     rgb = [0.0, 0.0, 0.0]
                     lut.GetColor(rain[k][j][i], rgb)
@@ -492,19 +555,24 @@ def RenderSea(sealevel, coords):
     x,y,z = coords
 
     points = vtk.vtkPoints()
+    level = 0
 
-    sealevel = -5 #(-5 ,1)
+    #sealevel = -5 #(-5 ,1)
+    if sealevel == 1:
+        level = -2
+    elif sealevel == 3:
+        level = 3
 
     for k in range(x):
         for j in range(-20, int((y*0.6))):
-            for i in range(-10,sealevel):
-                points.InsertNextPoint(j, i, k)
+            for i in range(-10,level):
+                points.InsertNextPoint(k, j, i)
 
     for k in range(x):
         for j in range(-20, int((y*0.6))):
-            for i in range(sealevel,sealevel+1):
+            for i in range(level,level+1):
                 if random.random()>0.85:
-                    points.InsertNextPoint(j, i, k)
+                    points.InsertNextPoint(k, j, i)
 
     grid = vtk.vtkUnstructuredGrid()
     grid.SetPoints(points)
@@ -524,9 +592,7 @@ def RenderSea(sealevel, coords):
     splatter = vtk.vtkGaussianSplatter()
 
     splatter.SetInputData(polydata)
-    #splatter.SetSampleDimensions(50, 50, 50)
     splatter.SetRadius(0.05)
-    #splatter.ScalarWarpingOff()
 
     cf = vtk.vtkContourFilter()
     cf.SetInputConnection(splatter.GetOutputPort())
@@ -536,7 +602,6 @@ def RenderSea(sealevel, coords):
     reverse.SetInputConnection(cf.GetOutputPort())
     reverse.ReverseCellsOn()
     reverse.ReverseNormalsOn()
-
 
     return glyph3D, reverse
 
@@ -550,13 +615,13 @@ def RenderLand(coords):
     for k in range(x):
         for j in range(y-int((y*0.4)), y+20):
             for i in range(-5,3):
-                points.InsertNextPoint(j, i, k)
+                points.InsertNextPoint(k, j, i)
 
     for k in range(x):
         for j in range(y-int((y*0.4)), y+20):
             for i in range(3,4):
                 if random.random()>0.9:
-                    points.InsertNextPoint(j, i, k)
+                    points.InsertNextPoint(k, j, i)
 
     grid = vtk.vtkUnstructuredGrid()
     grid.SetPoints(points)
@@ -599,8 +664,8 @@ def RenderCrops(level, coords):
 
     for k in range(x):
         for j in range(y-int((y*0.4)), y+20):
-                points.InsertNextPoint(j, 2, k)
-                points.InsertNextPoint(j, level, k)
+            points.InsertNextPoint(k, j, 2)
+            points.InsertNextPoint(k, j, level)
 
     # Create a polydata to store everything in
     linesPolyData = vtk.vtkPolyData()
