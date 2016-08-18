@@ -3,6 +3,7 @@ import client
 import numpy as np
 import wx
 import subprocess
+import shutil
 
 
 
@@ -16,6 +17,8 @@ class WindTunnelWindow(UI):
 
         #call superclass' __init__
         UI.__init__(self,parent,title,demo,servercomm)
+
+        self.serverversion=False
 
         #INSERT CODE HERE TO SET LAYOUT OF WINDOW/ADD BUTTONS ETC
 
@@ -51,7 +54,7 @@ class WindTunnelWindow(UI):
         self.Bind(wx.EVT_RADIOBOX,self.UpdateResults,self.radiobox)
         self.Bind(wx.EVT_RADIOBOX,self.UpdateResults,self.loadradio)
 
-        self.logger = wx.TextCtrl(self, style=wx.TE_READONLY|wx.TE_MULTILINE,size=(-1,55))
+        self.logger = wx.TextCtrl(self, style=wx.TE_READONLY|wx.TE_MULTILINE,size=(-1,60))
 
         self.logger.SetValue(" \n \n")
         self.logger.Refresh()
@@ -136,8 +139,64 @@ class WindTunnelWindow(UI):
 
 
     def TimerCallback(self,e):
-        UI.TimerCallback(self,e)
+        #UI.TimerCallback(self,e)
         #INSERT ANY CUSTOM CODE HERE
+        if self.servercomm.IsStarted():
+
+            #if one file is available:
+            if self.nfiles.value == 1:
+                self.dlg.Update(50,"Calculating viscous flow")
+
+
+            #if all files are ready
+            if self.nfiles.value == 2:
+                self.dlg.Update(90,"Downloading results")
+
+                if self.potential == None:
+                    #need to fetch potential results...
+                    if self.newdata.value==True:
+                        #read data from process:
+                        dto=self.pipemain.recv() #get the dto from process
+                        self.newdata.value=False
+                        self.getdata.value=False
+                        self.potential=dto.GetData()
+                    else:
+                        #request process reads new data
+                        self.frameno.value=0
+                        self.getdata.value=True
+
+
+                if self.viscous == None and self.potential != None:
+                    #need to fetch potential results...
+                    if self.newdata.value==True:
+                        #read data from process:
+                        dto=self.pipemain.recv() #get the dto from process
+                        self.newdata.value=False
+                        self.getdata.value=False
+                        self.viscous=dto.GetData()
+                    else:
+                        #request process reads new data
+                        self.frameno.value=1
+                        self.getdata.value=True
+
+                if (self.viscous != None) and (self.potential != None):
+
+                    self.ShowResultsControls()
+                    self.resultsscreen=True
+                    dlg.Update(100,"Done")
+
+                    self.timer.Stop()
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -163,6 +222,7 @@ class WindTunnelWindow(UI):
         self.canvas.draw()
         self.canvas.Refresh()
 
+
     def SwapScreens(self,e):
         if self.resultsscreen == True:
             #**** uncomment these to always reset shape options when setting up a new sim ********
@@ -172,12 +232,52 @@ class WindTunnelWindow(UI):
             self.ShowSetupControls()
             self.resultsscreen=False
         else:
+
+            self.viscous=None
+            self.potential=None
+
             self.write_paramfile()
-            print("Running code. Please wait a few seconds whilst this completes")
-            subprocess.call(["mpiexec","-n","4","./simulation/windtunnel"])
-            self.dto = self.demo.GetVTKData()
-            self.ShowResultsControls()
-            self.resultsscreen=True
+
+            dlg=wx.ProgressDialog(title="Running Simulation - Please Wait",message="Starting simulation",style=wx.PD_AUTO_HIDE|wx.PD_APP_MODAL,parent=self)
+
+            for widget in self.GetChildren():
+                widget.Enable(False)
+
+            if self.serverversion:
+                self.StartSim('params.dat')
+
+
+            dlg.Update(10,"Calculating potential flow")
+
+            if not self.serverversion:
+                print("Running code. Please wait a few seconds whilst this completes")
+                subprocess.call(["mpiexec","-n","4","./simulation/windtunnel"])
+
+                #get potential data file
+                shutil.copy2('potential.dat','tmp.nc')
+                self.dto = self.demo.GetVTKData()
+                self.potential=self.dto.GetData()
+                dlg.Update(50,"Got potential file")
+
+                #get viscous data file
+                shutil.copy2('output.dat','tmp.nc')
+                self.dto = self.demo.GetVTKData()
+                self.viscous=self.dto.GetData()
+                dlg.Update(90,"Got viscous file")
+
+
+
+                #dlg.Update(90,"Run simulation")
+
+                #self.dto = self.demo.GetVTKData()
+
+                dlg.Update(100,"Done")
+                for widget in self.GetChildren():
+                    widget.Enable(True)
+
+
+                self.ShowResultsControls()
+                self.resultsscreen=True
 
     def ShowResultsControls(self):
         self.figure.clf()

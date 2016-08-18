@@ -86,13 +86,15 @@ class WindTunnelDemo(client.AbstractDemo):
 
         #INSERT CODE TO READIN DATA FROM ROOT AND PREPARE IT FOR TRANSFER TO GUI
 
-        potential=SimResults("potential.dat")
+        #potential=SimResults("potential.dat")
 
-        viscous=SimResults("output.dat")
+        #viscous=SimResults("output.dat")
+
+        data=SimResults('tmp.nc')
 
         dto=DTO()
 
-        data={ "potential" : potential , "viscous" : viscous }
+        #data={ "potential" : potential , "viscous" : viscous }
 
         dto.SetData(data)
 
@@ -117,9 +119,11 @@ class WindTunnelDemo(client.AbstractDemo):
 
         #get data
         if simtype ==0:
-            data=dto.GetData()["potential"]
+            #data=dto.GetData()["potential"]
+            data=win.potential
         else:
-            data=dto.GetData()["viscous"]
+            #data=dto.GetData()["viscous"]
+            data=win.viscous
 
         (nx,ny,x,y)=data.GetGrid()
 
