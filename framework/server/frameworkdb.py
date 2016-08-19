@@ -107,7 +107,7 @@ class SimulationConnector(object):
         :return:
         """
         cursor = self.database.cursor()
-        cursor.execute('SELECT ExecutionPrefix, ExecutionHostFile, Executable FROM Simulations WHERE SIMID=?', (simulationid, ))
+        cursor.execute('SELECT ExecutionPrefix, ExecutionHostFile, Executable, ChangeToDir FROM Simulations WHERE SIMID=?', (simulationid, ))
         return cursor.fetchone()
 
     def updateInstance(self, instanceid, simulationid, status):
