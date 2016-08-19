@@ -33,7 +33,6 @@ class WeatherDemo(client.AbstractDemo):
         dto = DTO()
         dto.SetData(data)
 
-
         return dto
 
     # Renders a frame with data contained within the data transfer object, data
@@ -43,101 +42,45 @@ class WeatherDemo(client.AbstractDemo):
         #unpack  data transfer object
         data = dto.GetData()
         vapor, clouds, rain, coords, rm = data
+        print("Coordiantes: ", coords)
         win.renderer.SetBackground(0.22,.67,.87)
         x, y, z = coords
 
-        glyph3D, colors, col, surf = RenderCloud(clouds, coords, rain)
-
-        # update mapper
+        ### Clouds
         try:
-            win.mappers['CloudMapper']
-        except:
-            win.mappers['CloudMapper'] = vtk.vtkPolyDataMapper()
-
-        win.mappers['CloudMapper'].SetInputConnection(surf.GetOutputPort())
-        win.mappers['CloudMapper'].SetScalarModeToUsePointFieldData()
-        win.mappers['CloudMapper'].SetScalarRange(0, 3)
-        win.mappers['CloudMapper'].SelectColorArray("Ccol")  # // !!!to set color (nevertheless you will have nothing)
-        win.mappers['CloudMapper'].SetLookupTable(colors)
-
-
-        try:  # does the actor exist? if not, create one
             win.actors['CloudActor']
         except:
             win.actors['CloudActor'] = vtk.vtkActor()
-            win.actors['CloudActor'].GetProperty().SetOpacity(1.0)
-            win.renderer.AddActor(win.actors['CloudActor'])
-            win.actors['CloudActor'].SetMapper(win.mappers['CloudMapper'])
 
-        ################# SEA  #############################
+        RenderCloud(clouds, coords, win.actors['CloudActor'])
+        win.renderer.AddActor(win.actors['CloudActor'])
 
-        Sglyph3D, Ssurf = RenderSea(win.waterlevel, coords)
-
-        # update mapper
+        ### Sea
         try:
-            win.mappers['SeaMapper']
-        except:
-            win.mappers['SeaMapper'] = vtk.vtkPolyDataMapper()
-
-        win.mappers['SeaMapper'].SetInputConnection(Ssurf.GetOutputPort())
-        win.mappers['SeaMapper'].SetScalarModeToUsePointFieldData()
-        win.mappers['SeaMapper'].SetScalarRange(0, 3)
-
-        try:  # does the actor exist? if not, create one
             win.actors['SeaActor']
         except:
             win.actors['SeaActor'] = vtk.vtkActor()
-            win.actors['SeaActor'].GetProperty().SetOpacity(1.)
-            win.actors['SeaActor'].GetProperty().SetColor(0., 0.412, 0.58)
-            win.renderer.AddActor(win.actors['SeaActor'])
-            win.actors['SeaActor'].SetMapper(win.mappers['SeaMapper'])
-        ################# LAND  #############################
 
-        Lglyph3D, Lsurf = RenderLand(coords)
+        RenderSea(win.waterlevel, coords, win.renderer, win.actors['SeaActor'])
 
-        # update mapper
-        try:
-            win.mappers['LandMapper']
-        except:
-            win.mappers['LandMapper'] = vtk.vtkPolyDataMapper()
+        win.renderer.AddActor(win.actors['SeaActor'])
 
-            win.mappers['LandMapper'].SetInputConnection(Lsurf.GetOutputPort())
-            win.mappers['LandMapper'].SetScalarModeToUsePointFieldData()
-            win.mappers['LandMapper'].SetScalarRange(0, 3)
+        ### Land
+        if win.frameno.value == 0:
+            RenderLand(coords, win.renderer)
 
-        try:  # does the actor exist? if not, create one
-            win.actors['LandActor']
-        except:
-            win.actors['LandActor'] = vtk.vtkActor()
-            win.actors['LandActor'].GetProperty().SetOpacity(1.0)
-            win.actors['LandActor'].GetProperty().SetColor(0.475, 0.31, 0.09)
-            win.renderer.AddActor(win.actors['LandActor'])
-            win.actors['LandActor'].SetMapper(win.mappers['LandMapper'])
+            RenderDecompGrid(coords, win.renderer, win.columnsinX, win.columnsinY)
 
 
-            #####VAPOR POINTZ########
+        ### Vapor, TODO
         if win.vapor is True:
-
-            Vglyph3D, Vcolors, Vcol = RenderVapor(vapor, coords)
-
-            # update mapper
-            try:
-                win.mappers['VaporPMapper']
-            except:
-                win.mappers['VaporPMapper'] = vtk.vtkPolyDataMapper()
-
-            win.mappers['VaporPMapper'].SetInputConnection(Vglyph3D.GetOutputPort())
-            win.mappers['VaporPMapper'].SetScalarModeToUsePointFieldData()
-            win.mappers['VaporPMapper'].SetScalarRange(0, 3)
-            win.mappers['VaporPMapper'].SelectColorArray("Vcol")  # // !!!to set color (nevertheless you will have nothing)
-            win.mappers['VaporPMapper'].SetLookupTable(Vcolors)
 
             try:  # does the actor exist? if not, create one
                 win.actors['VaporPActor']
             except:
                 win.actors['VaporPActor'] = vtk.vtkActor()
-                win.actors['VaporPActor'].GetProperty().SetOpacity(0.2)
-                win.actors['VaporPActor'].SetMapper(win.mappers['VaporPMapper'])
+
+            RenderVapor(vapor, coords, win.actors['VaporPActor'])
 
             win.renderer.AddActor(win.actors['VaporPActor'])
         else:
@@ -146,36 +89,22 @@ class WeatherDemo(client.AbstractDemo):
             except:
                 pass
 
-###########RAIN MASS
-
-        Rglyph3D, Rcolors, Rcol = RenderRain(rain, coords)
-
-        # update mapper
+        ### Rain
         try:
-            win.mappers['RainMapper']
-        except:
-            win.mappers['RainMapper'] = vtk.vtkPolyDataMapper()
-        win.mappers['RainMapper'].SetInputConnection(Rglyph3D.GetOutputPort())
-        win.mappers['RainMapper'].SetScalarRange(0, 3)
-
-        win.mappers['RainMapper'].SetScalarModeToUsePointFieldData()
-        win.mappers['RainMapper'].SelectColorArray("Rcol")  # // !!!to set color (nevertheless you will have nothing)
-        win.mappers['RainMapper'].SetLookupTable(Rcolors)
-
-        try:  # does the actor exist? if not, create one
             win.actors['RainActor']
         except:
             win.actors['RainActor'] = vtk.vtkActor()
-            win.actors['RainActor'].GetProperty().SetOpacity(0.1)
-            win.actors['RainActor'].SetMapper(win.mappers['RainMapper'])
 
+        RenderRain(rain, coords, win.actors['RainActor'])
         win.renderer.AddActor(win.actors['RainActor'])
 
-    ################## CROPS
+        ### Crops
+        try:  # does the actor exist? if not, create one
+            win.actors['CropsActor']
+        except:
+            win.actors['CropsActor'] = vtk.vtkActor()
 
         win.rainmass += sum(sum(rm))
-        #print(int(win.rainmass*2))
-
         if win.rainmass < 1.5:
             win.cropslevel = int(win.rainmass * 3) + 2
         else:
@@ -184,30 +113,14 @@ class WeatherDemo(client.AbstractDemo):
             else:
                 win.cropslevel = 4
 
-        crops = RenderCrops(win.cropslevel, coords)
-
-        # update mapper
-        try:
-            win.mappers['CropsMapper']
-        except:
-            win.mappers['CropsMapper'] = vtk.vtkPolyDataMapper()
-        win.mappers['CropsMapper'].SetInputData(crops)
-
-        try:  # does the actor exist? if not, create one
-            win.actors['CropsActor']
-        except:
-            win.actors['CropsActor'] = vtk.vtkActor()
-        win.actors['CropsActor'].GetProperty().SetOpacity(1.0)
-        win.actors['CropsActor'].GetProperty().SetLineWidth(10)
-        win.actors['CropsActor'].GetProperty().SetColor(0.39, 0.65, 0.04)
-        win.actors['CropsActor'].SetMapper(win.mappers['CropsMapper'])
-
-        win.renderer.AddActor(win.actors['CropsActor'])
+        RenderCrops(win.cropslevel, coords, win.actors['CropsActor'])
 
         if win.rainmass > 1.5:
             win.actors['CropsActor'].GetProperty().SetColor(0, 0, 0)
 
-        ########### CAMERA SETTINGS
+        win.renderer.AddActor(win.actors['CropsActor'])
+
+        ### Camera settings
 
         try:
             win.camera
@@ -221,68 +134,160 @@ class WeatherDemo(client.AbstractDemo):
             win.camera.Azimuth(180)
             win.camera.Elevation(-30)
 
-
             #win.camera.Elevation(50)
             #win.camera.Azimuth(230)
             #win.camera.Roll(260)
-        ###########OUTLINE BOX
 
-        print("Columns in xy", win.columnsinX, win.columnsinY)
-
-        RenderDecompGrid(coords, win.renderer, win.columnsinX, win.columnsinY)
-
-        try:
-            win.filters['Outline']
-        except:
-            win.filters['Outline'] = vtk.vtkOutlineFilter()
-            #win.filters['Outline'].SetInputData(outlineglyph3D.GetOutput())
-
-            outlineMapper = vtk.vtkPolyDataMapper()
-            outlineMapper.SetInputConnection(win.filters['Outline'].GetOutputPort())
-            outlineMapper.SetScalarModeToUsePointFieldData()
-            outlineMapper.SetScalarRange(0, 3)
-            outlineMapper.SelectColorArray("cols")
-            #outlineMapper.SetLookupTable(outlinecolors)
-
-            outlineActor = vtk.vtkActor()
-            outlineActor.SetMapper(outlineMapper)
-            outlineActor.GetProperty().SetColor(1, 1, 1)
-            #win.renderer.AddActor(outlineActor)
-
-        # # screenshot code:
-        w2if = vtk.vtkWindowToImageFilter()
-        w2if.SetInput(win.vtkwidget.GetRenderWindow())
-        w2if.Update()
-
-        writer = vtk.vtkPNGWriter()
-        savename = str(time.time()) + '.png'
-        writer.SetFileName(savename)
-        writer.SetInputData(w2if.GetOutput())
-        #writer.Write()
-
+        # Uncomment if you want to get a screenshot of every frame, see function description
+        #Screenshot(win.vtkwidget.GetRenderWindow())
 
         #win.vtkwidget.GetRenderWindow.SetFullScreen(False)
         if win.fullscreen == True:
             win.vtkwidget.GetRenderWindow.SetFullScreen(True)
 
-
         win.vtkwidget.GetRenderWindow().Render()
+
+
+def Screenshot(rw):
+    # Outputs a .png for every frame, input is a renderwindow
+    # You can then combine the .pngs into a animated gif using the linux tool 'convert'
+    w2if = vtk.vtkWindowToImageFilter()
+    w2if.SetInput(rw)
+    w2if.Update()
+
+    writer = vtk.vtkPNGWriter()
+    savename = str(time.time()) + '.png'
+    writer.SetFileName(savename)
+    writer.SetInputData(w2if.GetOutput())
+    writer.Write()
+
 
 def RenderDecompGrid(coords, renderer, px, py):
     x, y, z = coords
 
-    for i in range(1, int(y / py) + 1):
-        for j in range(1, int(x / px) + 1):
-            points = vtk.vtkPoints()
+    localsizey = int(y/py)
+    localsizex = int(x/px)
+    """
+    if y-(localsizey*py) == 0 and x-(localsizex*px) == 0:
+        print("All")
+        for i in range(1, int(py) + 1):
+            for j in range(1, int(px) + 1):
+                points = vtk.vtkPoints()
 
+                ### for the outline, don't ask
+                points.InsertNextPoint(0, 0, 0)
+                points.InsertNextPoint(0, int(localsizey * i), 0)
+                points.InsertNextPoint(int(localsizex * j), int(localsizey * i), 0)
+                points.InsertNextPoint(int(localsizex * j), 0, 0)
+                points.InsertNextPoint(0, 0, z)
+
+                grid = vtk.vtkUnstructuredGrid()
+                grid.SetPoints(points)
+
+                sphere = vtk.vtkSphereSource()
+
+                glyph3D = vtk.vtkGlyph3D()
+
+                glyph3D.SetSourceConnection(sphere.GetOutputPort())
+                glyph3D.SetInputData(grid)
+                glyph3D.Update()
+
+                filter = vtk.vtkOutlineFilter()
+
+                filter.SetInputData(glyph3D.GetOutput())
+
+                outlineMapper = vtk.vtkPolyDataMapper()
+                outlineMapper.SetInputConnection(filter.GetOutputPort())
+
+                outlineActor = vtk.vtkActor()
+                outlineActor.SetMapper(outlineMapper)
+                outlineActor.GetProperty().SetColor(1, 1, 1)
+
+                renderer.AddActor(outlineActor)
+    else:
+        """
+    overflowy = int(y-(localsizey*py))
+    overflowx = x-(localsizex*px)
+    localsizey+=1
+    #localsizex+=1
+    # the first few bigger chunks
+    for i in range(1, int(overflowy)+1):
+        localsizex += 1
+        for j in range(1, int(overflowx) + 1):
+            points = vtk.vtkPoints()
             ### for the outline, don't ask
             points.InsertNextPoint(0, 0, 0)
+            points.InsertNextPoint(0, localsizey * i-1, 0)
+            points.InsertNextPoint(int(localsizex * j)-1, localsizey * i-1, 0)
+            points.InsertNextPoint(int(localsizex * j)-1, 0, 0)
+            points.InsertNextPoint(0, 0, z)
+            if i==1:
+                print(overflowy, localsizey, localsizey*i)
 
-            points.InsertNextPoint(0, py * i, 0)
+            grid = vtk.vtkUnstructuredGrid()
+            grid.SetPoints(points)
 
-            points.InsertNextPoint(px * j, py * i, 0)
-            points.InsertNextPoint(px * j, 0, 0)
+            sphere = vtk.vtkSphereSource()
 
+            glyph3D = vtk.vtkGlyph3D()
+
+            glyph3D.SetSourceConnection(sphere.GetOutputPort())
+            glyph3D.SetInputData(grid)
+            glyph3D.Update()
+
+            filter = vtk.vtkOutlineFilter()
+
+            filter.SetInputData(glyph3D.GetOutput())
+
+            outlineMapper = vtk.vtkPolyDataMapper()
+            outlineMapper.SetInputConnection(filter.GetOutputPort())
+
+            outlineActor = vtk.vtkActor()
+            outlineActor.SetMapper(outlineMapper)
+            outlineActor.GetProperty().SetColor(1, 1, 1)
+
+            renderer.AddActor(outlineActor)
+        localsizex -= 1
+        for j in range(int(overflowx) + 1, px + 1):
+            points = vtk.vtkPoints()
+            ### for the outline, don't ask
+            points.InsertNextPoint(0, 0, 0)
+            points.InsertNextPoint(0, int(localsizey * i)-1, 0)
+            points.InsertNextPoint(int(localsizex * j + overflowx)-1, int(localsizey * i)-1, 0)
+            points.InsertNextPoint(int(localsizex * j + overflowx)-1, 0, 0)
+            points.InsertNextPoint(0, 0, z)
+
+            grid = vtk.vtkUnstructuredGrid()
+            grid.SetPoints(points)
+            sphere = vtk.vtkSphereSource()
+            glyph3D = vtk.vtkGlyph3D()
+            glyph3D.SetSourceConnection(sphere.GetOutputPort())
+            glyph3D.SetInputData(grid)
+            glyph3D.Update()
+
+            filter = vtk.vtkOutlineFilter()
+            filter.SetInputData(glyph3D.GetOutput())
+            outlineMapper = vtk.vtkPolyDataMapper()
+            outlineMapper.SetInputConnection(filter.GetOutputPort())
+
+            outlineActor = vtk.vtkActor()
+            outlineActor.SetMapper(outlineMapper)
+            outlineActor.GetProperty().SetColor(1, 1, 1)
+
+            renderer.AddActor(outlineActor)
+    # the next regular ones
+    localsizey -=1
+
+    for i in range(int(overflowy)+1, py+1):
+        localsizex += 1
+        for j in range(1, int(overflowx) + 1):
+            points = vtk.vtkPoints()
+            ### for the outline, don't ask
+            print("Localsize and j, ", localsizex, j)
+            points.InsertNextPoint(0, 0, 0)
+            points.InsertNextPoint(0, int(localsizey * i)+overflowy-1, 0)
+            points.InsertNextPoint(int(localsizex * j)-1, int(localsizey * i)+overflowy-1, 0)
+            points.InsertNextPoint(int(localsizex * j)-1, 0, 0)
             points.InsertNextPoint(0, 0, z)
 
             grid = vtk.vtkUnstructuredGrid()
@@ -308,8 +313,37 @@ def RenderDecompGrid(coords, renderer, px, py):
             outlineActor.GetProperty().SetColor(1, 1, 1)
 
             renderer.AddActor(outlineActor)
+        localsizex -= 1
+        for j in range(int(overflowx) + 1, px + 1):
+            points = vtk.vtkPoints()
+            ### for the outline, don't ask
+            points.InsertNextPoint(0, 0, 0)
+            points.InsertNextPoint(0, int(localsizey * i)+overflowy-1, 0)
+            points.InsertNextPoint(int(localsizex * j + overflowx)-1, int(localsizey * i)+overflowy-1, 0)
+            points.InsertNextPoint(int(localsizex * j + overflowx)-1, 0, 0)
+            points.InsertNextPoint(0, 0, z)
 
-def RenderOutline(coords):
+            grid = vtk.vtkUnstructuredGrid()
+            grid.SetPoints(points)
+            sphere = vtk.vtkSphereSource()
+            glyph3D = vtk.vtkGlyph3D()
+            glyph3D.SetSourceConnection(sphere.GetOutputPort())
+            glyph3D.SetInputData(grid)
+            glyph3D.Update()
+
+            filter = vtk.vtkOutlineFilter()
+            filter.SetInputData(glyph3D.GetOutput())
+            outlineMapper = vtk.vtkPolyDataMapper()
+            outlineMapper.SetInputConnection(filter.GetOutputPort())
+
+            outlineActor = vtk.vtkActor()
+            outlineActor.SetMapper(outlineMapper)
+            outlineActor.GetProperty().SetColor(1, 1, 1)
+
+            renderer.AddActor(outlineActor)
+
+
+def RenderOutline(coords, renderer):
 
     x,y,z = coords
     points = vtk.vtkPoints()
@@ -352,10 +386,25 @@ def RenderOutline(coords):
     glyph3D.SetInputData(grid)
     glyph3D.Update()
 
+    outlinefilter =  vtk.vtkOutlineFilter()
+        # win.filters['Outline'].SetInputData(outlineglyph3D.GetOutput())
+
+    outlineMapper = vtk.vtkPolyDataMapper()
+    outlineMapper.SetInputConnection(outlinefilter.GetOutputPort())
+    outlineMapper.SetScalarModeToUsePointFieldData()
+    outlineMapper.SetScalarRange(0, 3)
+    outlineMapper.SelectColorArray("cols")
+    # outlineMapper.SetLookupTable(outlinecolors)
+
+    outlineActor = vtk.vtkActor()
+    outlineActor.SetMapper(outlineMapper)
+    outlineActor.GetProperty().SetColor(1, 1, 1)
+    renderer.AddActor(outlineActor)
+
     return glyph3D, colors, cols
 
 
-def RenderCloud(cloud,coords, rain):
+def RenderCloud(cloud,coords, cloudactor):
 
     x,y,z = coords
 
@@ -437,7 +486,18 @@ def RenderCloud(cloud,coords, rain):
     reverse.ReverseCellsOn()
     reverse.ReverseNormalsOn()
 
-    return glyph3D, lut, col, reverse
+    # update mapper
+
+    cloudmapper = vtk.vtkPolyDataMapper()
+
+    cloudmapper.SetInputConnection(reverse.GetOutputPort())
+    cloudmapper.SetScalarModeToUsePointFieldData()
+    cloudmapper.SetScalarRange(0, 3)
+    cloudmapper.SelectColorArray("Ccol")  # // !!!to set color (nevertheless you will have nothing)
+    cloudmapper.SetLookupTable(lut)
+
+    cloudactor.GetProperty().SetOpacity(1.0)
+    cloudactor.SetMapper(cloudmapper)
 
 
 def RenderVapor(vapor, coords):
@@ -485,7 +545,7 @@ def RenderVapor(vapor, coords):
     grid = vtk.vtkUnstructuredGrid()
     grid.SetPoints(points)
     grid.GetPointData().AddArray(scales)
-    grid.GetPointData().SetActiveScalars("scales")  # // !!!to set radius first
+    grid.GetPointData().SetActiveScalars("Vscales")  # // !!!to set radius first
     grid.GetPointData().AddArray(col)
 
     sphere = vtk.vtkSphereSource()
@@ -496,10 +556,17 @@ def RenderVapor(vapor, coords):
     glyph3D.SetInputData(grid)
     glyph3D.Update()
 
-    return glyph3D, lut, col
+    # update mapper
+    vapormapper = vtk.vtkPolyDataMapper()
+
+    vapormapper.SetInputConnection(glyph3D.GetOutputPort())
+    vapormapper.SetScalarModeToUsePointFieldData()
+    vapormapper.SetScalarRange(0, 3)
+    vapormapper.SelectColorArray("Vcol")  # // !!!to set color (nevertheless you will have nothing)
+    vapormapper.SetLookupTable(lut)
 
 
-def RenderRain(rain, coords):
+def RenderRain(rain, coords, rainactor):
 
     x, y, z = coords
     points = vtk.vtkPoints()
@@ -519,8 +586,6 @@ def RenderRain(rain, coords):
     lut.SetHueRange(0.65, 0.53)
     lut.SetAlphaRange(0.6,0.7)
     lut.Build()
-
-
 
     for k in range(x):
         for j in range(y):
@@ -547,10 +612,20 @@ def RenderRain(rain, coords):
     glyph3D.SetInputData(grid)
     glyph3D.Update()
 
-    return glyph3D, lut, col
+# update mapper
+    rainmapper = vtk.vtkPolyDataMapper()
+    rainmapper.SetInputConnection(glyph3D.GetOutputPort())
+    rainmapper.SetScalarRange(0, 3)
+
+    rainmapper.SetScalarModeToUsePointFieldData()
+    rainmapper.SelectColorArray("Rcol")  # // !!!to set color (nevertheless you will have nothing)
+    rainmapper.SetLookupTable(lut)
+
+    rainactor.GetProperty().SetOpacity(0.1)
+    rainactor.SetMapper(rainmapper)
 
 
-def RenderSea(sealevel, coords):
+def RenderSea(sealevel, coords, renderer, seaactor):
 
     x,y,z = coords
 
@@ -592,21 +667,30 @@ def RenderSea(sealevel, coords):
     splatter = vtk.vtkGaussianSplatter()
 
     splatter.SetInputData(polydata)
-    splatter.SetRadius(0.05)
+    splatter.SetRadius(0.08)
 
     cf = vtk.vtkContourFilter()
     cf.SetInputConnection(splatter.GetOutputPort())
-    cf.SetValue(0, 0.05)
+    cf.SetValue(0, 0.1)
 
     reverse = vtk.vtkReverseSense()
     reverse.SetInputConnection(cf.GetOutputPort())
     reverse.ReverseCellsOn()
     reverse.ReverseNormalsOn()
 
-    return glyph3D, reverse
+    # update mapper
+    seamapper = vtk.vtkPolyDataMapper()
+
+    seamapper.SetInputConnection(reverse.GetOutputPort())
+    seamapper.SetScalarModeToUsePointFieldData()
+    seamapper.SetScalarRange(0, 3)
+
+    seaactor.GetProperty().SetOpacity(1.)
+    seaactor.GetProperty().SetColor(0., 0.412, 0.58)
+    seaactor.SetMapper(seamapper)
 
 
-def RenderLand(coords):
+def RenderLand(coords, renderer):
 
     x,y,z = coords
 
@@ -653,10 +737,19 @@ def RenderLand(coords):
     reverse.ReverseNormalsOn()
 
 
-    return glyph3D, reverse
+    landmapper = vtk.vtkPolyDataMapper()
+
+    landmapper.SetInputConnection(reverse.GetOutputPort())
+    landmapper.SetScalarModeToUsePointFieldData()
+    landmapper.SetScalarRange(0, 3)
+    landactor = vtk.vtkActor()
+    landactor.GetProperty().SetOpacity(1.0)
+    landactor.GetProperty().SetColor(0.475, 0.31, 0.09)
+    renderer.AddActor(landactor)
+    landactor.SetMapper(landmapper)
 
 
-def RenderCrops(level, coords):
+def RenderCrops(level, coords, cropsactor):
 
     x, y, z = coords
     points = vtk.vtkPoints()
@@ -677,5 +770,14 @@ def RenderCrops(level, coords):
     # Add the points to the dataset
     linesPolyData.SetPoints(points)
 
-    return linesPolyData
+    # update mapper
+    cropsmapper = vtk.vtkPolyDataMapper()
+    cropsmapper.SetInputData(linesPolyData)
+
+
+    cropsactor.GetProperty().SetOpacity(1.0)
+    cropsactor.GetProperty().SetLineWidth(10)
+    cropsactor.GetProperty().SetColor(0.39, 0.65, 0.04)
+    cropsactor.SetMapper(cropsmapper)
+
 

@@ -85,8 +85,8 @@ class WeatherWindow(client.AbstractUI):
         self.columnsizey = NumCtrl(self, id=wx.ID_ANY, allowNegative = False, value=16) #number of columns each core gets in Y
 
         self.Bind(EVT_NUM, self.setCoreNum, self.corenum)
-        self.Bind(EVT_NUM, self.setColumnSizeX, self.columnsizex)
-        self.Bind(EVT_NUM, self.setColumnSizeY, self.columnsizey)
+        #self.Bind(EVT_NUM, self.setColumnSizeX, self.columnsizex)
+        #self.Bind(EVT_NUM, self.setColumnSizeY, self.columnsizey)
 
 
         #add a slider to control refresh rate
@@ -206,7 +206,7 @@ class WeatherWindow(client.AbstractUI):
 
         
         #add button sizer to the left panel of the main sizer, vtk widget to the right (with horizontal width ratio of 1:8)
-        self.mainsizer.Add(self.buttonsizer,1,wx.EXPAND)
+        self.mainsizer.Add(self.buttonsizer,0.7,wx.EXPAND)
         self.mainsizer.Add(self.vtkwidget,2,wx.EXPAND)
 
         #attach main sizer to the window
