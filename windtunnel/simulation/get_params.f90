@@ -7,7 +7,7 @@ subroutine get_params()
 
 
     if (irank .eq. 0) then
-        open(unit=10,file='params.dat',IOSTAT=io,STATUS='old')
+        open(unit=10,file='config.txt',IOSTAT=io,STATUS='old')
         if (io .eq. 0) then
 
             read(10,nml=shapeparams,IOSTAT=io)

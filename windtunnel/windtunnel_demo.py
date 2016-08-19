@@ -82,7 +82,7 @@ class SimResults:
 class WindTunnelDemo(client.AbstractDemo):
 
     # read in data and convert it to a data transfer object
-    def GetVTKData(self):
+    def GetVTKData(self,root):
 
         #INSERT CODE TO READIN DATA FROM ROOT AND PREPARE IT FOR TRANSFER TO GUI
 

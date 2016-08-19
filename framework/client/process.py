@@ -27,7 +27,10 @@ def process(frameno,nfiles,getdata,newdata,pipe,demo,servercomm):
                 fname=datafiles[n] #get name of file to download
                 servercomm.GetDataFile(fname,'tmp.nc') #get the data file
 
-                root=Dataset('tmp.nc','r') #get the netcdf handle for the data file
+                try:
+                    root=Dataset('tmp.nc','r') #get the netcdf handle for the data file
+                except:
+                    root=None
 
                 dto=demo.GetVTKData(root) #read it into a Data Transfer Object
 
@@ -37,7 +40,7 @@ def process(frameno,nfiles,getdata,newdata,pipe,demo,servercomm):
                 newdata.value=False #say we no longer have new data (since its been sent and received)
 
             except: #no new data ready...
-                time.sleep(0.1)
+                time.sleep(1)
 
         else:
-            time.sleep(0.1)
+            time.sleep(1)

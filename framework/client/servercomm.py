@@ -7,7 +7,7 @@ import json
 class servercomm:
     #input is the name of the simulation (as known to the server)
     def __init__(self,simname):
-        self.targetbase='http://127.0.0.1:5000/'
+        self.targetbase='http://192.168.2.14:5000/'
         self.simname=simname
         print("Server initialised for simulation '"+self.simname+"'.")
         self.started=False
@@ -16,6 +16,7 @@ class servercomm:
     def StartSim(self,configfile):
         if not self.started:
             files= {'fileToUpload': open(configfile,'rb')}
+            print(self.targetbase+'simulation/'+self.simname)
             postrequest = requests.post(self.targetbase+'simulation/'+self.simname, files=files)
             self.simid=postrequest.text
             self.base= self.targetbase +'simulation/'+ self.simname +'/'+ self.simid

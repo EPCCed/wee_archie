@@ -156,10 +156,11 @@ class WindTunnelWindow(UI):
                     #need to fetch potential results...
                     if self.newdata.value==True:
                         #read data from process:
-                        dto=self.pipemain.recv() #get the dto from process
+                        self.dto=self.pipemain.recv() #get the dto from process
                         self.newdata.value=False
                         self.getdata.value=False
-                        self.potential=dto.GetData()
+                        self.pipemain.send(0)
+                        self.potential=self.dto.GetData()
                     else:
                         #request process reads new data
                         self.frameno.value=0
@@ -170,10 +171,11 @@ class WindTunnelWindow(UI):
                     #need to fetch potential results...
                     if self.newdata.value==True:
                         #read data from process:
-                        dto=self.pipemain.recv() #get the dto from process
+                        self.dto=self.pipemain.recv() #get the dto from process
                         self.newdata.value=False
                         self.getdata.value=False
-                        self.viscous=dto.GetData()
+                        self.pipemain.send(0)
+                        self.viscous=self.dto.GetData()
                     else:
                         #request process reads new data
                         self.frameno.value=1
@@ -183,7 +185,11 @@ class WindTunnelWindow(UI):
 
                     self.ShowResultsControls()
                     self.resultsscreen=True
-                    dlg.Update(100,"Done")
+                    self.dlg.Update(100,"Done")
+                    self.StopSim()
+
+                    for widget in self.GetChildren():
+                        widget.Enable(True)
 
                     self.timer.Stop()
 
@@ -238,16 +244,16 @@ class WindTunnelWindow(UI):
 
             self.write_paramfile()
 
-            dlg=wx.ProgressDialog(title="Running Simulation - Please Wait",message="Starting simulation",style=wx.PD_AUTO_HIDE|wx.PD_APP_MODAL,parent=self)
+            self.dlg=wx.ProgressDialog(title="Running Simulation - Please Wait",message="Starting simulation",style=wx.PD_AUTO_HIDE|wx.PD_APP_MODAL,parent=self)
 
             for widget in self.GetChildren():
                 widget.Enable(False)
 
             if self.serverversion:
-                self.StartSim('params.dat')
+                self.StartSim('config.txt')
 
 
-            dlg.Update(10,"Calculating potential flow")
+            self.dlg.Update(10,"Calculating potential flow")
 
             if not self.serverversion:
                 print("Running code. Please wait a few seconds whilst this completes")
@@ -255,15 +261,15 @@ class WindTunnelWindow(UI):
 
                 #get potential data file
                 shutil.copy2('potential.dat','tmp.nc')
-                self.dto = self.demo.GetVTKData()
+                self.dto = self.demo.GetVTKData(None)
                 self.potential=self.dto.GetData()
-                dlg.Update(50,"Got potential file")
+                self.dlg.Update(50,"Got potential file")
 
                 #get viscous data file
                 shutil.copy2('output.dat','tmp.nc')
-                self.dto = self.demo.GetVTKData()
+                self.dto = self.demo.GetVTKData(None)
                 self.viscous=self.dto.GetData()
-                dlg.Update(90,"Got viscous file")
+                self.dlg.Update(90,"Got viscous file")
 
 
 
@@ -271,7 +277,7 @@ class WindTunnelWindow(UI):
 
                 #self.dto = self.demo.GetVTKData()
 
-                dlg.Update(100,"Done")
+                self.dlg.Update(100,"Done")
                 for widget in self.GetChildren():
                     widget.Enable(True)
 
@@ -531,7 +537,7 @@ class WindTunnelWindow(UI):
             m=self.mslider.GetValue()*0.01
             t=self.tslider.GetValue()*0.1
 
-        f=open('params.dat','w')
+        f=open('config.txt','w')
 
         f.write("&SHAPEPARAMS\n")
         f.write("SHAPE= %i,\n"%(shapetype+1))
