@@ -23,7 +23,12 @@ class WeatherWindow(client.AbstractUI):
         self.actors = {}
         self.mappers = {}
         self.filters = {}
-        
+        self.widgets = {}
+
+        # add another renderer for the bottom part
+        self.bottomrenderer = vtk.vtkRenderer()
+        self.bottomrenderer.SetViewport(0,0,1,0.3)
+
         #set up sizers that allow you to position window elements easily
 
         #main sizer - arrange items horizontally on screen (controls on left, vtk interactor on right)
@@ -76,12 +81,12 @@ class WeatherWindow(client.AbstractUI):
 
         #Adding dropdown menu and text fields for core numbers and decomposition topology
         self.coretext1 = wx.StaticText(self,label="Cores per Pi:")
-        self.coretext2 = wx.StaticText(self,label="Columns in X:")
-        self.coretext3 = wx.StaticText(self,label="Columns in Y:")
+        self.coretext2 = wx.StaticText(self,label="Cores depth:")
+        self.coretext3 = wx.StaticText(self,label="Cores width:")
 
         sampleList = ['1','2','3','4']
         self.corenum = wx.ComboBox(self,size=wx.DefaultSize, choices=sampleList, value='4') #number of cores used per Pi
-        self.columnsizex = NumCtrl(self, id=wx.ID_ANY, allowNegative = False, value=2)#number of columns each core gets in X
+        self.columnsizex = NumCtrl(self, id=wx.ID_ANY)#number of columns each core gets in X
         self.columnsizey = NumCtrl(self, id=wx.ID_ANY, allowNegative = False, value=16) #number of columns each core gets in Y
 
         self.Bind(EVT_NUM, self.setCoreNum, self.corenum)
@@ -297,8 +302,9 @@ class WeatherWindow(client.AbstractUI):
                 self.buttons[10].Enable(False)
 
                 try:
-                    self.renderer.RemoveActor(self.actor)
-                    del self.actor
+                    for actor in sel.actors:
+                        self.renderer.RemoveActor(actor)
+                    del self.actors
                 except:
                     pass
                 self.vtkwidget.GetRenderWindow().Render()

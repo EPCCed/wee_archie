@@ -27,7 +27,13 @@ class WeatherDemo(client.AbstractDemo):
 
         clouds = (q[1] - 0.00004)/ q[1].max()  # return normalized cloud data
         rain = (q[2]/q[2].max())
-        data = [vapor, clouds, rain, coords, rm]
+
+        timepersec = root.variables['time_per_sec'][0]
+
+        overalltime = root.variables['overall_time'][:]
+        communicationtime =root.variables['communication_time'][:]
+
+        data = [vapor, clouds, rain, coords, rm, timepersec, overalltime, communicationtime]
 
         # create data transfer object and put the array into it
         dto = DTO()
@@ -41,10 +47,40 @@ class WeatherDemo(client.AbstractDemo):
 
         #unpack  data transfer object
         data = dto.GetData()
-        vapor, clouds, rain, coords, rm = data
-        print("Coordiantes: ", coords)
+        vapor, clouds, rain, coords, rm, timepersec, overalltime, commtime = data
+
         win.renderer.SetBackground(0.22,.67,.87)
+        win.renderer.SetViewport(0, 0.3, 1, 1)
+        win.bottomrenderer.SetViewport(0,0,1,0.3)
         x, y, z = coords
+
+        try:
+            win.actors['TimePerSecActor']
+        except:
+            win.actors['TimePerSecActor'] = vtk.vtkTextActor()
+
+        win.actors['TimePerSecActor'].SetInput(str(round(timepersec,2)) + " SPS")
+        #win.actors['TimePerSecActor'].SetDisplayPosition(20, 900)
+        #win.actors['TimePerSecActor'].GetTextProperty().SetFontSize(42)
+        win.actors['TimePerSecActor'].GetTextProperty().SetColor(1.0, 0.0, 0.0)
+
+        text_representation = vtk.vtkTextRepresentation()
+        text_representation.GetPositionCoordinate().SetValue(0.5, 0.5)
+        text_representation.GetPosition2Coordinate().SetValue(0.2, 0.2)
+        text_representation.SetPosition(0,0.8)
+
+        try:
+            win.widgets['SPSWidget']
+        except:
+            win.widgets['SPSWidget'] = vtk.vtkTextWidget()
+            win.widgets['SPSWidget'].SetRepresentation(text_representation)
+
+        win.widgets['SPSWidget'].SetInteractor(win.vtkwidget.GetRenderWindow().GetInteractor())
+        win.widgets['SPSWidget'].SetTextActor(win.actors['TimePerSecActor'])
+        win.widgets['SPSWidget'].SelectableOff()
+        win.widgets['SPSWidget'].On()
+
+        #win.renderer.AddActor2D(win.actors['TimePerSecActor'])
 
         ### Clouds
         try:
@@ -67,6 +103,7 @@ class WeatherDemo(client.AbstractDemo):
 
         ### Land
         if win.frameno.value == 0:
+            #TODO landactor try
             RenderLand(coords, win.renderer)
 
             RenderDecompGrid(coords, win.renderer, win.columnsinX, win.columnsinY)
@@ -128,7 +165,7 @@ class WeatherDemo(client.AbstractDemo):
             win.camera = win.renderer.GetActiveCamera()
             win.camera.SetFocalPoint(int(x/2),int(y/2),int(z/2))
             win.camera.Roll(80)
-            win.camera.Dolly(0.25)
+            win.camera.Dolly(0.35)
             win.camera.Elevation(70)
             win.camera.Roll(50)
             win.camera.Azimuth(180)
@@ -144,6 +181,59 @@ class WeatherDemo(client.AbstractDemo):
         #win.vtkwidget.GetRenderWindow.SetFullScreen(False)
         if win.fullscreen == True:
             win.vtkwidget.GetRenderWindow.SetFullScreen(True)
+
+        win.bottomrenderer.SetBackground(0.96, 0.96, 0.96)
+
+        ratio = commtime/overalltime
+
+        numberofbars = len(ratio)
+        print(numberofbars)
+
+        ctime = vtk.vtkFloatArray()
+        ctime.SetNumberOfComponents(1)
+        ctime.SetNumberOfTuples(numberofbars+2)
+
+        for i in range(numberofbars):
+            ctime.SetTuple1(i, ratio[i])
+
+        ctime.SetTuple1(numberofbars, 1)
+        ctime.SetTuple1(numberofbars+1, 0.)
+
+        dataObject = vtk.vtkDataObject()
+        dataObject.GetFieldData().AddArray(ctime)
+        try:
+            win.actors['BarChartActor']
+        except:
+            win.actors['BarChartActor'] = vtk.vtkBarChartActor()
+            win.actors['BarChartActor'].SetTitle("Communication time")
+            win.actors['BarChartActor'].GetProperty().SetColor(0, 0, 0)
+
+            win.actors['BarChartActor'].GetPositionCoordinate().SetValue(0.05, 0.05, 0.0)
+            win.actors['BarChartActor'].GetPosition2Coordinate().SetValue(0.95, 0.85, 0.0)
+            win.actors['BarChartActor'].GetTitleTextProperty().SetColor(0,0,0)
+            win.actors['BarChartActor'].GetLabelTextProperty().SetColor(0,0,0)
+
+
+
+        win.actors['BarChartActor'].SetInput(dataObject)
+
+        for i in range(numberofbars):
+            if ratio[i] > 0.7:
+                win.actors['BarChartActor'].SetBarColor(i, 1, 0, 0)
+            elif ratio[i] > 0.4:
+                win.actors['BarChartActor'].SetBarColor(i, 0.93, 0.93, 0)
+            else:
+                win.actors['BarChartActor'].SetBarColor(i, 0, 1, 0)
+
+        win.actors['BarChartActor'].SetBarColor(numberofbars, 0.96, 0.96, 0.96)
+        win.actors['BarChartActor'].SetBarColor(numberofbars+1, 0.96, 0.96, 0.96)
+
+        win.bottomrenderer.AddActor(win.actors['BarChartActor'])
+        win.actors['BarChartActor'].GetLegendActor().SetNumberOfEntries(numberofbars+2)
+        win.actors['BarChartActor'].LegendVisibilityOff()
+        #win.actors['BarChartActor'].LabelVisibilityOff()
+
+        win.vtkwidget.GetRenderWindow().AddRenderer(win.bottomrenderer)
 
         win.vtkwidget.GetRenderWindow().Render()
 
