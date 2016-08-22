@@ -2,6 +2,7 @@ import client
 import vtk
 import random
 import time
+import math
 
 #Data transfer object
 class DTO(client.AbstractDTO):
@@ -171,70 +172,30 @@ class WeatherDemo(client.AbstractDemo):
             win.camera.Azimuth(180)
             win.camera.Elevation(-30)
 
-            #win.camera.Elevation(50)
-            #win.camera.Azimuth(230)
-            #win.camera.Roll(260)
-
         # Uncomment if you want to get a screenshot of every frame, see function description
         #Screenshot(win.vtkwidget.GetRenderWindow())
 
         #win.vtkwidget.GetRenderWindow.SetFullScreen(False)
-        if win.fullscreen == True:
-            win.vtkwidget.GetRenderWindow.SetFullScreen(True)
+        #win.vtkwidget.GetRenderWindow().FullScreenOn()
 
-        win.bottomrenderer.SetBackground(0.96, 0.96, 0.96)
-
-        ratio = commtime/overalltime
-
-        numberofbars = len(ratio)
-        print(numberofbars)
-
-        ctime = vtk.vtkFloatArray()
-        ctime.SetNumberOfComponents(1)
-        ctime.SetNumberOfTuples(numberofbars+2)
-
-        for i in range(numberofbars):
-            ctime.SetTuple1(i, ratio[i])
-
-        ctime.SetTuple1(numberofbars, 1)
-        ctime.SetTuple1(numberofbars+1, 0.)
-
-        dataObject = vtk.vtkDataObject()
-        dataObject.GetFieldData().AddArray(ctime)
+        ### Render the barplot
         try:
-            win.actors['BarChartActor']
+            win.views['BarPlot']
         except:
-            win.actors['BarChartActor'] = vtk.vtkBarChartActor()
-            win.actors['BarChartActor'].SetTitle("Communication time")
-            win.actors['BarChartActor'].GetProperty().SetColor(0, 0, 0)
+            win.views['BarPlot'] = vtk.vtkContextView()
 
-            win.actors['BarChartActor'].GetPositionCoordinate().SetValue(0.05, 0.05, 0.0)
-            win.actors['BarChartActor'].GetPosition2Coordinate().SetValue(0.95, 0.85, 0.0)
-            win.actors['BarChartActor'].GetTitleTextProperty().SetColor(0,0,0)
-            win.actors['BarChartActor'].GetLabelTextProperty().SetColor(0,0,0)
+        try:
+            win.views['BarPlot'].GetScene().RemoveItem(0)
+        except:
+            pass
 
+        ratio = commtime / overalltime
+        chart = RenderPlot(ratio)
 
+        win.views['BarPlot'].GetScene().AddItem(chart)
+        win.views['BarPlot'].GetRenderer().SetViewport(0,0,1,0.3)
 
-        win.actors['BarChartActor'].SetInput(dataObject)
-
-        for i in range(numberofbars):
-            if ratio[i] > 0.7:
-                win.actors['BarChartActor'].SetBarColor(i, 1, 0, 0)
-            elif ratio[i] > 0.4:
-                win.actors['BarChartActor'].SetBarColor(i, 0.93, 0.93, 0)
-            else:
-                win.actors['BarChartActor'].SetBarColor(i, 0, 1, 0)
-
-        win.actors['BarChartActor'].SetBarColor(numberofbars, 0.96, 0.96, 0.96)
-        win.actors['BarChartActor'].SetBarColor(numberofbars+1, 0.96, 0.96, 0.96)
-
-        win.bottomrenderer.AddActor(win.actors['BarChartActor'])
-        win.actors['BarChartActor'].GetLegendActor().SetNumberOfEntries(numberofbars+2)
-        win.actors['BarChartActor'].LegendVisibilityOff()
-        #win.actors['BarChartActor'].LabelVisibilityOff()
-
-        win.vtkwidget.GetRenderWindow().AddRenderer(win.bottomrenderer)
-
+        win.vtkwidget.GetRenderWindow().AddRenderer(win.views['BarPlot'].GetRenderer())
         win.vtkwidget.GetRenderWindow().Render()
 
 
@@ -251,51 +212,59 @@ def Screenshot(rw):
     writer.SetInputData(w2if.GetOutput())
     writer.Write()
 
+def RenderPlot(ratio):
+    chart = vtk.vtkChartXY()
+    chart.SetShowLegend(True)
+
+    table = vtk.vtkTable()
+
+    arrX = vtk.vtkFloatArray()
+    arrX.SetName('Core')
+
+    arrC = vtk.vtkFloatArray()
+    arrC.SetName('Computation')
+
+    arrS = vtk.vtkFloatArray()
+    arrS.SetName('Communication')
+
+    table.AddColumn(arrX)
+    table.AddColumn(arrC)
+    table.AddColumn(arrS)
+
+    numberofbars = len(ratio)
+
+    table.SetNumberOfRows(numberofbars)
+
+    for i in range(numberofbars):
+        table.SetValue(i, 0, i)
+        table.SetValue(i, 1, 1 - ratio[i])
+        table.SetValue(i, 2, ratio[i])
+
+    bar = chart.AddPlot(vtk.vtkChart.BAR)
+    bar.SetInputData(table, 0, 1)
+    bar.SetColor(0, 255, 0, 255)
+    bar.SetWidth(1.5)
+
+    bar = chart.AddPlot(vtk.vtkChart.BAR)
+    bar.SetInputData(table, 0, 2)
+    bar.SetColor(255, 0, 0, 255)
+    bar.SetWidth(1.5)
+
+    chart.GetAxis(vtk.vtkAxis.LEFT).SetRange(0., 1.0)
+    chart.GetAxis(vtk.vtkAxis.LEFT).SetNotation(2)
+    chart.GetAxis(vtk.vtkAxis.LEFT).SetPrecision(1)
+    chart.GetAxis(vtk.vtkAxis.LEFT).SetBehavior(vtk.vtkAxis.FIXED)
+    chart.GetAxis(vtk.vtkAxis.LEFT).SetTitle("% of overall time")
+    chart.GetAxis(vtk.vtkAxis.BOTTOM).SetTitle("Core number")
+
+    return chart
+
 
 def RenderDecompGrid(coords, renderer, px, py):
     x, y, z = coords
 
     localsizey = int(y/py)
     localsizex = int(x/px)
-    """
-    if y-(localsizey*py) == 0 and x-(localsizex*px) == 0:
-        print("All")
-        for i in range(1, int(py) + 1):
-            for j in range(1, int(px) + 1):
-                points = vtk.vtkPoints()
-
-                ### for the outline, don't ask
-                points.InsertNextPoint(0, 0, 0)
-                points.InsertNextPoint(0, int(localsizey * i), 0)
-                points.InsertNextPoint(int(localsizex * j), int(localsizey * i), 0)
-                points.InsertNextPoint(int(localsizex * j), 0, 0)
-                points.InsertNextPoint(0, 0, z)
-
-                grid = vtk.vtkUnstructuredGrid()
-                grid.SetPoints(points)
-
-                sphere = vtk.vtkSphereSource()
-
-                glyph3D = vtk.vtkGlyph3D()
-
-                glyph3D.SetSourceConnection(sphere.GetOutputPort())
-                glyph3D.SetInputData(grid)
-                glyph3D.Update()
-
-                filter = vtk.vtkOutlineFilter()
-
-                filter.SetInputData(glyph3D.GetOutput())
-
-                outlineMapper = vtk.vtkPolyDataMapper()
-                outlineMapper.SetInputConnection(filter.GetOutputPort())
-
-                outlineActor = vtk.vtkActor()
-                outlineActor.SetMapper(outlineMapper)
-                outlineActor.GetProperty().SetColor(1, 1, 1)
-
-                renderer.AddActor(outlineActor)
-    else:
-        """
     overflowy = int(y-(localsizey*py))
     overflowx = x-(localsizex*px)
     localsizey+=1
@@ -532,15 +501,16 @@ def RenderCloud(cloud,coords, cloudactor):
                     #print(i,j,k)
                     points.InsertNextPoint(k, j, i)
                     scales.InsertNextValue(1)  # random radius between 0 and 0.99
-                    #rgb = [0.0, 0.0, 0.0]
-                    #lut.GetColor(rain[k][j][i], rgb)
-                    #ucrgb = list(map(int, [x * 255 for x in rgb]))
-                    #col.InsertNextTuple3(ucrgb[0], ucrgb[1], ucrgb[2])
+                    rgb = [0.0, 0.0, 0.0]
+                    lut.GetColor(cloud[k][j][i], rgb)
+                    ucrgb = list(map(int, [x * 255 for x in rgb]))
+                    col.InsertNextTuple3(ucrgb[0], ucrgb[1], ucrgb[2])
 
     grid = vtk.vtkUnstructuredGrid()
     grid.SetPoints(points)
     grid.GetPointData().AddArray(scales)
-    grid.GetPointData().SetActiveScalars("scales")  # // !!!to set radius first
+    grid.GetPointData().SetActiveScalars("scales")
+    sr = grid.GetScalarRange()# // !!!to set radius first
     #grid.GetPointData().AddArray(col)
 
     sphere = vtk.vtkSphereSource()
@@ -554,13 +524,12 @@ def RenderCloud(cloud,coords, cloudactor):
 
     polydata.SetPoints(points)
     #polydata.GetPointData().SetScalars(col)
+    #polydata.GetPointData().SetScalars(col)
 
     splatter = vtk.vtkGaussianSplatter()
 
     splatter.SetInputData(polydata)
-    #splatter.SetSampleDimensions(50, 50, 50)
     splatter.SetRadius(0.07)
-    #splatter.ScalarWarpingOff()
 
     cf = vtk.vtkContourFilter()
 
@@ -570,19 +539,17 @@ def RenderCloud(cloud,coords, cloudactor):
         cf.SetInputData(polydata)
 
     cf.SetValue(0, 0.01)
+    cf.GetOutput().GetPointData().SetScalars(col)
 
     reverse = vtk.vtkReverseSense()
     reverse.SetInputConnection(cf.GetOutputPort())
     reverse.ReverseCellsOn()
     reverse.ReverseNormalsOn()
 
-    # update mapper
-
     cloudmapper = vtk.vtkPolyDataMapper()
-
-    cloudmapper.SetInputConnection(reverse.GetOutputPort())
-    cloudmapper.SetScalarModeToUsePointFieldData()
-    cloudmapper.SetScalarRange(0, 3)
+    cloudmapper.SetInputConnection(cf.GetOutputPort())
+    cloudmapper.SetScalarModeToUseCellFieldData()
+    cloudmapper.SetScalarRange(sr)
     cloudmapper.SelectColorArray("Ccol")  # // !!!to set color (nevertheless you will have nothing)
     cloudmapper.SetLookupTable(lut)
 

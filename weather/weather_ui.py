@@ -20,10 +20,11 @@ class WeatherWindow(client.AbstractUI):
         self.numberofcores = 0
         self.columnsinX = 0
         self.columnsinY = 0
-        self.actors = {}
         self.mappers = {}
+        self.actors = {}
         self.filters = {}
         self.widgets = {}
+        self.views = {}
 
         # add another renderer for the bottom part
         self.bottomrenderer = vtk.vtkRenderer()
@@ -85,9 +86,10 @@ class WeatherWindow(client.AbstractUI):
         self.coretext3 = wx.StaticText(self,label="Cores width:")
 
         sampleList = ['1','2','3','4']
-        self.corenum = wx.ComboBox(self,size=wx.DefaultSize, choices=sampleList, value='4') #number of cores used per Pi
-        self.columnsizex = NumCtrl(self, id=wx.ID_ANY)#number of columns each core gets in X
-        self.columnsizey = NumCtrl(self, id=wx.ID_ANY, allowNegative = False, value=16) #number of columns each core gets in Y
+        self.corenum = wx.SpinCtrl(self,id=wx.ID_ANY,  value='4') #number of cores used per Pi
+        self.corenum.SetRange(1,4)
+        self.columnsizex = wx.SpinCtrl(self, id=wx.ID_ANY, value='2')#number of columns each core gets in X
+        self.columnsizey = wx.SpinCtrl(self, id=wx.ID_ANY, value='16') #number of columns each core gets in Y
 
         self.Bind(EVT_NUM, self.setCoreNum, self.corenum)
         #self.Bind(EVT_NUM, self.setColumnSizeX, self.columnsizex)
@@ -211,7 +213,7 @@ class WeatherWindow(client.AbstractUI):
 
         
         #add button sizer to the left panel of the main sizer, vtk widget to the right (with horizontal width ratio of 1:8)
-        self.mainsizer.Add(self.buttonsizer,0.7,wx.EXPAND)
+        self.mainsizer.Add(self.buttonsizer,0.5,wx.EXPAND)
         self.mainsizer.Add(self.vtkwidget,2,wx.EXPAND)
 
         #attach main sizer to the window
