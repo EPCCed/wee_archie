@@ -12,7 +12,7 @@ class WeatherWindow(client.AbstractUI):
         client.AbstractUI.__init__(self,parent,title,demo,servercomm)
 
         self.fullscreen = False
-        self.vapor = False
+        self.decompositiongrid = True
         self.timeofyear = None
         self.rainmass = 0
         self.cropslevel = 0
@@ -55,7 +55,7 @@ class WeatherWindow(client.AbstractUI):
         self.buttons.append(wx.Button(self,label='Winter'))
         self.buttons.append(wx.Button(self,label='Spring'))
 
-        self.buttons.append(wx.Button(self,label='Toggle Vapor'))
+        self.buttons.append(wx.Button(self,label='Toggle Grid'))
 
         self.buttons.append(wx.Button(self, label='Low'))
         self.buttons.append(wx.Button(self, label='Middle'))
@@ -69,7 +69,7 @@ class WeatherWindow(client.AbstractUI):
         self.Bind(wx.EVT_BUTTON,self.stepforward,self.buttons[4])
         self.Bind(wx.EVT_BUTTON,self.fastforward,self.buttons[5])
 
-        self.Bind(wx.EVT_BUTTON, self.togglevapor, self.buttons[10])
+        self.Bind(wx.EVT_BUTTON, self.togglegrid, self.buttons[10])
 
         self.Bind(wx.EVT_BUTTON, self.setSummer, self.buttons[6])
         self.Bind(wx.EVT_BUTTON, self.setAutumn, self.buttons[7])
@@ -85,11 +85,13 @@ class WeatherWindow(client.AbstractUI):
         self.coretext2 = wx.StaticText(self,label="Cores depth:")
         self.coretext3 = wx.StaticText(self,label="Cores width:")
 
-        sampleList = ['1','2','3','4']
         self.corenum = wx.SpinCtrl(self,id=wx.ID_ANY,  value='4') #number of cores used per Pi
         self.corenum.SetRange(1,4)
         self.columnsizex = wx.SpinCtrl(self, id=wx.ID_ANY, value='2')#number of columns each core gets in X
         self.columnsizey = wx.SpinCtrl(self, id=wx.ID_ANY, value='16') #number of columns each core gets in Y
+
+        sampleList = ['Iterative','FFT']
+        self.solver = wx.ComboBox(self, id=wx.ID_ANY, choices=sampleList, value='Iterative')
 
         self.Bind(EVT_NUM, self.setCoreNum, self.corenum)
         #self.Bind(EVT_NUM, self.setColumnSizeX, self.columnsizex)
@@ -155,7 +157,7 @@ class WeatherWindow(client.AbstractUI):
         self.buttonsizer.Add(self.pressuretext,1,wx.EXPAND)
         self.buttonsizer.Add(self.pressureslider,1,wx.EXPAND)
 
-        self.buttonsizer.Add((10,10))
+        self.buttonsizer.Add((10,30))
 
         self.timeofyeartext = wx.StaticText(self, label="Time of year: ")
         self.buttonsizer.Add(self.timeofyeartext, 1, wx.EXPAND)
@@ -176,7 +178,7 @@ class WeatherWindow(client.AbstractUI):
         self.watersizer.Add(self.buttons[13], 1, wx.EXPAND)
         self.buttonsizer.Add(self.watersizer, 1, wx.EXPAND)
 
-        self.buttonsizer.Add((10,10))
+        self.buttonsizer.Add((10,30))
 
         self.coreconfixtextsizer = wx.BoxSizer(wx.HORIZONTAL)
         self.coreconfixtextsizer.Add(self.coretext1, 1, wx.EXPAND)
@@ -189,9 +191,15 @@ class WeatherWindow(client.AbstractUI):
         self.coreconfigsizer.Add(self.columnsizex, 1, wx.EXPAND)
         self.coreconfigsizer.Add(self.columnsizey, 1, wx.EXPAND)
         self.buttonsizer.Add(self.coreconfigsizer, 1, wx.EXPAND)
+        self.buttonsizer.Add((10,30))
+
+        self.solvertext = wx.StaticText(self, label="Method: ")
+        self.buttonsizer.Add(self.solvertext, 1, wx.EXPAND)
+
+        self.buttonsizer.Add(self.solver, 1, wx.EXPAND)
 
         #add some vertical space
-        self.buttonsizer.Add((10,200))
+        self.buttonsizer.Add((10,150))
 
         #add slider to the sizer
         self.buttonsizer.Add(self.text,1,wx.EXPAND)
@@ -304,9 +312,9 @@ class WeatherWindow(client.AbstractUI):
                 self.buttons[10].Enable(False)
 
                 try:
-                    for actor in sel.actors:
+                    for actor in self.renderer.GetActors():
                         self.renderer.RemoveActor(actor)
-                    del self.actors
+                    self.actors.clear()
                 except:
                     pass
                 self.vtkwidget.GetRenderWindow().Render()
@@ -372,11 +380,11 @@ class WeatherWindow(client.AbstractUI):
         self.getdata.value=True
         self.buttons[1].SetLabel("Play")
 
-    def togglevapor(self, e):
-        if self.vapor is False:
-            self.vapor = True
+    def togglegrid(self, e):
+        if self.decompositiongrid is True:
+            self.decompositiongrid = False
         else:
-            self.vapor = False
+            self.decompositiongrid = True
 
         if self.timer.IsRunning():
             self.timer.Stop()
@@ -515,5 +523,11 @@ class WeatherWindow(client.AbstractUI):
         f.write('\ncores_per_pi=' + str(self.corenum.GetValue()))
         f.write('\nnum_px=' + str(self.columnsizex.GetValue()))
         f.write('\nnum_py=' + str(self.columnsizey.GetValue()))
+
+        if self.solver.GetValue() == 'Iterative':
+            f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.')
+        else:
+            f.write('\nfftsolver_enabled=.true.\niterativesolver_enabled=.false.')
+
 
         f.close()

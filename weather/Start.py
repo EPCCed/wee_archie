@@ -8,7 +8,7 @@ import client
 import wx
 
 demo=weather_demo.WeatherDemo()
-servercomm=client.servercomm("WEATHER")
+servercomm=client.servercomm("SHPCW")
 
 app=wx.App(False)
 window=weather_ui.WeatherWindow(None,"Weather Simulator",demo,servercomm)

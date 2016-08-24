@@ -55,14 +55,15 @@ class WeatherDemo(client.AbstractDemo):
         win.bottomrenderer.SetViewport(0,0,1,0.3)
         x, y, z = coords
 
+        # The arcotrs need to be created only once, that is why we have a actors dictionairy in the win. This way we
+        # will only add each actor once to the renderer. The other things like data structures, filters and mappers are
+        # created and destroyed in each function.
         try:
             win.actors['TimePerSecActor']
         except:
             win.actors['TimePerSecActor'] = vtk.vtkTextActor()
 
-        win.actors['TimePerSecActor'].SetInput(str(round(timepersec,2)) + " SPS")
-        #win.actors['TimePerSecActor'].SetDisplayPosition(20, 900)
-        #win.actors['TimePerSecActor'].GetTextProperty().SetFontSize(42)
+        win.actors['TimePerSecActor'].SetInput(str(round(timepersec,2)) + " sps")
         win.actors['TimePerSecActor'].GetTextProperty().SetColor(1.0, 0.0, 0.0)
 
         text_representation = vtk.vtkTextRepresentation()
@@ -81,16 +82,16 @@ class WeatherDemo(client.AbstractDemo):
         win.widgets['SPSWidget'].SelectableOff()
         win.widgets['SPSWidget'].On()
 
-        #win.renderer.AddActor2D(win.actors['TimePerSecActor'])
-
-        ### Clouds
+        ### Clouds renderiing
+        # We create the actor if it does not exist, call the rendering function and give it the actor.
+        # The function then gives new input for the actor, which we then add to the renderer.
         try:
             win.actors['CloudActor']
         except:
             win.actors['CloudActor'] = vtk.vtkActor()
+            win.renderer.AddActor(win.actors['CloudActor'])
 
         RenderCloud(clouds, coords, win.actors['CloudActor'])
-        win.renderer.AddActor(win.actors['CloudActor'])
 
         ### Sea
         try:
@@ -107,23 +108,23 @@ class WeatherDemo(client.AbstractDemo):
             #TODO landactor try
             RenderLand(coords, win.renderer)
 
-            RenderDecompGrid(coords, win.renderer, win.columnsinX, win.columnsinY)
-
-
-        ### Vapor, TODO
-        if win.vapor is True:
-
+        ### Decomposition grid redering, TODO
+        if win.decompositiongrid is True:
             try:  # does the actor exist? if not, create one
-                win.actors['VaporPActor']
+                win.actors['DGridActor']
             except:
-                win.actors['VaporPActor'] = vtk.vtkActor()
+                win.actors['DGridActor'] = vtk.vtkPropCollection()
 
-            RenderVapor(vapor, coords, win.actors['VaporPActor'])
+            win.actors['DGridActor'].RemoveAllItems()
+            RenderDecompGrid(coords, win.actors['DGridActor'], win.columnsinX, win.columnsinY)
+            print("Adding actors")
+            for i in range(win.actors['DGridActor'].GetNumberOfItems()):
+                win.renderer.AddActor(win.actors['DGridActor'].GetItemAsObject(i))
 
-            win.renderer.AddActor(win.actors['VaporPActor'])
-        else:
+        elif win.decompositiongrid is False:
             try:
-                win.renderer.RemoveActor(win.actors['VaporPActor'])
+                for i in range(win.actors['DGridActor'].GetNumberOfItems()):
+                    win.renderer.RemoveActor(win.actors['DGridActor'].GetItemAsObject(i))
             except:
                 pass
 
@@ -260,7 +261,7 @@ def RenderPlot(ratio):
     return chart
 
 
-def RenderDecompGrid(coords, renderer, px, py):
+def RenderDecompGrid(coords, collection, px, py):
     x, y, z = coords
 
     localsizey = int(y/py)
@@ -305,7 +306,7 @@ def RenderDecompGrid(coords, renderer, px, py):
             outlineActor.SetMapper(outlineMapper)
             outlineActor.GetProperty().SetColor(1, 1, 1)
 
-            renderer.AddActor(outlineActor)
+            collection.AddItem(outlineActor)
         localsizex -= 1
         for j in range(int(overflowx) + 1, px + 1):
             points = vtk.vtkPoints()
@@ -333,7 +334,7 @@ def RenderDecompGrid(coords, renderer, px, py):
             outlineActor.SetMapper(outlineMapper)
             outlineActor.GetProperty().SetColor(1, 1, 1)
 
-            renderer.AddActor(outlineActor)
+            collection.AddItem(outlineActor)
     # the next regular ones
     localsizey -=1
 
@@ -371,7 +372,7 @@ def RenderDecompGrid(coords, renderer, px, py):
             outlineActor.SetMapper(outlineMapper)
             outlineActor.GetProperty().SetColor(1, 1, 1)
 
-            renderer.AddActor(outlineActor)
+            collection.AddItem(outlineActor)
         localsizex -= 1
         for j in range(int(overflowx) + 1, px + 1):
             points = vtk.vtkPoints()
@@ -399,7 +400,9 @@ def RenderDecompGrid(coords, renderer, px, py):
             outlineActor.SetMapper(outlineMapper)
             outlineActor.GetProperty().SetColor(1, 1, 1)
 
-            renderer.AddActor(outlineActor)
+            collection.AddItem(outlineActor)
+
+
 
 
 def RenderOutline(coords, renderer):
