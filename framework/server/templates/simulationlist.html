@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Simulations</title>
+<style>
+table, th, td { border: 1px solid black; text-align: left; }
+</style>
+</head>
+<body>
+<h1>Simulations</h1>
+<table>
+{% for sim in sims %}
+<tr><td><a href="/simulation/{{sim['SIMID']}}">{{sim['FullName']}}</a></td></tr>
+{% endfor %}
+</table>
+
+<br>
+<h2>Create New Simulation</h2>
+<form method="post" action="/simulation">
+<table>
+<tr><td> <label>Simulation ID</label></td><td>
+ <input type="text" name="simid"></td></tr>
+<tr><td> <label>Simulation Fullname</label></td><td>
+ <input type="text" name="Fullname"></td></tr>
+<tr><td> <label>Simulation Shortname</label></td><td>
+ <input type="text" name="Shortname"></td></tr>
+<tr><td> <label>Simulation Output</label></td><td>
+ <input type="text" name="Output"></td></tr>
+<tr><td> <label>Simulation Executable</label></td><td>
+ <input type="text" name="Executable"></td></tr>
+<tr><td> <label>Simulation Parameters</label></td><td>
+ <input type="text" name="Params"></td></tr>
+<tr><td> <label>Create Simulation</label></td><td>
+ <input type="submit" value="Create"></td></tr>
+</table>
+
+</form>
+</body>
+</html>
+

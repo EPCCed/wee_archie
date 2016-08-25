@@ -90,3 +90,11 @@ ENV/
 
 # data files
 galaxy/data
+*.nc
+
+# log and generated db files
+*.log
+*.db
+
+#pycharm project stuff
+.idea/

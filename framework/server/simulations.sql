@@ -1,0 +1,26 @@
+BEGIN TRANSACTION;
+CREATE TABLE "Simulations" (
+	`SIMID`	TEXT NOT NULL,
+	`FullName`	TEXT NOT NULL,
+	`Shortname`	TEXT,
+	`Executable`	TEXT NOT NULL,
+	`Output`	TEXT NOT NULL,
+	`Configuration`	BLOB,
+	`ExecutionPrefix`	TEXT,
+	`ExecutionHostFile`	TEXT,
+	PRIMARY KEY(SIMID)
+);
+CREATE TABLE `Instances` (
+	`IID`	TEXT NOT NULL,
+	`SIMID`	TEXT NOT NULL,
+	`Status`	TEXT,
+	PRIMARY KEY(IID),
+	FOREIGN KEY(`SIMID`) REFERENCES Simulations(SIMID)
+);
+CREATE TABLE `Data` (
+	`DIID`	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+	`IID`	TEXT NOT NULL,
+	`Source`	TEXT NOT NULL,
+	FOREIGN KEY(`IID`) REFERENCES Instances(IID)
+);
+COMMIT;
