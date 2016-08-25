@@ -1,6 +1,4 @@
 import wx
-import vtk
-from vtk.wx.wxVTKRenderWindowInteractor import wxVTKRenderWindowInteractor
 import multiprocessing as mp
 import time
 from . import process
@@ -30,39 +28,8 @@ class AbstractUI(wx.Frame):
         self.timer=wx.Timer(self)
         self.Bind(wx.EVT_TIMER,self.TimerCallback,self.timer)
 
-
-        #create vtk render widget and start it
-        self.vtkwidget=wxVTKRenderWindowInteractor(self,wx.ID_ANY)
-
-        #default refreshrate to 0.5s
+        #default refreshrate to 0.5s (This may need to be updated on a per-demo basis)
         self.refreshrate=0.5
-
-
-
-
-    # attach renderer to the vtk widget and draw axes
-    @abc.abstractmethod
-    def StartInteractor(self):
-
-        print("Starting interactor")
-        self.renderer=vtk.vtkRenderer()
-        self.vtkwidget.GetRenderWindow().AddRenderer(self.renderer)
-
-        mouse=vtk.vtkInteractorStyleTrackballCamera()
-        self.vtkwidget.SetInteractorStyle(mouse)
-
-        #create some axes to indicate the orientation of the galaxy
-        axes = vtk.vtkAxesActor()
-        self.axisw=vtk.vtkOrientationMarkerWidget()
-        self.axisw.SetOutlineColor( 0.9300, 0.5700, 0.1300 );
-        self.axisw.SetOrientationMarker( axes );
-        self.axisw.SetInteractor( self.vtkwidget._Iren );
-        self.axisw.SetViewport( 0.0, 0.0, 0.3, 0.3 );
-        self.axisw.SetEnabled( 1 );
-        self.axisw.InteractiveOn();
-
-
-
 
     #start the simulation
     @abc.abstractmethod

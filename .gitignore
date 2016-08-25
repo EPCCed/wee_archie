@@ -91,6 +91,7 @@ ENV/
 # data files
 galaxy/data
 *.nc
+*.dat
 
 # log and generated db files
 *.log
@@ -98,3 +99,7 @@ galaxy/data
 
 #pycharm project stuff
 .idea/
+
+#fortran modules
+*.mod
+*.o

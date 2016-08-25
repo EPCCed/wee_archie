@@ -57,6 +57,8 @@ class SimulationRunner(threading.Thread):
         with fdb.SimulationConnector(cfg.DATABASE_CONNECTION) as conn:
             executablefile = conn.getSimulationExecutable(self.kwargs['simid'])
         executablelist = []
+        if executablefile['ChangeToDir'] is not None:
+            executablelist.append('cd ' + self.kwargs['output'] + ';')
         if executablefile['ExecutionPrefix'] is not None:
             executablelist.append(executablefile['ExecutionPrefix'])
         if executablefile['ExecutionHostFile'] is not None:
