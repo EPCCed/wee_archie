@@ -31,8 +31,6 @@ class AbstractUI(wx.Frame):
         #default refreshrate to 0.5s (This may need to be updated on a per-demo basis)
         self.refreshrate=0.5
 
-
-
     #start the simulation
     @abc.abstractmethod
     def StartSim(self,config):
