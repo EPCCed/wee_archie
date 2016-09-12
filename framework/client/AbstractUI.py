@@ -61,6 +61,7 @@ class AbstractUI(wx.Frame):
 
             print("Deleting Simulation")
             self.p.terminate()
+            time.sleep(0.1)
             self.servercomm.DeleteSim()
             self.nfiles.value=0
             self.CurrentFrame=0

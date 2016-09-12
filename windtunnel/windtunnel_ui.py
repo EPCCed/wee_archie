@@ -4,6 +4,7 @@ import numpy as np
 import wx
 import subprocess
 import shutil
+import time
 
 
 
@@ -18,7 +19,7 @@ class WindTunnelWindow(UI):
         #call superclass' __init__
         UI.__init__(self,parent,title,demo,servercomm)
 
-        self.serverversion=False
+        self.serverversion=True
 
         #INSERT CODE HERE TO SET LAYOUT OF WINDOW/ADD BUTTONS ETC
 
@@ -186,6 +187,8 @@ class WindTunnelWindow(UI):
                     self.ShowResultsControls()
                     self.resultsscreen=True
                     self.dlg.Update(100,"Done")
+                    self.tstop=time.time()
+                    print("Time to complete = ",self.tstop-self.tstart)
                     self.StopSim()
 
                     for widget in self.GetChildren():
@@ -248,7 +251,7 @@ class WindTunnelWindow(UI):
 
             for widget in self.GetChildren():
                 widget.Enable(False)
-
+            self.tstart=time.time()
             if self.serverversion:
                 self.StartSim('config.txt')
 
@@ -278,6 +281,8 @@ class WindTunnelWindow(UI):
                 #self.dto = self.demo.GetVTKData()
 
                 self.dlg.Update(100,"Done")
+                self.tstop=time.time()
+                print("Time to complete = ",self.tstop-self.tstart)
                 for widget in self.GetChildren():
                     widget.Enable(True)
 
