@@ -42,9 +42,10 @@ class AbstractUI(wx.Frame):
             self.nfiles=mp.Value('i',0) #number of files available on server
             self.getdata=mp.Value('b',False) #flag to tell process to get new data
             self.newdata=mp.Value('b',False) #flag saying if process has new data ready
+            self.finished=mp.Value('b',False)  #flag to tell process that we are done
 
             #kick off process
-            self.p=mp.Process(target=process.process,args=(self.frameno,self.nfiles,self.getdata,self.newdata,pipeprocess,self.demo,self.servercomm))
+            self.p=mp.Process(target=process.process,args=(self.frameno,self.nfiles,self.getdata,self.newdata,pipeprocess,self.demo,self.servercomm,self.finished))
             self.p.start() #start off process
 
             self.CurrentFrame=0
@@ -59,7 +60,7 @@ class AbstractUI(wx.Frame):
 
             print("Deleting Simulation")
             self.p.terminate()
-            time.sleep(0.1)
+            time.sleep(0.5)
             self.servercomm.DeleteSim()
             self.nfiles.value=0
             self.CurrentFrame=0
