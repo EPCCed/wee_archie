@@ -99,8 +99,8 @@ class WindTunnelWindow(UI):
         # self.resultsscreen=True
 
 
-        self.mainsizer.Add(self.buttonsizer)
-        self.mainsizer.Add(self.canvas)
+        self.mainsizer.Add(self.buttonsizer,1,wx.EXPAND | wx.ALL)
+        self.mainsizer.Add(self.canvas,3,wx.EXPAND | wx.ALL)
 
 
 
@@ -175,8 +175,10 @@ class WindTunnelWindow(UI):
                         self.dto=self.pipemain.recv() #get the dto from process
                         self.newdata.value=False
                         self.getdata.value=False
+                        self.finished.value=True
                         self.pipemain.send(0)
                         self.viscous=self.dto.GetData()
+
                     else:
                         #request process reads new data
                         self.frameno.value=1
@@ -301,17 +303,17 @@ class WindTunnelWindow(UI):
         self.logger.Show()
 
 
-        self.buttonsizer.Add(self.simbutton,1,wx.EXPAND|wx.TOP)
+        self.buttonsizer.Add(self.simbutton,0,wx.EXPAND|wx.TOP)
         self.buttonsizer.AddStretchSpacer(0)
-        self.buttonsizer.Add(self.loadradio)
-        self.buttonsizer.Add(self.radiobox)
+        self.buttonsizer.Add(self.loadradio,0,wx.ALIGN_CENTER_HORIZONTAL|wx.EXPAND)
+        self.buttonsizer.Add(self.radiobox,0,wx.ALIGN_CENTER_HORIZONTAL|wx.EXPAND)
         self.buttonsizer.AddStretchSpacer(4.5)
-        self.buttonsizer.Add(self.logger,1,wx.EXPAND)
+        self.buttonsizer.Add(self.logger,0,wx.EXPAND | wx.ALIGN_CENTER)
 
 
 
         self.buttonsizer.Layout()
-        self.Fit()
+        #self.Fit()
         self.simbutton.SetLabel("New Simulation")
 
 
@@ -356,26 +358,26 @@ class WindTunnelWindow(UI):
 
 
 
-        self.buttonsizer.Add(self.simbutton,1,wx.EXPAND)
-        self.buttonsizer.AddStretchSpacer(1)
-        self.buttonsizer.Add(self.shaperadio)
-        self.buttonsizer.AddStretchSpacer(1)
+        self.buttonsizer.Add(self.simbutton,0,wx.EXPAND)
+        self.buttonsizer.AddStretchSpacer(0)
+        self.buttonsizer.Add(self.shaperadio,0,wx.ALIGN_CENTRE | wx.EXPAND)
+        #self.buttonsizer.AddStretchSpacer(1)
         self.buttonsizer.Add(self.angletext)
-        self.buttonsizer.Add(self.angleslider,1,wx.EXPAND)
+        self.buttonsizer.Add(self.angleslider,0,wx.EXPAND)
         if self.shaperadio.GetSelection() == 0:
             self.buttonsizer.Add(self.atext)
-            self.buttonsizer.Add(self.aslider,1,wx.EXPAND)
+            self.buttonsizer.Add(self.aslider,0,wx.EXPAND)
             self.buttonsizer.Add(self.btext)
-            self.buttonsizer.Add(self.bslider,1,wx.EXPAND)
+            self.buttonsizer.Add(self.bslider,0,wx.EXPAND)
             print("Ellipse")
         else:
             self.buttonsizer.Add(self.atext)
-            self.buttonsizer.Add(self.mslider,1,wx.EXPAND)
+            self.buttonsizer.Add(self.mslider,0,wx.EXPAND)
             self.buttonsizer.Add(self.btext)
-            self.buttonsizer.Add(self.tslider,1,wx.EXPAND)
+            self.buttonsizer.Add(self.tslider,0,wx.EXPAND)
             print("Aerofoil")
-        self.buttonsizer.AddStretchSpacer(11)
-        self.buttonsizer.Add(self.ResetButton,1,wx.EXPAND)
+        self.buttonsizer.AddStretchSpacer(5)
+        self.buttonsizer.Add(self.ResetButton,0,wx.EXPAND | wx.ALIGN_BOTTOM)
 
 
         self.buttonsizer.Layout()
