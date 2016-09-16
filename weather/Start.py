@@ -14,9 +14,3 @@ app=wx.App(False)
 window=weather_ui.WeatherWindow(None,"Weather Simulator",demo,servercomm)
 window.Maximize(True)
 app.MainLoop()
-
-
-
-
-
-

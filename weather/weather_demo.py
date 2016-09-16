@@ -1,8 +1,10 @@
+from __future__ import print_function
 import client
 import vtk
 import random
 import time
 import math
+
 
 #Data transfer object
 class DTO(client.AbstractDTO):
@@ -497,6 +499,7 @@ def RenderCloud(cloud,coords, cloudactor):
     lut.SetTableValue(8, nc.GetColor4d("Mint"))
     lut.SetTableValue(9, nc.GetColor4d("Peacock"))
 
+
     for i in range(z):
         for j in range(y):
             for k in range(x):
@@ -506,7 +509,7 @@ def RenderCloud(cloud,coords, cloudactor):
                     scales.InsertNextValue(1)  # random radius between 0 and 0.99
                     rgb = [0.0, 0.0, 0.0]
                     lut.GetColor(cloud[k][j][i], rgb)
-                    ucrgb = list(map(int, [x * 255 for x in rgb]))
+                    ucrgb = list(map(int, [xx * 255 for xx in rgb]))
                     col.InsertNextTuple3(ucrgb[0], ucrgb[1], ucrgb[2])
 
     grid = vtk.vtkUnstructuredGrid()
@@ -839,5 +842,3 @@ def RenderCrops(level, coords, cropsactor):
     cropsactor.GetProperty().SetLineWidth(10)
     cropsactor.GetProperty().SetColor(0.39, 0.65, 0.04)
     cropsactor.SetMapper(cropsmapper)
-
-

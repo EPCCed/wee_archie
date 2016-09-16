@@ -1,15 +1,20 @@
+# -*- coding: utf-8 -*-
 import client
 import wx
 from wx.lib.masked import *
 import vtk
 
+#select the UI abstract superclass to derive from
+UI=client.AbstractvtkUI
+
+
 # Derive the demo-specific GUI class from the AbstractUI class
-class WeatherWindow(client.AbstractUI):
-    
+class WeatherWindow(UI):
+
     def __init__(self,parent,title,demo,servercomm):
-        
+
         #call superclass' __init__
-        client.AbstractUI.__init__(self,parent,title,demo,servercomm)
+        UI.__init__(self,parent,title,demo,servercomm)
 
         self.fullscreen = False
         self.decompositiongrid = True
@@ -38,7 +43,7 @@ class WeatherWindow(client.AbstractUI):
         self.buttonsizer=wx.BoxSizer(wx.VERTICAL)
         #sizer for rewind, step forward, step back and fast forward buttons
         self.weesizer=wx.BoxSizer(wx.HORIZONTAL)
-        
+
         #create 'array' of buttons
         self.buttons=[]
 
@@ -219,7 +224,7 @@ class WeatherWindow(client.AbstractUI):
 
         self.buttons[10].Enable(False)
 
-        
+
         #add button sizer to the left panel of the main sizer, vtk widget to the right (with horizontal width ratio of 1:8)
         self.mainsizer.Add(self.buttonsizer,0.5,wx.EXPAND)
         self.mainsizer.Add(self.vtkwidget,2,wx.EXPAND)
@@ -228,10 +233,10 @@ class WeatherWindow(client.AbstractUI):
         self.SetSizer(self.mainsizer)
         self.SetAutoLayout(1)
         self.mainsizer.Fit(self)
-        
+
         #create mapper
         #self.mapper=vtk.vtkPolyDataMapper()
-        
+
         self.StartInteractor()
 
         #show window
@@ -239,31 +244,31 @@ class WeatherWindow(client.AbstractUI):
 
 
     def StartInteractor(self):
-        client.AbstractUI.StartInteractor(self)
+        UI.StartInteractor(self)
 
 
     def StartSim(self,config):
-        client.AbstractUI.StartSim(self,config)
+        UI.StartSim(self,config)
 
-        
+
     def StopSim(self):
-        client.AbstractUI.StopSim(self)
+        UI.StopSim(self)
 
-        
+
     def TimerCallback(self,e):
-        client.AbstractUI.TimerCallback(self,e)
-        
+        UI.TimerCallback(self,e)
+
         self.logger.SetValue("Frame %d of %d"%(self.CurrentFrame,self.nfiles.value-1))
 
-    
+
     def StartStopSim(self,e):
-        
+
         #if simulation is not started then start a new simulation
         if not self.servercomm.IsStarted():
             self.writeConfig()
 
             dlg=wx.MessageDialog(self,"Do you wish to continue?","This will start a simulation",wx.OK|wx.CANCEL)
-            
+
             if dlg.ShowModal() == wx.ID_OK:
 
                 # write to config
@@ -272,7 +277,7 @@ class WeatherWindow(client.AbstractUI):
                 config="config.mcf"
                 #config  = "config_nice.mcf"
                 self.StartSim(config)
-                
+
                 self.buttons[0].SetLabel("Stop Simulaton")
 
                 self.buttons[1].Enable(True)
@@ -286,22 +291,22 @@ class WeatherWindow(client.AbstractUI):
 
                 #load the first data file
                 self.getdata.value=True
-        
+
         #if simulation is started then stop simulation
         else:
-            
+
             dlg=wx.MessageDialog(self,"Are you sure?","This will stop the current simulation.",wx.OK|wx.CANCEL)
-            
+
             if dlg.ShowModal() == wx.ID_OK:
-                
+
                 self.StopSim()
-                
+
                 self.buttons[0].SetLabel("Start Simulation")
-                
+
                 self.logger.SetValue("")
-                
+
                 self.playing=False
-                
+
                 self.buttons[1].SetLabel("Play")
                 self.buttons[1].Enable(False)
                 self.buttons[2].Enable(False)
@@ -318,13 +323,13 @@ class WeatherWindow(client.AbstractUI):
                 except:
                     pass
                 self.vtkwidget.GetRenderWindow().Render()
-            
-            
-    
+
+
+
     def OnClose(self,e):
-        client.AbstractUI.OnClose(self,e)
-    
-    
+        UI.OnClose(self,e)
+
+
 
     #----------------------------------------------------------------------
     #------------- New methods specific to demo go here -------------------
