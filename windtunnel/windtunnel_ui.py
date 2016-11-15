@@ -19,7 +19,7 @@ class WindTunnelWindow(UI):
         #call superclass' __init__
         UI.__init__(self,parent,title,demo,servercomm)
 
-        self.serverversion=True
+        self.serverversion=False
 
         #INSERT CODE HERE TO SET LAYOUT OF WINDOW/ADD BUTTONS ETC
 
@@ -55,9 +55,9 @@ class WindTunnelWindow(UI):
         self.Bind(wx.EVT_RADIOBOX,self.UpdateResults,self.radiobox)
         self.Bind(wx.EVT_RADIOBOX,self.UpdateResults,self.loadradio)
 
-        self.logger = wx.TextCtrl(self, style=wx.TE_READONLY|wx.TE_MULTILINE,size=(-1,60))
-
-        self.logger.SetValue(" \n \n")
+        self.logger = wx.TextCtrl(self, style=wx.TE_READONLY|wx.TE_MULTILINE|wx.TE_NO_VSCROLL,size=(-1,60))
+        self.logger.SetDefaultStyle(wx.TextAttr(wx.Colour(0,0,0),wx.Colour(0,0,0)))
+        self.logger.AppendText(" \n \n")
         self.logger.Refresh()
 
 

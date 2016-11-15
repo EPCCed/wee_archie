@@ -1,5 +1,6 @@
 from __future__ import print_function
 import client
+import wx
 
 import numpy as np
 
@@ -127,7 +128,16 @@ class WindTunnelDemo(client.AbstractDemo):
 
         (nx,ny,x,y)=data.GetGrid()
 
+        (dum,dum,lift,dum,dum,drag)=data.GetForces()
+        ld=np.sqrt(lift*lift+drag*drag)
 
+        lft=lift/ld
+        drg=drag/ld
+
+        lft=lft[0]
+        drg=drg[0]
+
+        print("lift,drag=",lft,drg,lift,drag,5.)
 
 
         if vartype == 0: #flowlines
@@ -140,6 +150,8 @@ class WindTunnelDemo(client.AbstractDemo):
             win.plt.set_title("Flowlines")
             win.plt.set_xlim(x[0],x[-1])
             win.plt.set_ylim(y[0],y[-1])
+            win.plt.arrow(0.,0.,drg,lft,shape="full",lw=3,head_width=0.1)
+
 
         elif vartype == 1:
             p=data.GetP()
@@ -147,6 +159,7 @@ class WindTunnelDemo(client.AbstractDemo):
             win.figure.colorbar(im)
             win.plt.axis('equal')
             win.plt.set_title("Pressure")
+            win.plt.arrow(0.,0.,drg,lft,shape="full",lw=3,head_width=0.1)
 
         elif vartype == 2:
             vort=data.GetVort()
@@ -154,6 +167,7 @@ class WindTunnelDemo(client.AbstractDemo):
             win.figure.colorbar(im)
             win.plt.axis('equal')
             win.plt.set_title("Vorticity")
+            win.plt.arrow(0.,0.,drg,lft,shape="full",lw=3,head_width=0.1)
 
 
         elif vartype == 3:
@@ -162,11 +176,50 @@ class WindTunnelDemo(client.AbstractDemo):
             win.figure.colorbar(im).set_label("kmph")
             win.plt.axis('equal')
             win.plt.set_title("Velocity")
+            win.plt.arrow(0.,0.,drg,lft,shape="full",lw=3,head_width=0.1)
 
         else:
             print("Whoops, invalid option")
 
-        (dum,dum,lift,dum,dum,drag)=data.GetForces()
 
-        win.logger.SetValue("Lift= %6.1f kN \nDrag= %6.1f kN \nLift/Drag= %6.3f"%(lift/1000,drag/1000,lift/drag))
-        win.logger.Refresh()
+
+        lift=lift/1000
+        drag = drag/1000.
+
+        red=wx.Colour(255,0,0)
+        green = wx.Colour(0,255,0)
+        amber = wx.Colour(255,191,0)
+        white=wx.Colour(255,255,255)
+        black = wx.Colour(0,0,0)
+
+        win.logger.SetDefaultStyle(wx.TextAttr(black,white))
+        win.logger.Clear()
+        if lift > 1:
+            win.logger.SetDefaultStyle(wx.TextAttr(black,green))
+        elif lift > 0.2:
+            win.logger.SetDefaultStyle(wx.TextAttr(black,amber))
+        else:
+            win.logger.SetDefaultStyle(wx.TextAttr(black,red))
+
+        win.logger.AppendText("Lift= %6.1f kN \n"%(lift))
+
+        if drag < 0.2:
+            win.logger.SetDefaultStyle(wx.TextAttr(black,green))
+        elif drag < 1.:
+            win.logger.SetDefaultStyle(wx.TextAttr(black,amber))
+        else:
+            win.logger.SetDefaultStyle(wx.TextAttr(black,red))
+
+        win.logger.AppendText("Drag= %6.1f kN \n"%(drag))
+
+        if lift/drag > 10:
+            win.logger.SetDefaultStyle(wx.TextAttr(black,green))
+        elif lift/drag > 2.:
+            win.logger.SetDefaultStyle(wx.TextAttr(black,amber))
+        else:
+            win.logger.SetDefaultStyle(wx.TextAttr(black,red))
+
+        win.logger.AppendText("lift/drag= %6.3f \n"%(lift/drag))
+
+        #win.logger.AppendText("Lift= %6.1f kN \nDrag= %6.1f kN \nLift/Drag= %6.3f"%(lift/1000,drag/1000,lift/drag))
+        #win.logger.Refresh()
