@@ -103,3 +103,6 @@ galaxy/data
 #fortran modules
 *.mod
 *.o
+
+windtunnel/simulation/windtunnel
+windtunnel/config.txt
