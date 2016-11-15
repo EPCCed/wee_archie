@@ -40,7 +40,7 @@ implicit none
     !medium parameters
     real :: p0=1. !pressure (atmospheres)
     real :: rho=1. !density (atomspheres)
-    real :: airspeed = 800 !km/h
+    real :: airspeed = 100 !km/h
 
 
     !unit conversions
