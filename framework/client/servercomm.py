@@ -7,8 +7,9 @@ import json
 class servercomm:
     #input is the name of the simulation (as known to the server)
     def __init__(self,simname):
-        self.targetbase='http://192.168.2.14:5000/' #wee archie
-        #self.targetbase='http://0.0.0.0:5000/' #laptop
+        #self.targetbase='http://192.168.2.14:5000/' #wee archie 1
+        #self.targetbase='http://192.168.2.25:5000/' #wee archie 2
+        self.targetbase='http://0.0.0.0:5000/' #laptop
         self.simname=simname
         print("Server initialised for simulation '"+self.simname+"'.")
         self.started=False

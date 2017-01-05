@@ -43,6 +43,8 @@ subroutine navier_stokes()
                     vv=vv*v2
                 endif
 
+                !Time depenent vorticity evolution: (dw/dt = -u*dw/dx -v*dw/dy + 1/Re * (laplacian(w))
+
                 ! weight the derivative according to the velocity (stronger weight is given to the
                 ! derivitive that is being advected into the gridcell)
                 deltax = uu*dt/dx

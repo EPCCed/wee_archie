@@ -19,7 +19,7 @@ class WindTunnelWindow(UI):
         #call superclass' __init__
         UI.__init__(self,parent,title,demo,servercomm)
 
-        self.serverversion=False
+        self.serverversion=True
 
         #INSERT CODE HERE TO SET LAYOUT OF WINDOW/ADD BUTTONS ETC
 
