@@ -50,7 +50,15 @@ class SimResults:
         self.lift=np.fromfile(f,count=1,dtype=np.float32)
         self.drag=np.fromfile(f,count=1,dtype=np.float32)
 
+        self.C_l=np.fromfile(f,count=1,dtype=np.float32)
+        self.C_d=np.fromfile(f,count=1,dtype=np.float32)
+        self.C_la=np.fromfile(f,count=1,dtype=np.float32)
+        self.C_da=np.fromfile(f,count=1,dtype=np.float32)
+
         f.close()
+
+        print("Lift coefficient=",self.C_l)
+        print("Drag Coefficient=",self.C_d)
 
 
     def GetFile(self):
@@ -74,8 +82,10 @@ class SimResults:
     def GetForces(self):
         return(self.plift,self.rlift,self.lift,self.pdrag,self.rdrag,self.drag)
 
-
-
+    def GetCoefficients(self):
+        print("Lift coefficient=",self.C_l)
+        print("Drag Coefficient=",self.C_d)
+        return (self.C_la, self.C_da)
 
 
 
@@ -137,7 +147,7 @@ class WindTunnelDemo(client.AbstractDemo):
         lft=lft[0]
         drg=drg[0]
 
-        print("lift,drag=",lft,drg,lift,drag,5.)
+        #print("lift,drag=",lft,drg,lift,drag,5.)
 
 
         if vartype == 0: #flowlines
@@ -220,6 +230,8 @@ class WindTunnelDemo(client.AbstractDemo):
             win.logger.SetDefaultStyle(wx.TextAttr(black,red))
 
         win.logger.AppendText("lift/drag= %6.3f \n"%(lift/drag))
+
+        #data.GetCoefficients()
 
         #win.logger.AppendText("Lift= %6.1f kN \nDrag= %6.1f kN \nLift/Drag= %6.3f"%(lift/1000,drag/1000,lift/drag))
         #win.logger.Refresh()

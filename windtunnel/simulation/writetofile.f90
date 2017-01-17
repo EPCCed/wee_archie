@@ -146,7 +146,7 @@ subroutine writetofile(fname)
 
         c_lift = lift / (0.5*rho*u0*rho_air * (vconv*airspeed)**2 )/toparea
 
-        !c_d = drag /(1/2*rh*u^2)/A
+        !c_d = drag /(1/2*rho*u^2)/A
 
         c_drag= drag / (0.5*rho*u0*rho_air * (vconv*airspeed)**2 )/frontarea
 
@@ -184,6 +184,7 @@ subroutine writetofile(fname)
         write(10) u2/(1-mask_global), pressure/(1-mask_global)
         write(10) vort_global/(1-mask_global)
         write(10) plift, ramlift, pdrag, ram, lift, drag
+        write(10) c_lift, c_drag, c_lift*toparea, c_drag*frontarea
         close(10)
 
         print *, "Written '",fname,"' to file."
