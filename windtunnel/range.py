@@ -61,14 +61,14 @@ class Range(wx.Frame):
             print("Plane cannot fly (negative lift) - zero range")
             return 0.
         else:
-            cruise = np.sqrt( (2.*mass*1000*10) / (rho * c_lift * 2*atop*wlgth) )
+            cruise = np.sqrt( (2.*mass*1000*10) / (rho * c_lift * 2*wlgth) )
 
-        if cruise > np.sqrt( (2.*thrust*1000) / (rho * c_drag * 2*aside*wlgth) ):
+        if cruise > np.sqrt( (2.*thrust*1000) / (rho * c_drag * 2*wlgth) ):
             print("Plane cannot fly (can't fly fast enough) - zero range")
             return 0.
 
 
-        cruise_thrust = 0.5*rho*cruise*cruise * c_drag * 2*aside*wlgth
+        cruise_thrust = 0.5*rho*cruise*cruise * c_drag * 2*wlgth
         efficiency = cruise_thrust/1000/thrust
 
 
@@ -80,6 +80,11 @@ class Range(wx.Frame):
         print("Range        =",t_flight*cruise/1000," km")
 
         return t_flight*cruise/1000
+
+
+
+
+
 
     def GetMask(self,rangekm):
 

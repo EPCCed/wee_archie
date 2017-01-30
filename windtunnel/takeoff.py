@@ -138,8 +138,8 @@ class Takeoff(wx.Frame):
         if (not self.crash):
 
             thrust2=thrust
-            lift = self.c_lift*atop*wlgth*2 * 0.5*rho*self.vx*self.vx
-            drag = self.c_drag*aside*wlgth*2 * 0.5*rho*self.vx*self.vx
+            lift = self.c_lift*wlgth*2 * 0.5*rho*self.vx*self.vx
+            drag = self.c_drag*wlgth*2 * 0.5*rho*self.vx*self.vx
 
             self.vx = self.vx + (thrust2*1000-drag)*dt/(mass*1000)
             self.x = self.x - self.vx*dt*scale

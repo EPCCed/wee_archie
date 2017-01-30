@@ -592,14 +592,15 @@ class WindTunnelWindow(UI):
 
 
     def ShowRange(self,e):
-        (c_lift,c_drag)=(self.potential.C_l,self.potential.C_d)
+        (c_lift,c_drag)=(self.potential.C_la,self.potential.C_da)
+        print("lift=",c_lift,"  drag=",c_drag)
         self.RangeFrame = range.Range(self,"Range",(1080,540),c_lift=c_lift,c_drag=c_drag)
         self.RangeFrame.Show()
 
 
     def ShowTakeoff(self,e):
 
-        (c_lift,c_drag)=(self.potential.C_l,self.potential.C_d)
+        (c_lift,c_drag)=(self.potential.C_la,self.potential.C_da)
         print("lift=",c_lift,"  drag=",c_drag)
         self.TakeoffFrame = takeoff.Takeoff(self,'Runway',size=(1200,675),c_lift=c_lift,c_drag=c_drag)
         self.TakeoffFrame.Show()
