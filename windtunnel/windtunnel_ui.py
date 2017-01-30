@@ -5,6 +5,8 @@ import wx
 import subprocess
 import shutil
 import time
+import range
+import takeoff
 
 
 
@@ -19,7 +21,7 @@ class WindTunnelWindow(UI):
         #call superclass' __init__
         UI.__init__(self,parent,title,demo,servercomm)
 
-        self.serverversion=True
+        self.serverversion=False
 
         #INSERT CODE HERE TO SET LAYOUT OF WINDOW/ADD BUTTONS ETC
 
@@ -80,6 +82,9 @@ class WindTunnelWindow(UI):
 
         self.ResetButton=wx.Button(self,wx.ID_ANY,label="Reset Options")
 
+        self.TakeoffButton=wx.Button(self,wx.ID_ANY,label="Take off")
+        self.RangeButton=wx.Button(self,wx.ID_ANY,label="Range")
+
 
         self.Bind(wx.EVT_SLIDER,self.GetShape,self.aslider)
         self.Bind(wx.EVT_SLIDER,self.GetShape,self.bslider)
@@ -88,7 +93,11 @@ class WindTunnelWindow(UI):
         self.Bind(wx.EVT_SLIDER,self.RotateShape,self.angleslider)
         self.Bind(wx.EVT_BUTTON,self.reset,self.ResetButton)
 
+        self.Bind(wx.EVT_BUTTON,self.ShowRange,self.RangeButton)
+        self.Bind(wx.EVT_BUTTON,self.ShowTakeoff,self.TakeoffButton)
 
+        self.range=False
+        self.takeoff=False
 
         self.ShowSetupControls()
 
@@ -213,7 +222,9 @@ class WindTunnelWindow(UI):
 
 
     def OnClose(self,e):
+        print("Requested an exit")
         UI.OnClose(self,e)
+
         #INSERT ANY CUSTOM CODE HERE
 
 
@@ -302,12 +313,19 @@ class WindTunnelWindow(UI):
         self.radiobox.Show()
         self.logger.Show()
 
+        self.TakeoffButton.Show()
+        self.RangeButton.Show()
+
 
         self.buttonsizer.Add(self.simbutton,0,wx.EXPAND|wx.TOP)
         self.buttonsizer.AddStretchSpacer(0)
         self.buttonsizer.Add(self.loadradio,0,wx.ALIGN_CENTER_HORIZONTAL|wx.EXPAND)
         self.buttonsizer.Add(self.radiobox,0,wx.ALIGN_CENTER_HORIZONTAL|wx.EXPAND)
         self.buttonsizer.AddStretchSpacer(4.5)
+
+        self.buttonsizer.Add(self.TakeoffButton,0,wx.EXPAND)
+        self.buttonsizer.Add(self.RangeButton,0,wx.EXPAND)
+
         self.buttonsizer.Add(self.logger,0,wx.EXPAND | wx.ALIGN_CENTER)
 
 
@@ -324,6 +342,18 @@ class WindTunnelWindow(UI):
         self.loadradio.Hide()
         self.radiobox.Hide()
         self.logger.Hide()
+        self.TakeoffButton.Hide()
+        self.RangeButton.Hide()
+        try:
+            self.TakeoffFrame.Destroy()
+            self.TakeoffButton.Enable()
+        except:
+            pass
+        try:
+            self.RangeFrame.Destroy()
+            self.RangeButton.Enable()
+        except:
+            pass
 
 
 
@@ -559,3 +589,17 @@ class WindTunnelWindow(UI):
         f.close()
 
         print("Created parameter file")
+
+
+    def ShowRange(self,e):
+        (c_lift,c_drag)=(self.potential.C_l,self.potential.C_d)
+        self.RangeFrame = range.Range(self,"Range",(1080,540),c_lift=c_lift,c_drag=c_drag)
+        self.RangeFrame.Show()
+
+
+    def ShowTakeoff(self,e):
+
+        (c_lift,c_drag)=(self.potential.C_l,self.potential.C_d)
+        print("lift=",c_lift,"  drag=",c_drag)
+        self.TakeoffFrame = takeoff.Takeoff(self,'Runway',size=(1200,675),c_lift=c_lift,c_drag=c_drag)
+        self.TakeoffFrame.Show()

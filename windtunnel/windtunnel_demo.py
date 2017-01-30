@@ -55,6 +55,12 @@ class SimResults:
         self.C_la=np.fromfile(f,count=1,dtype=np.float32)
         self.C_da=np.fromfile(f,count=1,dtype=np.float32)
 
+        self.C_l = self.C_l[0]
+        self.C_d = self.C_d[0]
+
+        self.C_la = self.C_la[0]
+        self.C_da = self.C_da[0]
+
         f.close()
 
         print("Lift coefficient=",self.C_l)
