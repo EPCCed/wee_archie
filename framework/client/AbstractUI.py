@@ -112,5 +112,5 @@ class AbstractUI(wx.Frame):
       if self.servercomm.IsStarted():
           print("Deleting simulation temp files")
           self.servercomm.DeleteSim()
-      print("Done!")
       self.Destroy()
+      print("Done!")

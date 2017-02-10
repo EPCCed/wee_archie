@@ -190,6 +190,6 @@ class Takeoff(wx.Frame):
 
 if __name__ == '__main__':
     app = wx.App()
-    takeoff=Takeoff(None,"Take Off",(1200,675),c_lift=1.5,c_drag=0.1)
+    takeoff=Takeoff(None,"Take Off",(1200,675),c_lift=0.5,c_drag=0.1)
     takeoff.Show()
     app.MainLoop()

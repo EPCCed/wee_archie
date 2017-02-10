@@ -10,6 +10,9 @@ import matplotlib.colors as cm
 from config import *
 
 
+lon_0=-80
+lon_0=-10
+
 
 class Range(wx.Frame):
 
@@ -78,6 +81,7 @@ class Range(wx.Frame):
         print("Flight time  = ",t_flight/3600, " hours")
         print("Cruise Speed = ",cruise*3.6, " km/h")
         print("Range        =",t_flight*cruise/1000," km")
+        print("Efficiency   =",1-efficiency)
 
         return t_flight*cruise/1000
 
@@ -114,7 +118,7 @@ class Range(wx.Frame):
         dx=360./1080.
 
         for i in range(nph):
-            lon[i]=(dx*(i+0.5))-170.
+            lon[i]=(dx*(i+0.5))-180.-lon_0
 
         for j in range(nth):
             theta[j]=(dx*(j-0.5))
@@ -173,6 +177,6 @@ class Range(wx.Frame):
 
 if __name__ == "__main__":
     app=wx.App()
-    range=Range(None,"Range",(1080,540),c_lift=1.0,c_drag=0.05)
+    range=Range(None,"Range",(1080,540),c_lift=1.0,c_drag=0.2)
     range.Show()
     app.MainLoop()

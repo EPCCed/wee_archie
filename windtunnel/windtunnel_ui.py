@@ -224,6 +224,7 @@ class WindTunnelWindow(UI):
     def OnClose(self,e):
         print("Requested an exit")
         UI.OnClose(self,e)
+        quit()
 
         #INSERT ANY CUSTOM CODE HERE
 

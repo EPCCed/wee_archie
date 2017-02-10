@@ -11,7 +11,7 @@ mass = 50 #tonnes
 thrust = 170 #kN
 
 fuel = 250. #units of fuel in fuel tank
-maxrate = 0.1 #amount of fuel used per second at maxthrust
+maxrate = 0.02 #amount of fuel used per second at maxthrust
 
 
 #PROBABLY DO NOT CHANGE THINGS BELOW HERE
