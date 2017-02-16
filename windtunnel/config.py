@@ -5,6 +5,7 @@
 #location of Edinburgh (degrees lat and lon)
 lat0=55.98
 lon0=-3.18
+placename = "Edinburgh"
 
 wlgth = 15 #wing length (m)
 mass = 50 #tonnes
