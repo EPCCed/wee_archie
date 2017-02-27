@@ -67,6 +67,7 @@ class WindTunnelWindow(UI):
 
         self.shaperadio=wx.RadioBox(self,wx.ID_ANY,label="Shape",choices=["Ellipse", "Aerofoil"])
         self.Bind(wx.EVT_RADIOBOX,self.SwapShape,self.shaperadio)
+        self.shaperadio.SetSelection(1)
 
         self.angleslider=wx.Slider(self,wx.ID_ANY,value=0,minValue=-45,maxValue=45)
 
@@ -367,7 +368,7 @@ class WindTunnelWindow(UI):
         self.buttonsizer.Clear()
 
         self.simbutton.Show()
-        self.shaperadio.Show()
+        self.shaperadio.Hide()
         self.angletext.Show()
         self.atext.Show()
         self.btext.Show()
@@ -573,7 +574,7 @@ class WindTunnelWindow(UI):
             b=self.bslider.GetValue()*0.1
         else:
             m=self.mslider.GetValue()*0.01
-            t=self.tslider.GetValue()*0.1
+            t=self.tslider.GetValue()*0.01+0.1
 
         f=open('config.txt','w')
 
