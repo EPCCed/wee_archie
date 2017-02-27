@@ -74,7 +74,7 @@ class WindTunnelWindow(UI):
         self.bslider=wx.Slider(self,wx.ID_ANY,value=6,minValue=2,maxValue=10)
 
         self.mslider=wx.Slider(self,wx.ID_ANY,value=0,minValue=-30,maxValue=30)
-        self.tslider=wx.Slider(self,wx.ID_ANY,value=2,minValue=1,maxValue=6)
+        self.tslider=wx.Slider(self,wx.ID_ANY,value=10,minValue=0,maxValue=50)
 
         self.angletext=wx.StaticText(self,label="Angle of attack = 0 degrees")
         self.atext=wx.StaticText(self,label="Red Axis = 1")
@@ -461,9 +461,9 @@ class WindTunnelWindow(UI):
             #print "Getting Aerofoil"
             self.GetAerofoil()
             m=0.01*self.mslider.GetValue()
-            t=0.1*self.tslider.GetValue()
+            t=0.01*self.tslider.GetValue()+0.1
             self.atext.SetLabel("Camber    = %4.2f"%m)
-            self.btext.SetLabel("Thickness = %3.1f"%t)
+            self.btext.SetLabel("Thickness = %3.2f"%t)
 
         self.RotateShape(0)
 
@@ -484,7 +484,7 @@ class WindTunnelWindow(UI):
 
     def GetAerofoil(self):
         m=self.mslider.GetValue()*0.01
-        t=self.tslider.GetValue()*0.1
+        t=self.tslider.GetValue()*0.01+0.1
         p=0.4
         c=2.
 
