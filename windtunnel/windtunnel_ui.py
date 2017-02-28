@@ -22,6 +22,7 @@ class WindTunnelWindow(UI):
         UI.__init__(self,parent,title,demo,servercomm)
 
         self.serverversion=False
+        self.Vorticity=False
 
         #INSERT CODE HERE TO SET LAYOUT OF WINDOW/ADD BUTTONS ETC
 
@@ -49,8 +50,10 @@ class WindTunnelWindow(UI):
         #controls for viewing results
         self.loadradio=wx.RadioBox(self,wx.ID_ANY,label="Result Type",choices=["Potential","Viscous"],majorDimension=2,style=wx.RA_SPECIFY_COLS)
 
-        self.radiobox=wx.RadioBox(self,wx.ID_ANY,label="Variable",choices=["Flow","Pressure", "Vorticity","Velocity"],majorDimension=2,style=wx.RA_SPECIFY_COLS)
-
+        if self.Vorticity:
+            self.radiobox=wx.RadioBox(self,wx.ID_ANY,label="Variable",choices=["Flow","Pressure", "Vorticity","Velocity"],majorDimension=2,style=wx.RA_SPECIFY_COLS)
+        else:
+            self.radiobox=wx.RadioBox(self,wx.ID_ANY,label="Variable",choices=["Flow","Pressure"],majorDimension=2,style=wx.RA_SPECIFY_COLS)
 
 
 
@@ -311,7 +314,8 @@ class WindTunnelWindow(UI):
         self.buttonsizer.Clear()
 
         self.simbutton.Show()
-        self.loadradio.Show()
+        if self.Vorticity:
+            self.loadradio.Show()
         self.radiobox.Show()
         self.logger.Show()
 
@@ -489,33 +493,37 @@ class WindTunnelWindow(UI):
         p=0.4
         c=2.
 
-        xl=np.linspace(0,p,50)
-        xu=np.linspace(p,1,50)
-
-
-        ycl=m*xl/p/p * (2*p-xl)
-        thetal = 2.*m/p/p * (p-xl)
-
-        ycu=m*(1-xu)/(1.-p)/(1.-p) * (1+xu-2*p)
-        thetau=2.*m/(1.-p)/(1.-p) * (p-xu)
-
-        theta=np.append(thetal,thetau)
-        theta=np.arctan(theta)
-
+        xl=np.linspace(0,p*c,40)
+        xu=np.linspace(p*c,c,60)
         x=np.append(xl,xu)
+        xc=x/c
+        xlc=xl/c
+        xuc=xu/c
+
+        yt=5*t*(0.2969*np.sqrt(xc) -0.1260*xc -0.3516*(xc*xc) + 0.2843*xc*xc*xc - 0.1015*xc*xc*xc*xc )
+
+        #ycl = m/p**2 * (2*p*xlc - xlc**2) #correct way, but looks odd-shaped for large T and M
+        ycl = m*xl/p/p * (2*p-xlc)
+
+        #ycu = m/(1-p)**2 * ( (1-2*p) + 2*p*(xuc) - xuc**2) #correct way, but looks odd-shaped for large T and M
+        ycu = m*(c-xu)/(1-p)/(1-p) * (1+xuc-2*p)
+
         yc=np.append(ycl,ycu)
 
-        yt=5*t*(0.2969*np.sqrt(x)-0.1260*x-0.3516*x*x+0.2843*x*x*x-0.1015*x*x*x*x)
+        tanthetal = 2*m/p/p * (p-xlc)
+        tanthetau = 2*m/(1-p)**2 * (p-xuc)
+
+        theta = np.arctan(np.append(tanthetal,tanthetau))
+
+        xu = x #- yt*np.sin(theta) #technically correct, but looks odd
+        yu = yc + yt*np.cos(theta)
+
+        xl = x #+ yt*np.sin(theta) #technically correct but looks odd
+        yl = yc - yt*np.cos(theta)
 
 
-        # xu=xx-yt*sin(theta)
-        yu=yc+yt*np.cos(theta)
-
-        # xl=xx+yt*sin(theta)
-        yl=yc-yt*np.cos(theta)
-
-        self.x=np.append(x,np.flipud(x))
-        self.x=self.x*c-1
+        self.x=np.append(xu,np.flipud(xl))-1.
+        
         self.y=np.append(yu,np.flipud(yl))
 
 
@@ -588,6 +596,13 @@ class WindTunnelWindow(UI):
             f.write("M= %f,\n"%m)
             f.write("T= %f,\n"%t)
         f.write("/\n")
+
+        if self.Vorticity == False:
+            f.write("&VORTPARAMS\n")
+            f.write("VORTICITY= .FALSE.\n")
+            f.write("/\n")
+
+
         f.close()
 
         print("Created parameter file")

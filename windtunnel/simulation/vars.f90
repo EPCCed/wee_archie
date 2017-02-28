@@ -186,9 +186,11 @@ implicit none
         else
             !create yc
             if (xx .le. p*c) then
+                !yc=m*xc/p/p * (2*p-xc) !technically correct, but looks weird for large m and c
                 yc=m*xx/p/p * (2*p-xc)
                 theta = 2.*m/p/p * (p-xc)
             else
+                !yc=m*(c-xc)/(1.-p)/(1.-p) * (1+xc-2*p) !technically correct, but looks weird
                 yc=m*(c-xx)/(1.-p)/(1.-p) * (1+xc-2*p)
                 theta=2.*m/(1.-p)/(1.-p) * (p-xc)
             endif
