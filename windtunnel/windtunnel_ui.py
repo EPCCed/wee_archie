@@ -608,6 +608,13 @@ class WindTunnelWindow(UI):
             self.plt.plot(ax,ay,color='red')
             self.plt.plot(bx,by,color='blue')
 
+        #add arrows to show airflow direction
+
+        self.plt.arrow(-1.5,-1.5,1.0,0.0,lw=1,head_width=0.1,color="black")
+        self.plt.arrow(-1.5,1.5,1.0,0.0,lw=1,head_width=0.1,color="black")
+        self.plt.arrow(0.5,-1.5,1.0,0.0,lw=1,head_width=0.1,color="black")
+        self.plt.arrow(0.5,1.5,1.0,0.0,lw=1,head_width=0.1,color="black")
+
 
         self.canvas.draw()
         self.canvas.Refresh()
