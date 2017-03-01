@@ -5,7 +5,7 @@ import wx
 import subprocess
 import shutil
 import time
-import range
+import range as Range
 import takeoff
 import datetime
 
@@ -286,6 +286,8 @@ class WindTunnelWindow(UI):
             self.potential=None
 
             self.write_paramfile()
+
+            self.add_lines()
 
 
 
@@ -613,6 +615,33 @@ class WindTunnelWindow(UI):
         self.angletext.SetLabel("Angle = %i degrees"%self.angleslider.GetValue())
 
 
+    def add_lines(self):
+
+        nvert=4
+        nhoriz=4
+
+        #draw vertical lines
+        if nvert > 0:
+            dx=4./nvert
+            for i in range(nvert):
+                x=[i*dx-2.0,i*dx-2.0]
+                y=[-2.,2.]
+                self.plt.plot(x,y,color="black",linestyle="dashed")
+
+        #draw horizontal lines
+        if nhoriz > 0:
+            dx=4./nhoriz
+            for i in range(nhoriz):
+                x=[-2.,2.]
+                y=[i*dx-2.0,i*dx-2.0]
+                self.plt.plot(x,y,color="black",linestyle="dashed")
+
+        self.canvas.draw()
+        self.canvas.Refresh()
+
+
+
+
     def write_paramfile(self):
         #for now just write the shape parameters
         curtime=self.now().strftime("%H:%M:%S")
@@ -660,7 +689,7 @@ class WindTunnelWindow(UI):
     def ShowRange(self,e):
         (c_lift,c_drag)=(self.potential.C_la,self.potential.C_da)
         print("lift=",c_lift,"  drag=",c_drag)
-        self.RangeFrame = range.Range(self,"Range",(1080,540),c_lift=c_lift,c_drag=c_drag)
+        self.RangeFrame = Range.Range(self,"Range",(1080,540),c_lift=c_lift,c_drag=c_drag)
         self.RangeFrame.Show()
 
 
