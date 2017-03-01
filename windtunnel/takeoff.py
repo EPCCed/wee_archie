@@ -27,12 +27,14 @@ drag=0.0
 class Takeoff(wx.Frame):
     def __init__(self, parent,title,size,c_lift,c_drag):
         super(Takeoff, self).__init__(parent, title=title,size=size)
-        
+
+        self.parent=parent
+
         #get lift and drag coefficients from input
         self.c_lift=c_lift
         self.c_drag=c_drag
-        
-        
+
+
         #initial position of plane
         self.x = 1000.
         self.y = 345.
@@ -41,14 +43,14 @@ class Takeoff(wx.Frame):
         self.vx= 0.
         self.vy= 0.
         self.t = 0.
-        
+
         #load background image
         bg = wx.Image("background2.png",wx.BITMAP_TYPE_PNG)
         bg.Rescale(1200, 670)
         background = wx.StaticBitmap(self, -1, wx.BitmapFromImage(bg))
         background.SetPosition((0, 0))
-        
-        
+
+
         ##add placename text
         #text=wx.StaticText(self,label=placename,pos=(595,150),style=wx.ALIGN_CENTRE_HORIZONTAL)
         #font = wx.Font(14, wx.SWISS, wx.NORMAL, wx.NORMAL)
@@ -65,9 +67,9 @@ class Takeoff(wx.Frame):
         self.planeimg.Rescale(158,50)
         self.plane = wx.StaticBitmap(self, -1, wx.BitmapFromImage(self.planeimg))
         self.plane.SetPosition((self.x, self.y))
-        
-       
-        
+
+
+
         #load image of water (used to cover sinking plane)
         self.waterlevel=580
 
@@ -75,13 +77,13 @@ class Takeoff(wx.Frame):
         self.water = wx.StaticBitmap(self, -1, wx.BitmapFromImage(h20))
         self.water.SetPosition((-25,self.waterlevel))
         self.water.SetPosition((-25,-1000))
-        
-       
-        
+
+
+
         #load image of raft
         raft=wx.Image("raft.png", wx.BITMAP_TYPE_PNG)
         raft.Rescale(30,13)
-        
+
         #Create a list of the 4 rafts
         self.rafts=[]
         for i in range(4):
@@ -94,13 +96,13 @@ class Takeoff(wx.Frame):
             dr=((2.*np.cos(angle),np.sin(angle)))
             #append LifeRaft object to list
             self.rafts.append( LifeRaft(img,pos,dr) )
-         
-        #hide the rafts (move them offscreen) 
+
+        #hide the rafts (move them offscreen)
         for raft in self.rafts:
             raft.Hide()
-            
-            
-        
+
+
+
         self.counter=0
 
         self.timer=wx.Timer(self)
@@ -113,13 +115,13 @@ class Takeoff(wx.Frame):
         self.Bind(wx.EVT_CLOSE,self.OnClose)
 
         self.x0 = self.x
-        
+
         #disable the takeoff button from the main window
         try:
             self.GetParent().TakeoffButton.Disable()
         except:
             pass
-        
+
         #start the timer
         self.timer.Start(10)
 
@@ -136,7 +138,7 @@ class Takeoff(wx.Frame):
 
 
     def TimerCallback(self,e):
-        
+
         #integrate movement of plane (and any other objects (i.e. liferafts))
         self.Integrate()
 
@@ -158,7 +160,7 @@ class Takeoff(wx.Frame):
             self.vx = self.vx + (thrust2*1000-drag)*dt/(mass*1000)
             self.x = self.x - self.vx*dt*scale
             self.t = self.t+dt
-            
+
             #if the plane can take off/has taken off
             if (lift > wgt):
                 self.y= self.y - 10.*dt
@@ -168,12 +170,20 @@ class Takeoff(wx.Frame):
                     self.y -= 10.
                     self.plane.SetBitmap(wx.BitmapFromImage(self.planeimg))
                     self.takeoff=True
-            
+                    if self.parent != None:
+                        self.parent.logfile.write("    Takeoff = True\n")
+                        self.parent.logfile.write("    Runway Dist= "+str((self.x0-self.x)/scale)+" m \n")
+                        self.parent.logfile.flush()
+
             #if the plane overruns the runway
             if ((self.x0-self.x)/scale > lmax) and not self.takeoff:
-                print("takeoff failed at",self.x)
+                print("takeoff failed at",(self.x0-self.x)/scale)
                 self.crash=True
-                
+
+                if self.parent != None:
+                    self.parent.logfile.write("    Takeoff = False\n")
+                    self.parent.logfile.flush()
+
         #if the plane is falling but hasn't hit the water yet
         elif not self.touchdown:
 
@@ -190,17 +200,17 @@ class Takeoff(wx.Frame):
                     xp=self.x+50.
                     yp=self.y+30.
                     raft.SetPos((xp,yp))
-                
-                
+
+
         #once/if the plane has hit the sea
         else:
             self.counter +=1
-            
+
             #if 50 time units have passed, start moving the rafts
             if self.counter>50:
                 for raft in self.rafts:
                     raft.Move()
-                    
+
             #after 100 time units, start plane sinking
             if self.counter>100:
                 self.vy=0.5
@@ -212,50 +222,50 @@ class Takeoff(wx.Frame):
                 if self.waterlevel < 510:
                     self.timer.Stop()
                     print("Plane sunk")
-            
-            
-                    
+
+
+
 #liferaft class
 class LifeRaft:
     def __init__(self,image,pos,dr):
         self.image=image
         self.pos=pos
         self.dr=dr
-    
+
     #Updates the position of the raft on the screen
     def UpdatePosition(self):
         self.image.SetPosition(self.pos)
-    
+
     #set the position of the raft (relative to its current position)
     def SetPos(self,pos):
         xp,yp=pos
         x,y=self.pos
-        
+
         x+=xp
         y+=yp
         self.pos=(x,y)
         #self.UpdatePosition
-    
+
     #move the raft offscreen
     def Hide(self):
         self.image.SetPosition((-100,-100))
-    
+
     #set the displacement vector of the raft
     def SetDr(self,dr):
         self.dr=dr
-    
+
     #move the raft (in the direction of dr, but with a random component added in to make it 'rock' about)
     def Move(self):
         x,y=self.pos
         dx,dy=self.dr
-        
+
         x+=(dx+random.gauss(0.,5.))*0.01
         y+=(dy+random.gauss(0.,5.))*0.01
-        
+
         self.pos=(x,y)
-        
+
         self.UpdatePosition()
-        
+
 
 
 

@@ -19,6 +19,8 @@ class Range(wx.Frame):
     def __init__(self,parent,title,size,rangekm=None,c_lift=None,c_drag=None):
         super(Range, self).__init__(parent, title=title,size=size)
 
+        self.parent=parent
+
         try:
             self.GetParent().RangeButton.Disable()
         except:
@@ -62,13 +64,26 @@ class Range(wx.Frame):
         if c_lift <=0.:
             cruise = 0.0
             print("Plane cannot fly (negative lift) - zero range")
+
+            if self.parent != None:
+                parent.logfile.write("    Cruise Speed = 0.0 km/h\n")
+                parent.logfile.write("    Range = 0.0 km\n")
+                self.parent.logfile.flush()
             return 0.
         else:
             cruise = np.sqrt( (2.*mass*1000*10) / (rho * c_lift * 2*wlgth) )
 
+
         if cruise > np.sqrt( (2.*thrust*1000) / (rho * c_drag * 2*wlgth) ):
             print("Plane cannot fly (can't fly fast enough) - zero range")
+            if self.parent != None:
+                self.parent.logfile.write("    Range =  0 km\n")
+                self.parent.logfile.write("    Cruise Speed = 0 km/h\n")
+                self.parent.logfile.flush()
             return 0.
+
+        if self.parent != None:
+            self.parent.logfile.write("    Cruise Speed = "+str(cruise*3.6)+" km/h\n")
 
 
         cruise_thrust = 0.5*rho*cruise*cruise * c_drag * 2*wlgth
@@ -82,6 +97,12 @@ class Range(wx.Frame):
         print("Cruise Speed = ",cruise*3.6, " km/h")
         print("Range        =",t_flight*cruise/1000," km")
         print("Efficiency   =",1-efficiency)
+
+        if self.parent != None:
+            self.parent.logfile.write("    Range = "+str(t_flight*cruise/1000)+" km \n")
+            self.parent.logfile.flush()
+
+
 
         return t_flight*cruise/1000
 

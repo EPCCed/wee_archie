@@ -7,6 +7,7 @@ import shutil
 import time
 import range
 import takeoff
+import datetime
 
 
 
@@ -23,6 +24,17 @@ class WindTunnelWindow(UI):
 
         self.serverversion=False
         self.Vorticity=False
+
+        self.now = datetime.datetime.now
+
+        self.date=self.now().strftime("%Y-%m-%d")
+
+        filename = self.date+".log"
+
+        self.logfile = open(filename,'a')
+
+
+
 
         #INSERT CODE HERE TO SET LAYOUT OF WINDOW/ADD BUTTONS ETC
 
@@ -206,6 +218,15 @@ class WindTunnelWindow(UI):
                     print("Time to complete = ",self.tstop-self.tstart)
                     self.StopSim()
 
+                    self.logfile.write("    Time to Complete = "+str(self.tstop-self.tstart)+"\n")
+                    self.logfile.write("    Lift= "+str(self.potential.lift[0])+"\n")
+                    self.logfile.write("    Drag= "+str(self.potential.drag[0])+"\n")
+                    self.logfile.write("    Lift/drag= "+str(self.potential.lift[0]/self.potential.drag[0])+"\n")
+                    self.logfile.write("    Lift coeff= "+str(self.potential.C_l)+"\n")
+                    self.logfile.write("    Drag coeff= "+str(self.potential.C_d)+"\n")
+
+                    self.logfile.flush()
+
                     for widget in self.GetChildren():
                         widget.Enable(True)
 
@@ -228,6 +249,7 @@ class WindTunnelWindow(UI):
     def OnClose(self,e):
         print("Requested an exit")
         UI.OnClose(self,e)
+        self.logfile.close()
         quit()
 
         #INSERT ANY CUSTOM CODE HERE
@@ -265,6 +287,9 @@ class WindTunnelWindow(UI):
 
             self.write_paramfile()
 
+
+
+
             self.dlg=wx.ProgressDialog(title="Running Simulation - Please Wait",message="Starting simulation",style=wx.PD_AUTO_HIDE|wx.PD_APP_MODAL,parent=self)
 
             for widget in self.GetChildren():
@@ -272,6 +297,8 @@ class WindTunnelWindow(UI):
             self.tstart=time.time()
             if self.serverversion:
                 self.StartSim('config.txt')
+                self.logfile.write("    simID="+self.servercomm.simid+"\n")
+
 
 
             self.dlg.Update(10,"Calculating potential flow")
@@ -279,6 +306,8 @@ class WindTunnelWindow(UI):
             if not self.serverversion:
                 print("Running code. Please wait a few seconds whilst this completes")
                 subprocess.call(["mpiexec","-n","4","./simulation/windtunnel"])
+
+                self.logfile.write("    simID=None\n")
 
                 #get potential data file
                 shutil.copy2('potential.dat','tmp.nc')
@@ -301,12 +330,25 @@ class WindTunnelWindow(UI):
                 self.dlg.Update(100,"Done")
                 self.tstop=time.time()
                 print("Time to complete = ",self.tstop-self.tstart)
+
+                self.logfile.write("    Time to Complete = "+str(self.tstop-self.tstart)+"\n")
+                self.logfile.write("    Lift= "+str(self.potential.lift[0])+"\n")
+                self.logfile.write("    Drag= "+str(self.potential.drag[0])+"\n")
+                self.logfile.write("    Lift/drag= "+str(self.potential.lift[0]/self.potential.drag[0])+"\n")
+                self.logfile.write("    Lift coeff= "+str(self.potential.C_l)+"\n")
+                self.logfile.write("    Drag coeff= "+str(self.potential.C_d)+"\n")
+
+                self.logfile.flush()
+
+
                 for widget in self.GetChildren():
                     widget.Enable(True)
 
 
                 self.ShowResultsControls()
                 self.resultsscreen=True
+
+            self.logfile.flush()
 
     def ShowResultsControls(self):
         self.figure.clf()
@@ -523,7 +565,7 @@ class WindTunnelWindow(UI):
 
 
         self.x=np.append(xu,np.flipud(xl))-1.
-        
+
         self.y=np.append(yu,np.flipud(yl))
 
 
@@ -573,6 +615,9 @@ class WindTunnelWindow(UI):
 
     def write_paramfile(self):
         #for now just write the shape parameters
+        curtime=self.now().strftime("%H:%M:%S")
+        self.logfile.write("* New Simulation\n")
+        self.logfile.write("    Time= "+curtime+"\n")
 
         shapetype = self.shaperadio.GetSelection()
         alpha = self.angleslider.GetValue()*1.0
@@ -595,6 +640,10 @@ class WindTunnelWindow(UI):
         else:
             f.write("M= %f,\n"%m)
             f.write("T= %f,\n"%t)
+            self.logfile.write("    alpha= "+str(alpha)+"\n")
+            self.logfile.write("    m= "+str(m)+"\n")
+            self.logfile.write("    t= "+str(t)+"\n")
+
         f.write("/\n")
 
         if self.Vorticity == False:
