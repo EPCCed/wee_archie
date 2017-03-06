@@ -10,6 +10,7 @@ class servercomm:
         self.targetbase='http://192.168.2.14:5000/' #wee archie 1
         #self.targetbase='http://192.168.2.25:5000/' #wee archie 2
         #self.targetbase='http://0.0.0.0:5000/' #laptop
+        self.targetbase="http://192.168.2.2:5000/" #wee archlet
         self.simname=simname
         print("Server initialised for simulation '"+self.simname+"'.")
         self.started=False
