@@ -5,6 +5,7 @@ import numpy as np
 from numpy import sin, cos, pi
 import matplotlib.pyplot as plt
 import matplotlib.colors as cm
+import math
 
 
 from config import *
@@ -41,6 +42,26 @@ class Range(wx.Frame):
         background.SetPosition((0,0))
         mask.SetPosition((0,0))
 
+        hours=math.floor(self.time)
+        mins = (self.time - hours)*60.
+
+        # self.sb=self.CreateStatusBar()
+        # self.sb.SetMinHeight(50)
+        # self.sb.SetStatusText("Hello world")
+
+        text="Speed = %d kmph\nFlight Time =  %d Hours %d Minutes \nRange = %d km" % (self.speed,hours,mins,self.range)
+
+        font=wx.Font(15,wx.DEFAULT,wx.NORMAL,wx.NORMAL)
+        colour=wx.Colour(128,0,128)
+        bgc=wx.Colour(255,255,255)
+
+        tx=wx.StaticText(self,wx.ID_ANY,label=text,pos=(10,425))
+        tx.SetFont(font)
+        #tx.SetForegroundColour(colour)
+        #tx.SetBackgroundColour(bgc)
+
+        print(text)
+
         self.Bind(wx.EVT_CLOSE,self.OnClose)
 
 
@@ -64,6 +85,9 @@ class Range(wx.Frame):
         if c_lift <=0.:
             cruise = 0.0
             print("Plane cannot fly (negative lift) - zero range")
+            self.speed=0.
+            self.range=0.
+            self.time=0.
 
             if self.parent != None:
                 parent.logfile.write("    Cruise Speed = 0.0 km/h\n")
@@ -76,6 +100,9 @@ class Range(wx.Frame):
 
         if cruise > np.sqrt( (2.*thrust*1000) / (rho * c_drag * 2*wlgth) ):
             print("Plane cannot fly (can't fly fast enough) - zero range")
+            self.speed=0.
+            self.range=0.
+            self.time=0.
             if self.parent != None:
                 self.parent.logfile.write("    Range =  0 km\n")
                 self.parent.logfile.write("    Cruise Speed = 0 km/h\n")
@@ -86,12 +113,17 @@ class Range(wx.Frame):
             self.parent.logfile.write("    Cruise Speed = "+str(cruise*3.6)+" km/h\n")
 
 
+
         cruise_thrust = 0.5*rho*cruise*cruise * c_drag * 2*wlgth
         efficiency = cruise_thrust/1000/thrust
 
 
 
         t_flight = fuel / (efficiency*maxrate)
+
+        self.speed=cruise*3.6
+        self.range=t_flight*cruise/1000
+        self.time=t_flight/3600
 
         print("Flight time  = ",t_flight/3600, " hours")
         print("Cruise Speed = ",cruise*3.6, " km/h")
