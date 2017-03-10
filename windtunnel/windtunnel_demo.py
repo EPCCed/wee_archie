@@ -235,7 +235,7 @@ class WindTunnelDemo(client.AbstractDemo):
         else:
             win.logger.SetDefaultStyle(wx.TextAttr(black,red))
 
-        win.logger.AppendText("lift/drag= %6.3f \n"%(lift/drag))
+        win.logger.AppendText("lift/drag= %6.3f"%(lift/drag))
 
         #data.GetCoefficients()
 
