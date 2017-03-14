@@ -6,13 +6,15 @@ import json
 #class which describes the ways that the program can interact with the server.
 class servercomm:
     #input is the name of the simulation (as known to the server)
-    def __init__(self,simname):
+    def __init__(self,simname,serveraddress):
         self.targetbase='http://192.168.2.14:5000/' #wee archie 1
-        #self.targetbase='http://192.168.2.25:5000/' #wee archie 2
+        self.targetbase='http://192.168.2.25:5000/' #wee archie 2
         #self.targetbase='http://0.0.0.0:5000/' #laptop
-        self.targetbase="http://192.168.2.2:5000/" #wee archlet
+        #self.targetbase="http://192.168.2.2:5000/" #wee archlet
         self.simname=simname
+        self.targetbase=serveraddress
         print("Server initialised for simulation '"+self.simname+"'.")
+        print("Server is "+self.targetbase)
         self.started=False
 
     #tell server to start the simulation. Pass in the configuration file
