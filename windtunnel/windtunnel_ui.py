@@ -22,7 +22,7 @@ class WindTunnelWindow(UI):
         #call superclass' __init__
         UI.__init__(self,parent,title,demo,servercomm)
 
-        self.serverversion=False
+        self.serverversion=True
         self.Vorticity=False
 
         self.now = datetime.datetime.now
@@ -461,7 +461,7 @@ class WindTunnelWindow(UI):
 
 
         self.buttonsizer.Layout()
-        self.Fit()
+        #self.Fit() #if uncommented this causes window to resize upon swapping screens
 
         self.simbutton.SetLabel("Run Simulation")
         self.GetShape(0)
