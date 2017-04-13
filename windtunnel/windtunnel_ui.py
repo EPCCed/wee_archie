@@ -8,8 +8,7 @@ import time
 import range as Range
 import takeoff
 import datetime
-
-
+import argparse
 
 #select the UI abstract superclass to derive from
 UI=client.AbstractmatplotlibUI
@@ -17,12 +16,14 @@ UI=client.AbstractmatplotlibUI
 # Derive the demo-specific GUI class from the Abstract??UI class
 class WindTunnelWindow(UI):
 
-    def __init__(self,parent,title,demo,servercomm):
+    def __init__(self,parent,title,demo,servercomm,args):
 
         #call superclass' __init__
         UI.__init__(self,parent,title,demo,servercomm)
+        
+        self.args=args
 
-        self.serverversion=True
+        self.serverversion=False
         self.Vorticity=False
 
         self.now = datetime.datetime.now
@@ -367,14 +368,17 @@ class WindTunnelWindow(UI):
         self.RangeButton.Show()
 
 
-        self.buttonsizer.Add(self.simbutton,0,wx.EXPAND|wx.TOP)
-        self.buttonsizer.AddStretchSpacer(0)
+        #self.buttonsizer.Add(self.simbutton,0,wx.EXPAND|wx.TOP)
+        self.buttonsizer.Add(self.TakeoffButton,1,wx.EXPAND|wx.TOP)
+        self.buttonsizer.Add(self.RangeButton,1,wx.EXPAND)
+        self.buttonsizer.AddStretchSpacer(1)
         self.buttonsizer.Add(self.loadradio,0,wx.ALIGN_CENTER_HORIZONTAL|wx.EXPAND)
         self.buttonsizer.Add(self.radiobox,0,wx.ALIGN_CENTER_HORIZONTAL|wx.EXPAND)
-        self.buttonsizer.AddStretchSpacer(4.5)
+        self.buttonsizer.AddStretchSpacer(10.5)
 
-        self.buttonsizer.Add(self.TakeoffButton,0,wx.EXPAND)
-        self.buttonsizer.Add(self.RangeButton,0,wx.EXPAND)
+        #self.buttonsizer.Add(self.TakeoffButton,0,wx.EXPAND)
+        #self.buttonsizer.Add(self.RangeButton,0,wx.EXPAND)
+        self.buttonsizer.Add(self.simbutton,1,wx.EXPAND)
 
         self.buttonsizer.Add(self.logger,0,wx.EXPAND | wx.ALIGN_CENTER)
 
@@ -438,10 +442,10 @@ class WindTunnelWindow(UI):
 
 
 
-        self.buttonsizer.Add(self.simbutton,0,wx.EXPAND)
+        self.buttonsizer.Add(self.simbutton,1,wx.EXPAND)
         self.buttonsizer.AddStretchSpacer(0)
         self.buttonsizer.Add(self.shaperadio,0,wx.ALIGN_CENTRE | wx.EXPAND)
-        #self.buttonsizer.AddStretchSpacer(1)
+        self.buttonsizer.AddStretchSpacer(3)
         self.buttonsizer.Add(self.angletext)
         self.buttonsizer.Add(self.angleslider,0,wx.EXPAND)
         if self.shaperadio.GetSelection() == 0:
@@ -456,12 +460,12 @@ class WindTunnelWindow(UI):
             self.buttonsizer.Add(self.btext)
             self.buttonsizer.Add(self.tslider,0,wx.EXPAND)
             print("Aerofoil")
-        self.buttonsizer.AddStretchSpacer(5)
-        self.buttonsizer.Add(self.ResetButton,0,wx.EXPAND | wx.ALIGN_BOTTOM)
+        self.buttonsizer.AddStretchSpacer(3)
+        self.buttonsizer.Add(self.ResetButton,1,wx.EXPAND | wx.ALIGN_BOTTOM)
 
 
         self.buttonsizer.Layout()
-        #self.Fit() #if uncommented this causes window to resize upon swapping screens
+        self.Fit()
 
         self.simbutton.SetLabel("Run Simulation")
         self.GetShape(0)
@@ -624,24 +628,37 @@ class WindTunnelWindow(UI):
 
     def add_lines(self):
 
+        #nvert=4*(args.cores/2)
+        #nhoriz=4*(args.cores/2)
         nvert=4
         nhoriz=4
-
+        ncvert=1#self.args.cores
+        nchoriz=self.args.cores
+        
+        if self.args.cores <1:
         #draw vertical lines
-        if nvert > 0:
-            dx=4./nvert
-            for i in range(nvert):
-                x=[i*dx-2.0,i*dx-2.0]
-                y=[-2.,2.]
-                self.plt.plot(x,y,color="black",linestyle="dashed")
+            if nvert > 0:
+                dx=4./nvert
+                for i in range(nvert):
+                    x=[i*dx-2.0,i*dx-2.0]
+                    y=[-2.,2.]
+                    self.plt.plot(x,y,color="black",linestyle="dashed")
 
-        #draw horizontal lines
-        if nhoriz > 0:
-            dx=4./nhoriz
-            for i in range(nhoriz):
-                x=[-2.,2.]
-                y=[i*dx-2.0,i*dx-2.0]
-                self.plt.plot(x,y,color="black",linestyle="dashed")
+            #draw horizontal lines
+            if nhoriz > 0:
+                dx=4./nhoriz
+                for i in range(nhoriz):
+                    x=[-2.,2.]
+                    y=[i*dx-2.0,i*dx-2.0]
+                    self.plt.plot(x,y,color="black",linestyle="dashed")
+        else:
+            #draw horizontal core lines
+            if nchoriz > 0:
+                dx=4./nchoriz
+                for i in range(nchoriz):
+                    x=[-2.,2.]
+                    y=[i*dx-2.0,i*dx-2.0]
+                    self.plt.plot(x,y,color="black",linestyle="dashed")
 
         self.canvas.draw()
         self.canvas.Refresh()

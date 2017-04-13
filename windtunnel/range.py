@@ -1,10 +1,12 @@
 from __future__ import print_function
+from takeoff import FlightIns
 
 import wx
 import numpy as np
 from numpy import sin, cos, pi
 import matplotlib.pyplot as plt
 import matplotlib.colors as cm
+import matplotlib.cm as clm
 import math
 
 
@@ -14,11 +16,14 @@ from config import *
 lon_0=-80
 lon_0=-10
 
+green=wx.Colour(0,180,0)
+orange=wx.Colour(255,127,0)
+bgcol=wx.Colour(53,53,53)
 
 class Range(wx.Frame):
 
     def __init__(self,parent,title,size,rangekm=None,c_lift=None,c_drag=None):
-        super(Range, self).__init__(parent, title=title,size=size)
+        super(Range, self).__init__(parent, title=title,size=size,style=wx.FRAME_FLOAT_ON_PARENT|wx.MINIMIZE_BOX | wx.MAXIMIZE_BOX | wx.RESIZE_BORDER | wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX | wx.CLIP_CHILDREN)
 
         self.parent=parent
 
@@ -30,43 +35,111 @@ class Range(wx.Frame):
         if rangekm == None:
             rangekm=self.GetRange(c_lift,c_drag)
 
-        globe=wx.Bitmap("map.png")
-        background = wx.StaticBitmap(self,-1,globe)
+        self.globe=wx.Image("map_new.png",wx.BITMAP_TYPE_PNG)
+        #background = wx.StaticBitmap(self,-1,wx.BitmapFromImage(self.globe))
+
+        self.colours=["None","None","None","None","None","None","None","None","None","None"]
+        
 
 
         self.GetMask(rangekm)
+        #range=wx.Bitmap("range.png")
+        #self.mask=wx.StaticBitmap(self,-1,range)
 
-        range=wx.Bitmap("range.png")
-        mask=wx.StaticBitmap(self,-1,range)
-
-        background.SetPosition((0,0))
-        mask.SetPosition((0,0))
+        #background.SetPosition((0,0))
+        #self.mask.SetPosition((0,0))
 
         hours=math.floor(self.time)
         mins = (self.time - hours)*60.
+        self.time_unit=self.time/500
+        self.time_passed=0.
 
         # self.sb=self.CreateStatusBar()
         # self.sb.SetMinHeight(50)
         # self.sb.SetStatusText("Hello world")
 
-        text="Speed = %d kmph\nFlight Time =  %d Hours %d Minutes \nRange = %d km" % (self.speed,hours,mins,self.range)
+        self.text="Speed = %d kmph\nFlight Time =  %d Hours %d Minutes \nRange = %d km" % (self.speed,hours,mins,self.range)
 
-        font=wx.Font(15,wx.DEFAULT,wx.NORMAL,wx.NORMAL)
+        self.clock=wx.StaticText(self,wx.ID_ANY,pos=(75,425))
+        self.clock.SetForegroundColour(wx.WHITE)
+        
+        self.tx=wx.StaticText(self,wx.ID_ANY,pos=(600,425))
+
         colour=wx.Colour(128,0,128)
         bgc=wx.Colour(255,255,255)
 
-        tx=wx.StaticText(self,wx.ID_ANY,label=text,pos=(10,425))
-        tx.SetFont(font)
         #tx.SetForegroundColour(colour)
         #tx.SetBackgroundColour(bgc)
 
-        print(text)
+        print(self.text)
 
         self.Bind(wx.EVT_CLOSE,self.OnClose)
+        self.Bind(wx.EVT_ERASE_BACKGROUND,self.on_erase)
+        self.Bind(wx.EVT_PAINT,self.on_paint)
 
+        self.mask_set=False
+        self.buffer=wx.EmptyBitmap(840,270)
+        self.backbuffer=wx.EmptyBitmap(840,270)
+
+        self.fuel=FlightIns(((115,315)),((1,1)),60)
+
+        #range only expands & fuel only decreases if some range is displayed
+        if(self.able):
+            self.timer=wx.Timer(self)
+            self.Bind(wx.EVT_TIMER,self.TimerCallback,self.timer)
+            self.counter=125
+            self.timer.Start(10)
+        else:
+            self.update(125)
 
 
         print("Displaying range map!")
+
+
+    def TimerCallback(self,e):
+        
+        #painting fuel dial
+        
+        self.update(self.counter)
+        self.counter-=0.5
+
+        #updating colourmap, painting range
+        if self.counter==124.5:
+            self.colours[0]="lime"
+            self.Paint()   
+        elif self.counter==100:
+            self.colours[1]="lime"
+            self.Paint()  
+        elif self.counter==75:
+            self.colours[2]="lime"
+            self.Paint()
+        elif self.counter==50:
+            self.colours[3]="lime"
+            self.Paint()
+        elif self.counter==25:
+            self.colours[4]="lime"
+            self.Paint()
+        elif self.counter==0:
+            self.colours[5]="lime"
+            self.Paint()
+        elif self.counter==-25:
+            self.colours[6]="lime"
+            self.Paint()
+        elif self.counter==-50:
+            self.colours[7]="orange"
+            self.Paint()
+        elif self.counter==-75:
+            self.colours[8]="orange"
+            self.Paint()
+        elif self.counter==-100:
+            self.colours[9]="red"
+            self.Paint()
+
+        if self.counter==-125:
+            self.timer.Stop()
+
+    def on_erase(self,e):
+        pass    
 
 
     def OnClose(self,e):
@@ -75,12 +148,44 @@ class Range(wx.Frame):
             self.GetParent().RangeButton.Enable(True)
         except:
             pass
+        if(self.able):
+            self.timer.Stop()
         self.Destroy()
 
+    def update(self,val):
+
+        self.buffer=wx.BitmapFromImage(self.globe)
+        self.backbuffer=wx.BitmapFromImage(self.globe)
+        
+        dc=wx.MemoryDC()
+        dc.SelectObject(self.backbuffer)
+        self.fuel.CalcArrow(val)
+        self.fuel.DrawArrow(dc,wx.RED)
+
+        self.write(self.tx,self.text,15)      
+        self.time_passed+=self.time_unit
+        hours=int(math.floor(self.time_passed))
+        mins=int((self.time_passed-hours)*60)
+        if mins<10:
+            mins="0%d"%mins
+        if hours<10:
+            hours="0%d"%hours
+        self.write(self.clock,"%s:%s"%(hours,mins),20)
+
+        self.buffer,self.backbuffer=self.backbuffer,self.buffer
+        dc.SelectObject(wx.NullBitmap)
+
+        self.Refresh()
+
+    def write(self,text,label,size):
+        font=wx.Font(size,wx.DEFAULT,wx.NORMAL,wx.NORMAL)
+        text.SetLabel(label)
+        text.SetFont(font)
+
+    def on_paint(self,e):
+        dc=wx.BufferedPaintDC(self,self.buffer)
 
     def GetRange(self,c_lift,c_drag):
-
-
 
         if c_lift <=0.:
             cruise = 0.0
@@ -88,10 +193,11 @@ class Range(wx.Frame):
             self.speed=0.
             self.range=0.
             self.time=0.
+            self.able=False
 
             if self.parent != None:
-                parent.logfile.write("    Cruise Speed = 0.0 km/h\n")
-                parent.logfile.write("    Range = 0.0 km\n")
+                self.parent.logfile.write("    Cruise Speed = 0.0 km/h\n")
+                self.parent.logfile.write("    Range = 0.0 km\n")
                 self.parent.logfile.flush()
             return 0.
         else:
@@ -103,6 +209,7 @@ class Range(wx.Frame):
             self.speed=0.
             self.range=0.
             self.time=0.
+            self.able=False
             if self.parent != None:
                 self.parent.logfile.write("    Range =  0 km\n")
                 self.parent.logfile.write("    Cruise Speed = 0 km/h\n")
@@ -118,12 +225,12 @@ class Range(wx.Frame):
         efficiency = cruise_thrust/1000/thrust
 
 
-
         t_flight = fuel / (efficiency*maxrate)
 
         self.speed=cruise*3.6
         self.range=t_flight*cruise/1000
         self.time=t_flight/3600
+        self.able=True
 
         print("Flight time  = ",t_flight/3600, " hours")
         print("Cruise Speed = ",cruise*3.6, " km/h")
@@ -185,12 +292,12 @@ class Range(wx.Frame):
         theta[:] = theta[:]*pi/180
 
         #set up 'map'
-        img=np.zeros((nth,nph))
+        self.img=np.zeros((nth,nph))
 
 
         r=np.zeros(3)
 
-        img[:][:]=-1
+        self.img[:][:]=-1
 
         acos=np.arccos
         dot=np.dot
@@ -204,28 +311,34 @@ class Range(wx.Frame):
                 angle=acos(dot(r,r0))
 
                 if angle <= maxang:
-                    img[j][i]=angle/maxang
+                    
+                    self.img[j][i]=angle/maxang
 
 
-        colourmap = cm.ListedColormap(["lime","lime","lime","lime","lime","lime","lime","orange","orange","red"],"map")
-        colourmap.set_under(color='white',alpha=0.)
-
-
+        #colours range with given colourmap (timer)
+    def Paint(self):
         mydpi=96.
         fig=plt.figure(frameon=False,figsize=(1080/mydpi,540/mydpi),dpi=mydpi)
         fig.set_size_inches(1080/mydpi,540/mydpi)
+        
+        self.map=cm.ListedColormap(self.colours,"rangemap")
+        self.map.set_under(color='white',alpha=0.)
 
         ax = plt.axes([0,0,1,1])
 
-        plot=plt.imshow(img,extent=(0,2,0,1),alpha=0.3,vmin=0.0,vmax=1.0,cmap=colourmap)
+        plot=plt.imshow(self.img,extent=(0,2,0,1),alpha=0.3,vmin=0.0,vmax=1.0,cmap=self.map)
         plt.axis("off")
         #plt.savefig("test.png", bbox_inches='tight')
         plot.axes.get_xaxis().set_visible(False)
         plot.axes.get_yaxis().set_visible(False)
         plt.savefig('range.png',transparent=True,dpi=mydpi)
 
-
-
+        if(self.mask_set):
+            self.mask.Destroy()
+        range=wx.Bitmap("range.png")
+        self.mask=wx.StaticBitmap(self,-1,range)
+        self.mask.SetPosition((0,0))
+        self.mask_set=True
 
 
 if __name__ == "__main__":
