@@ -115,7 +115,7 @@ Clicking the “Range” button brings up a world map, from which a shaded area
 moves outwards from Edinburgh, representing the range of the plane. This is
 green for the first 70% of the range, amber from 70%-90%, then red.
 
-![Description: Flight Distance](range.png)
+![Description: Flight Distance](map.png)
 
 ### Points to Discuss:
 * Why do you think the range is what it is
