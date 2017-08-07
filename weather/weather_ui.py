@@ -3,12 +3,51 @@ import client
 import wx
 from wx.lib.masked import *
 import vtk
-import time
+
+# New module to import the live weather forcast
+from weather_live import LiveWeather
 
 # select the UI abstract superclass to derive from
 UI = client.AbstractvtkUI
 
 imageFile = 'uk.jpg'
+rain = 'resizedrain.jpg'
+cloud = 'resizedcloud.jpg'
+sun = 'resizedsun.jpg'
+
+edinburgh = []
+london = []
+cornwall = []
+highlands = []
+#places = [edinburgh, london, cornwall, highlands]
+
+if LiveWeather(3166).hour_weather() <= 1:
+    edinburgh.append(sun)
+elif 9 > LiveWeather(3166).hour_weather() > 1:
+    edinburgh.append(cloud)
+else:
+    edinburgh.append(rain)
+
+if LiveWeather(3772).hour_weather() <= 1:
+    london.append(sun)
+elif 9 > LiveWeather(3772).hour_weather() > 1:
+    london.append(cloud)
+else:
+    london.append(rain)
+
+if LiveWeather(3808).hour_weather() <= 1:
+    cornwall.append(sun)
+elif 9 > LiveWeather(3808).hour_weather() > 1:
+    cornwall.append(cloud)
+else:
+    cornwall.append(rain)
+
+if LiveWeather(3047).hour_weather() <= 1:
+    highlands.append(sun)
+elif 9 > LiveWeather(3047).hour_weather() > 1:
+    highlands.append(cloud)
+else:
+    highlands.append(rain)
 
 
 # Derive the demo-specific GUI class from the AbstractUI class
@@ -628,22 +667,46 @@ class TabOne(wx.Panel):
         box.Add(self.Image, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL | wx.ADJUST_MINSIZE, 10)
         self.SetSizerAndFit(box)
 
+        # Get the size of the image.....attempting to reposition the buttons depending on the window size.
         W, H = self.Image.GetSize()
 
-        #IW = self.Image.GetWidth()
-        #IH = self.Image.GetHeight()
+        # Set up image button for Edinburgh(city):
+        bmp = wx.Bitmap(edinburgh[0], wx.BITMAP_TYPE_ANY)
+        self.button1 = wx.BitmapButton(self, -1, bmp, size = (80, 80), pos=(W/1.96, H/3.4))
+        self.Bind(wx.EVT_BUTTON, self.go, self.button1)
+        self.button1.SetDefault()
 
-        # Set up image button for Edinburgh:
-        bmp = wx.Bitmap('sun.jpg', wx.BITMAP_TYPE_ANY)
-        self.button = wx.BitmapButton(self, -1, bmp, size = (60, 60), pos=(W/1.93, H/3.27))
-        self.Bind(wx.EVT_BUTTON, self.go, self.button)
-        self.button.SetDefault()
+        # Set up image button for Highlands(mountains):
+        bmp = wx.Bitmap(highlands[0], wx.BITMAP_TYPE_ANY)
+        self.button2 = wx.BitmapButton(self, -1, bmp, size=(80, 80), pos=(W / 2.3, H / 6.7))
+        self.Bind(wx.EVT_BUTTON, self.go, self.button2)
+        self.button2.SetDefault()
 
-        #buttons = wx.BoxSizer(wx.VERTICAL)
-        #buttons.Add(self.button, 1, wx.EXPAND)
+        # Set up image button for London(city+river):
+        bmp = wx.Bitmap(london[0], wx.BITMAP_TYPE_ANY)
+        self.button3 = wx.BitmapButton(self, -1, bmp, size=(80, 80), pos=(W / 1.4, H / 1.55))
+        self.Bind(wx.EVT_BUTTON, self.go, self.button3)
+        self.button3.SetDefault()
+
+        # Set up image button for Cornwall(seaside):
+        bmp = wx.Bitmap(cornwall[0], wx.BITMAP_TYPE_ANY)
+        self.button4 = wx.BitmapButton(self, -1, bmp, size=(80, 80), pos=(W / 2.52, H / 1.33))
+        self.Bind(wx.EVT_BUTTON, self.go, self.button4)
+        self.button4.SetDefault()
+
+        # Set up image button for Ireland:
+        bmp = wx.Bitmap(rain, wx.BITMAP_TYPE_ANY)
+        self.button5 = wx.BitmapButton(self, -1, bmp, size=(80, 80), pos=(W / 3.7, H / 2.1))
+        self.Bind(wx.EVT_BUTTON, self.always_rain, self.button5)
+        self.button5.SetDefault()
 
     def go(self, config):
         self.mainTabTwo.StartStopSim(None)
 
-    def onclick(self, event):
-        self.button.SetLabel("Clicked")
+    def always_rain(self, event):
+        dial = wx.MessageDialog(self, "Who are you kidding? The forecast is always rain here",
+                                "Irish Weather", wx.OK | wx.CANCEL)
+        dial.ShowModal()
+
+    #def onclick(self, event):
+    #    self.button.SetLabel("Clicked")
