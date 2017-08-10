@@ -689,7 +689,7 @@ class TabOne(wx.Panel):
         self.button3.SetDefault()
 
         # Set up image button for Cornwall(seaside):
-        bmp = wx.Bitmap(cornwall[0], wx.BITMAP_TYPE_ANY)
+        bmp = wx.Bitmap(self.weather_data(cornwall, 3808)[0], wx.BITMAP_TYPE_ANY)
         self.button4 = wx.BitmapButton(self, -1, bmp, size=(80, 80), pos=(W / 2.52, H / 1.33))
         self.Bind(wx.EVT_BUTTON, self.go, self.button4)
         self.button4.SetDefault()
@@ -698,15 +698,46 @@ class TabOne(wx.Panel):
         bmp = wx.Bitmap(rain, wx.BITMAP_TYPE_ANY)
         self.button5 = wx.BitmapButton(self, -1, bmp, size=(80, 80), pos=(W / 3.7, H / 2.1))
         self.Bind(wx.EVT_BUTTON, self.always_rain, self.button5)
+        # Calls the functions that change the cursor icon
+        self.button5.Bind(wx.EVT_ENTER_WINDOW, self.changeCursor)
+        self.button5.Bind(wx.EVT_ENTER_WINDOW, self.changeCursorBack)
         self.button5.SetDefault()
 
     def go(self, config):
         self.mainTabTwo.StartStopSim(None)
+
+    def weather_data(self, place, numb):
+        live = LiveWeather(numb).hour_weather()
+        place = place
+        if live <= 1:
+            place.append(sun)
+        elif 9 > live > 1:
+            place.append(cloud)
+        else:
+            place.append(rain)
+        return place
 
     def always_rain(self, event):
         dial = wx.MessageDialog(self, "Who are you kidding? The forecast is always rain here",
                                 "Irish Weather", wx.OK | wx.CANCEL)
         dial.ShowModal()
 
-    #def onclick(self, event):
-    #    self.button.SetLabel("Clicked")
+    # Change the cursor to a hand every time the cursor goes over a button
+    def changeCursor(self, event):
+        myCursor = wx.StockCursor(wx.CURSOR_HAND)
+        self.button5.SetCursor(myCursor)
+        self.button1.SetCursor(myCursor)
+        self.button2.SetCursor(myCursor)
+        self.button3.SetCursor(myCursor)
+        self.button4.SetCursor(myCursor)
+        event.Skip()
+
+    # Change the cursor back to the arrow every time the cursor leaves a button
+    def changeCursorBack(self, event):
+        myCursor = wx.StockCursor(wx.CURSOR_ARROW)
+        self.button5.SetCursor(myCursor)
+        self.button1.SetCursor(myCursor)
+        self.button2.SetCursor(myCursor)
+        self.button3.SetCursor(myCursor)
+        self.button4.SetCursor(myCursor)
+        event.Skip()

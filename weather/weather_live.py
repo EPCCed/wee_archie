@@ -9,26 +9,35 @@ class LiveWeather(object):
 
         # Read the current hour
         time = int(strftime("%H"))
-        # The UK Met Office live weather url
-        url = "http://datapoint.metoffice.gov.uk/public/data/val/wxobs/all/json/" \
-              "%s?res=hourly&key=25617c79-940e-4254-8e5a-fbdc6d5f0f14" % place
 
-        # Grab the data from the url and process it
-        response = urllib.urlopen(url)
-        data = json.loads(response.read())
+        try:
 
-        # Get to the right data array
-        days_weather = (data["SiteRep"]["DV"]["Location"]["Period"][0]["Rep"])
+            # The UK Met Office live weather url
+            url = "http://datapoint.metoffice.gov.uk/public/data/val/wxobs/all/json/" \
+                  "%s?res=hourly&key=25617c79-940e-4254-8e5a-fbdc6d5f0f14" % place
 
-        hour_num = len(days_weather)
-        self.hour = []
+            # Grab the data from the url and process it
+            response = urllib.urlopen(url)
+            data = json.loads(response.read())
 
-        # Loop to get the data from the arrays for the current time
-        for i in range(hour_num):
-            hour_weather = int(days_weather[i]["$"]) / 60
+            # Get to the right data array
+            days_weather = (data["SiteRep"]["DV"]["Location"]["Period"][0]["Rep"])
 
-            if hour_weather == time:
-                self.hour.append(days_weather[i])
+            hour_num = len(days_weather)
+            self.hour = []
+
+            # Loop to get the data from the arrays for the current time
+            for i in range(hour_num):
+                hour_weather = int(days_weather[i]["$"]) / 60
+
+                if hour_weather == time:
+                    self.hour.append(days_weather[i])
+
+        except:
+
+            response = {"d": 'NNE', "Pt": 'R', "H": 40.2, "P": 1014, "S": 7, "T": 19.0, "W": 1, "V": 30000, "Dp": 5.3, }
+            self.hour = []
+            self.hour.append(response)
 
     # Function that returns the weather type variable
     def hour_weather(self):
@@ -73,5 +82,3 @@ class LiveWeather(object):
     def dew_point(self):
 
         return int(self.hour[0]["Dp"])
-
-print str(LiveWeather(3166).wind_direction())
