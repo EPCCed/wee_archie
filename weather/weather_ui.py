@@ -19,35 +19,6 @@ edinburgh = []
 london = []
 cornwall = []
 highlands = []
-#places = [edinburgh, london, cornwall, highlands]
-
-if LiveWeather(3166).hour_weather() <= 1:
-    edinburgh.append(sun)
-elif 9 > LiveWeather(3166).hour_weather() > 1:
-    edinburgh.append(cloud)
-else:
-    edinburgh.append(rain)
-
-if LiveWeather(3772).hour_weather() <= 1:
-    london.append(sun)
-elif 9 > LiveWeather(3772).hour_weather() > 1:
-    london.append(cloud)
-else:
-    london.append(rain)
-
-if LiveWeather(3808).hour_weather() <= 1:
-    cornwall.append(sun)
-elif 9 > LiveWeather(3808).hour_weather() > 1:
-    cornwall.append(cloud)
-else:
-    cornwall.append(rain)
-
-if LiveWeather(3047).hour_weather() <= 1:
-    highlands.append(sun)
-elif 9 > LiveWeather(3047).hour_weather() > 1:
-    highlands.append(cloud)
-else:
-    highlands.append(rain)
 
 
 # Derive the demo-specific GUI class from the AbstractUI class
@@ -79,18 +50,27 @@ class WeatherWindow(UI):
         self.servercomm = servercomm
         self.title = title
 
-        ID_SETTINGS = 1
+        self.mode = 0
 
         menubar = wx.MenuBar()
         fileMenu = wx.Menu()
-        fileMenu.Append(ID_SETTINGS, 'Settings', 'Open settings window')
+        settings = fileMenu.Append(wx.ID_ANY, 'Settings', 'Open settings window')
         fitem = fileMenu.Append(wx.ID_EXIT, 'Quit', 'Quit application')
 
+        viewMenu = wx.Menu()
+        temp = viewMenu.Append(wx.ID_ANY, 'Temperature', 'Change to temp view')
+        press = viewMenu.Append(wx.ID_ANY, 'Pressure', 'Change to press view')
+        real = viewMenu.Append(wx.ID_ANY, 'Real World', 'Change to real view')
+
         menubar.Append(fileMenu, '&File')
+        menubar.Append(viewMenu, '&Views')
         self.SetMenuBar(menubar)
 
         self.Bind(wx.EVT_MENU, self.OnQuit, fitem)
-        self.Bind(wx.EVT_MENU, self.OpenWindow, None, 1)
+        self.Bind(wx.EVT_MENU, self.OpenWindow, settings)
+        self.Bind(wx.EVT_MENU, self.temp_view, temp)
+        self.Bind(wx.EVT_MENU, self.press_view, press)
+        self.Bind(wx.EVT_MENU, self.real_view, real)
 
         # add another renderer for the bottom part
         self.bottomrenderer = vtk.vtkRenderer()
@@ -101,8 +81,9 @@ class WeatherWindow(UI):
         self.mainsizer = wx.BoxSizer(wx.HORIZONTAL)
 
         # text at bottom that displays the current frame number
-        self.logger = wx.TextCtrl(self, style=wx.TE_READONLY)
+        #self.logger = wx.TextCtrl(self, style=wx.TE_READONLY)
 
+        # This is where the demo is attached to the window.
         self.mainsizer.Add(self.vtkwidget, 2, wx.EXPAND)
 
         # attach main sizer to the window
@@ -123,6 +104,15 @@ class WeatherWindow(UI):
         self.new = NewWindow(None, -1, self.title, self.demo, self.servercomm, self)
         self.new.Show()
 
+    def temp_view(self, e):
+        self.mode = 1
+
+    def press_view(self, e):
+        self.mode = 2
+
+    def real_view(self, e):
+        self.mode = 0
+
     def OnQuit(self, e):
         self.Close()
 
@@ -138,7 +128,7 @@ class WeatherWindow(UI):
     def TimerCallback(self, e):
         UI.TimerCallback(self, e)
 
-        self.logger.SetValue("Frame %d of %d" % (self.CurrentFrame, self.nfiles.value - 1))
+        #self.logger.SetValue("Frame %d of %d" % (self.CurrentFrame, self.nfiles.value - 1))
 
     def OnClose(self, e):
         UI.OnClose(self, e)
@@ -642,7 +632,7 @@ class TabTwo(wx.Panel):
         self.mainWeatherWindow.StartSim(config)
 
     def stop_sim(self):
-        self.mainWeatherWindow.StopSim(None)
+        self.mainWeatherWindow.StopSim()
 
     def timer_callback(self, e):
         self.mainWeatherWindow.TimerCallback(None)
@@ -671,27 +661,35 @@ class TabOne(wx.Panel):
         W, H = self.Image.GetSize()
 
         # Set up image button for Edinburgh(city):
-        bmp = wx.Bitmap(edinburgh[0], wx.BITMAP_TYPE_ANY)
+        bmp = wx.Bitmap(self.weather_data(edinburgh, 3166)[0], wx.BITMAP_TYPE_ANY)
         self.button1 = wx.BitmapButton(self, -1, bmp, size = (80, 80), pos=(W/1.96, H/3.4))
         self.Bind(wx.EVT_BUTTON, self.go, self.button1)
+        self.button1.Bind(wx.EVT_ENTER_WINDOW, self.changeCursor)
+        self.button1.Bind(wx.EVT_ENTER_WINDOW, self.changeCursorBack)
         self.button1.SetDefault()
 
         # Set up image button for Highlands(mountains):
-        bmp = wx.Bitmap(highlands[0], wx.BITMAP_TYPE_ANY)
+        bmp = wx.Bitmap(self.weather_data(highlands, 3047)[0], wx.BITMAP_TYPE_ANY)
         self.button2 = wx.BitmapButton(self, -1, bmp, size=(80, 80), pos=(W / 2.3, H / 6.7))
         self.Bind(wx.EVT_BUTTON, self.go, self.button2)
+        self.button2.Bind(wx.EVT_ENTER_WINDOW, self.changeCursor)
+        self.button2.Bind(wx.EVT_ENTER_WINDOW, self.changeCursorBack)
         self.button2.SetDefault()
 
         # Set up image button for London(city+river):
-        bmp = wx.Bitmap(london[0], wx.BITMAP_TYPE_ANY)
+        bmp = wx.Bitmap(self.weather_data(london, 3772)[0], wx.BITMAP_TYPE_ANY)
         self.button3 = wx.BitmapButton(self, -1, bmp, size=(80, 80), pos=(W / 1.4, H / 1.55))
         self.Bind(wx.EVT_BUTTON, self.go, self.button3)
+        self.button3.Bind(wx.EVT_ENTER_WINDOW, self.changeCursor)
+        self.button3.Bind(wx.EVT_ENTER_WINDOW, self.changeCursorBack)
         self.button3.SetDefault()
 
         # Set up image button for Cornwall(seaside):
         bmp = wx.Bitmap(self.weather_data(cornwall, 3808)[0], wx.BITMAP_TYPE_ANY)
         self.button4 = wx.BitmapButton(self, -1, bmp, size=(80, 80), pos=(W / 2.52, H / 1.33))
         self.Bind(wx.EVT_BUTTON, self.go, self.button4)
+        self.button4.Bind(wx.EVT_ENTER_WINDOW, self.changeCursor)
+        self.button4.Bind(wx.EVT_ENTER_WINDOW, self.changeCursorBack)
         self.button4.SetDefault()
 
         # Set up image button for Ireland:

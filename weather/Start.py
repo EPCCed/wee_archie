@@ -7,10 +7,12 @@ import weather_ui
 import client
 import wx
 
-demo=weather_demo.WeatherDemo()
-servercomm=client.servercomm("SHPCW")
+demo = weather_demo.WeatherDemo()
+servercomm = client.servercomm("SHPCW", "http://127.0.0.1:5000/")
 
-app=wx.App(False)
-window=weather_ui.WeatherWindow(None,"Weather Simulator",demo,servercomm)
+app = wx.App(False)
+
+window = weather_ui.WeatherWindow(None, "Weather Simulator", demo, servercomm)
 window.Maximize(True)
+
 app.MainLoop()

@@ -35,6 +35,7 @@ class LiveWeather(object):
 
         except:
 
+            #print "No internet, using default values instead"
             response = {"d": 'NNE', "Pt": 'R', "H": 40.2, "P": 1014, "S": 7, "T": 19.0, "W": 1, "V": 30000, "Dp": 5.3, }
             self.hour = []
             self.hour.append(response)
@@ -82,3 +83,5 @@ class LiveWeather(object):
     def dew_point(self):
 
         return int(self.hour[0]["Dp"])
+
+#print LiveWeather(3808).hour_weather()

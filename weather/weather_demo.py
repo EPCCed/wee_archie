@@ -4,6 +4,7 @@ import vtk
 import random
 import time
 import math
+import numpy
 
 
 #Data transfer object
@@ -22,6 +23,17 @@ class WeatherDemo(client.AbstractDemo):
 
         q = root.variables['q']
 
+        pres = root.variables['p'][:]
+        p = numpy.array(pres)
+        p = ((p + 1000)/1000) - 0.2
+
+
+        theta = root.variables['th'][:]
+        th = numpy.array(theta)
+        th = th/4
+
+        #th_ref = root.variables['th_ref'][:]
+
         rm = root.variables['ground_rain'][:]
 
         coords = root.variables['q'].shape[1:]
@@ -36,7 +48,7 @@ class WeatherDemo(client.AbstractDemo):
         overalltime = root.variables['overall_time'][:]
         communicationtime =root.variables['communication_time'][:]
 
-        data = [vapor, clouds, rain, coords, rm, timepersec, overalltime, communicationtime]
+        data = [vapor, clouds, rain, coords, rm, timepersec, overalltime, communicationtime, th, p]
 
         # create data transfer object and put the array into it
         dto = DTO()
@@ -47,17 +59,18 @@ class WeatherDemo(client.AbstractDemo):
     # Renders a frame with data contained within the data transfer object, data
     def RenderFrame(self, win, dto):
 
-
         #unpack  data transfer object
         data = dto.GetData()
-        vapor, clouds, rain, coords, rm, timepersec, overalltime, commtime = data
+        vapor, clouds, rain, coords, rm, timepersec, overalltime, commtime, th, p = data
 
         win.renderer.SetBackground(0.22,.67,.87)
         win.renderer.SetViewport(0, 0.3, 1, 1)
         win.bottomrenderer.SetViewport(0,0,1,0.3)
         x, y, z = coords
 
-        # The arcotrs need to be created only once, that is why we have a actors dictionairy in the win. This way we
+        self.mode = win.mode
+
+        # The actors need to be created only once, that is why we have a actors dictionary in the win. This way we
         # will only add each actor once to the renderer. The other things like data structures, filters and mappers are
         # created and destroyed in each function.
         try:
@@ -65,7 +78,7 @@ class WeatherDemo(client.AbstractDemo):
         except:
             win.actors['TimePerSecActor'] = vtk.vtkTextActor()
 
-        win.actors['TimePerSecActor'].SetInput(str(round(timepersec,2)) + " sps")
+        win.actors['TimePerSecActor'].SetInput(str(round(timepersec, 2)) + " sps")
         win.actors['TimePerSecActor'].GetTextProperty().SetColor(1.0, 0.0, 0.0)
 
         text_representation = vtk.vtkTextRepresentation()
@@ -84,16 +97,70 @@ class WeatherDemo(client.AbstractDemo):
         win.widgets['SPSWidget'].SelectableOff()
         win.widgets['SPSWidget'].On()
 
-        ### Clouds renderiing
-        # We create the actor if it does not exist, call the rendering function and give it the actor.
-        # The function then gives new input for the actor, which we then add to the renderer.
-        try:
-            win.actors['CloudActor']
-        except:
-            win.actors['CloudActor'] = vtk.vtkActor()
+        # To switch between the temperature, pressure and 'real' world views.
+        if self.mode == 0:
+            ### Clouds rendering
+            # We create the actor if it does not exist, call the rendering function and give it the actor.
+            # The function then gives new input for the actor, which we then add to the renderer.
+            try:
+                win.actors['CloudActor']
+            except:
+                win.actors['CloudActor'] = vtk.vtkActor()
+                win.renderer.AddActor(win.actors['CloudActor'])
+
+            RenderCloud(clouds, coords, win.actors['CloudActor'])
             win.renderer.AddActor(win.actors['CloudActor'])
 
-        RenderCloud(clouds, coords, win.actors['CloudActor'])
+            ### Rain
+            try:
+                win.actors['RainActor']
+            except:
+                win.actors['RainActor'] = vtk.vtkActor()
+
+            RenderRain(rain, coords, win.actors['RainActor'])
+            win.renderer.AddActor(win.actors['RainActor'])
+
+            ### Remove actors
+            try:
+                win.renderer.RemoveActor(win.actors['TempActor'])
+                win.renderer.RemoveActor(win.actors['PressActor'])
+            except:
+                pass
+        elif self.mode == 1:
+            ### Temperature
+            try:
+                win.actors['TempActor']
+            except:
+                win.actors['TempActor'] = vtk.vtkActor()
+
+            RenderTemp(th, coords, win.actors['TempActor'])
+            win.renderer.AddActor(win.actors['TempActor'])
+
+            ### Remove actors
+            try:
+                win.renderer.RemoveActor(win.actors['RainActor'])
+                win.renderer.RemoveActor(win.actors['CloudActor'])
+                win.renderer.RemoveActor(win.actors['PressActor'])
+            except:
+                pass
+
+        elif self.mode == 2:
+            ### Pressure
+            try:
+                win.actors['PressActor']
+            except:
+                win.actors['PressActor'] = vtk.vtkActor()
+
+            RenderPress(p, coords, win.actors['PressActor'])
+            win.renderer.AddActor(win.actors['PressActor'])
+
+            ### Remove actors
+            try:
+                win.renderer.RemoveActor(win.actors['RainActor'])
+                win.renderer.RemoveActor(win.actors['CloudActor'])
+                win.renderer.RemoveActor(win.actors['TempActor'])
+            except:
+                pass
 
         ### Sea
         try:
@@ -119,7 +186,7 @@ class WeatherDemo(client.AbstractDemo):
 
             win.actors['DGridActor'].RemoveAllItems()
             RenderDecompGrid(coords, win.actors['DGridActor'], win.columnsinX, win.columnsinY)
-            print("Adding actors")
+            #print("Adding actors")
             for i in range(win.actors['DGridActor'].GetNumberOfItems()):
                 win.renderer.AddActor(win.actors['DGridActor'].GetItemAsObject(i))
 
@@ -129,15 +196,6 @@ class WeatherDemo(client.AbstractDemo):
                     win.renderer.RemoveActor(win.actors['DGridActor'].GetItemAsObject(i))
             except:
                 pass
-
-        ### Rain
-        try:
-            win.actors['RainActor']
-        except:
-            win.actors['RainActor'] = vtk.vtkActor()
-
-        RenderRain(rain, coords, win.actors['RainActor'])
-        win.renderer.AddActor(win.actors['RainActor'])
 
         ### Crops
         try:  # does the actor exist? if not, create one
@@ -467,8 +525,7 @@ def RenderOutline(coords, renderer):
 
     return glyph3D, colors, cols
 
-
-def RenderCloud(cloud,coords, cloudactor):
+def RenderCloud(cloud, coords, cloudactor):
 
     x,y,z = coords
 
@@ -483,8 +540,9 @@ def RenderCloud(cloud,coords, cloudactor):
 
     nc = vtk.vtkNamedColors()
 
+    tableSize = x * y * z
     lut = vtk.vtkLookupTable()
-    lut.SetNumberOfTableValues(256)
+    lut.SetNumberOfTableValues(tableSize)
     lut.Build()
 
     # Fill in a few known colors, the rest will be generated if needed
@@ -510,14 +568,15 @@ def RenderCloud(cloud,coords, cloudactor):
                     rgb = [0.0, 0.0, 0.0]
                     lut.GetColor(cloud[k][j][i], rgb)
                     ucrgb = list(map(int, [xx * 255 for xx in rgb]))
-                    col.InsertNextTuple3(ucrgb[0], ucrgb[1], ucrgb[2])
+                    col.InsertNextTuple3(255,0,0)#ucrgb[0], ucrgb[1], ucrgb[2])
+                    #print (" "+str(ucrgb)+" : "+str(rgb))
 
     grid = vtk.vtkUnstructuredGrid()
     grid.SetPoints(points)
     grid.GetPointData().AddArray(scales)
     grid.GetPointData().SetActiveScalars("scales")
     sr = grid.GetScalarRange()# // !!!to set radius first
-    #grid.GetPointData().AddArray(col)
+    grid.GetPointData().AddArray(col)
 
     sphere = vtk.vtkSphereSource()
 
@@ -555,7 +614,7 @@ def RenderCloud(cloud,coords, cloudactor):
     cloudmapper = vtk.vtkPolyDataMapper()
     cloudmapper.SetInputConnection(cf.GetOutputPort())
     cloudmapper.SetScalarModeToUseCellFieldData()
-    cloudmapper.SetScalarRange(sr)
+    #cloudmapper.SetScalarRange(sr)
     cloudmapper.SelectColorArray("Ccol")  # // !!!to set color (nevertheless you will have nothing)
     cloudmapper.SetLookupTable(lut)
 
@@ -647,7 +706,7 @@ def RenderRain(rain, coords, rainactor):
     lut = vtk.vtkLookupTable()
     lut.SetNumberOfTableValues(200)
     lut.SetHueRange(0.65, 0.53)
-    lut.SetAlphaRange(0.6,0.7)
+    #lut.SetAlphaRange(0.6,0.7)
     lut.Build()
 
     for k in range(x):
@@ -687,6 +746,123 @@ def RenderRain(rain, coords, rainactor):
     rainactor.GetProperty().SetOpacity(0.1)
     rainactor.SetMapper(rainmapper)
 
+def RenderTemp(th, coords, rainactor):
+
+    x, y, z = coords
+    points = vtk.vtkPoints()
+
+    scales = vtk.vtkFloatArray()
+    scales.SetName("Tscales")
+
+    col = vtk.vtkUnsignedCharArray()
+    col.SetName('Tcol')  # Any name will work here.
+    col.SetNumberOfComponents(3)
+
+    nc = vtk.vtkNamedColors()
+
+    tableSize = x * y * z
+    lut = vtk.vtkLookupTable()
+    lut.SetNumberOfTableValues(200)
+    lut.SetHueRange(0.6, 0.0)
+    #lut.SetAlphaRange(0.6,0.7)
+    lut.Build()
+
+    for k in range(x):
+        for j in range(y):
+            for i in range(z):
+                if th[k][j][i] > 0.0000001:
+                    points.InsertNextPoint(k, j, i)
+                    scales.InsertNextValue(1.5)
+                    rgb = [0.0, 0.0, 0.0]
+                    lut.GetColor(th[k][j][i], rgb)
+                    ucrgb = list(map(int, [x * 255 for x in rgb]))
+                    col.InsertNextTuple3(ucrgb[0], ucrgb[1], ucrgb[2])
+                    print(" " + str(ucrgb) + " : " + str(th[k][j][i]))
+
+    grid = vtk.vtkUnstructuredGrid()
+    grid.SetPoints(points)
+    grid.GetPointData().AddArray(scales)
+    grid.GetPointData().SetActiveScalars("Tscales")  # // !!!to set radius first
+    grid.GetPointData().AddArray(col)
+
+    sphere = vtk.vtkSphereSource()
+
+    glyph3D = vtk.vtkGlyph3D()
+
+    glyph3D.SetSourceConnection(sphere.GetOutputPort())
+    glyph3D.SetInputData(grid)
+    glyph3D.Update()
+
+# update mapper
+    rainmapper = vtk.vtkPolyDataMapper()
+    rainmapper.SetInputConnection(glyph3D.GetOutputPort())
+    rainmapper.SetScalarRange(0, 3)
+
+    rainmapper.SetScalarModeToUsePointFieldData()
+    rainmapper.SelectColorArray("Tcol")  # // !!!to set color (nevertheless you will have nothing)
+    rainmapper.SetLookupTable(lut)
+
+    rainactor.GetProperty().SetOpacity(0.1)
+    rainactor.SetMapper(rainmapper)
+
+def RenderPress(p, coords, pressactor):
+
+    x, y, z = coords
+    points = vtk.vtkPoints()
+
+    scales = vtk.vtkFloatArray()
+    scales.SetName("Pscales")
+
+    col = vtk.vtkUnsignedCharArray()
+    col.SetName('Pcol')  # Any name will work here.
+    col.SetNumberOfComponents(3)
+
+    nc = vtk.vtkNamedColors()
+
+    tableSize = x * y * z
+    lut = vtk.vtkLookupTable()
+    lut.SetNumberOfTableValues(200)
+    lut.SetHueRange(0.6, 0.0)
+    #lut.SetAlphaRange(0.6,0.7)
+    lut.Build()
+
+    for k in range(x):
+        for j in range(y):
+            for i in range(z):
+                if p[k][j][i] > 0.000000000001:
+                    points.InsertNextPoint(k, j, i)
+                    scales.InsertNextValue(1.5)
+                    rgb = [0.0, 0.0, 0.0]
+                    lut.GetColor(p[k][j][i], rgb)
+                    ucrgb = list(map(int, [x * 255 for x in rgb]))
+                    col.InsertNextTuple3(ucrgb[0], ucrgb[1], ucrgb[2])
+                    print(" " + str(ucrgb) + " : " + str(p[k][j][i]))
+
+    grid = vtk.vtkUnstructuredGrid()
+    grid.SetPoints(points)
+    grid.GetPointData().AddArray(scales)
+    grid.GetPointData().SetActiveScalars("Pscales")  # // !!!to set radius first
+    grid.GetPointData().AddArray(col)
+
+    sphere = vtk.vtkSphereSource()
+
+    glyph3D = vtk.vtkGlyph3D()
+
+    glyph3D.SetSourceConnection(sphere.GetOutputPort())
+    glyph3D.SetInputData(grid)
+    glyph3D.Update()
+
+# update mapper
+    rainmapper = vtk.vtkPolyDataMapper()
+    rainmapper.SetInputConnection(glyph3D.GetOutputPort())
+    rainmapper.SetScalarRange(0, 3)
+
+    rainmapper.SetScalarModeToUsePointFieldData()
+    rainmapper.SelectColorArray("Pcol")  # // !!!to set color (nevertheless you will have nothing)
+    rainmapper.SetLookupTable(lut)
+
+    pressactor.GetProperty().SetOpacity(0.1)
+    pressactor.SetMapper(rainmapper)
 
 def RenderSea(sealevel, coords, renderer, seaactor):
 
