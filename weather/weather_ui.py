@@ -4,6 +4,15 @@ import wx
 from wx.lib.masked import *
 import vtk
 
+import numpy as np
+
+import matplotlib
+matplotlib.use("WXAgg")
+
+from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
+from matplotlib.backends.backend_wx import NavigationToolbar2Wx
+from matplotlib.figure import Figure
+
 # New module to import the live weather forcast
 from weather_live import LiveWeather
 
@@ -19,7 +28,6 @@ edinburgh = []
 london = []
 cornwall = []
 highlands = []
-
 
 # Derive the demo-specific GUI class from the AbstractUI class
 class WeatherWindow(UI):
@@ -155,20 +163,373 @@ class NewWindow(wx.Frame):
         nb = wx.Notebook(p)
 
         # Create the tab windows
-        tab2 = TabTwo(nb, self.title, self.demo, self.servercomm, mainWeatherWindow)
-        tab1 = TabOne(nb, tab2)
+        tab3 = TabAdvanced(nb, self.title, self.demo, self.servercomm, mainWeatherWindow)
+        tab2 = TabSetup(nb, tab3)
+        tab1 = TabLocation(nb, tab3, tab2, 1800)
 
         # Add the windows to tabs and name them.
-        nb.AddPage(tab1, "Basic")
-        nb.AddPage(tab2, "Advanced")
+        nb.AddPage(tab1, "Location")
+        nb.AddPage(tab2, "Setup")
+        nb.AddPage(tab3, "Advanced")
 
         # Set noteboook in a sizer to create the layout
         sizer = wx.BoxSizer()
         sizer.Add(nb, 1, wx.EXPAND)
         p.SetSizer(sizer)
 
+class TabSetup(wx.Panel):
+    def __init__(self, parent, mainTabAdvanced):
+        wx.Panel.__init__(self, parent)
+		#The window's sizer - for the rows of control panels and the go button
+        self.WinSizer=wx.BoxSizer(wx.VERTICAL)
+        #sizer for the top row of controls
+        self.TopSizer=wx.BoxSizer(wx.HORIZONTAL)
 
-class TabTwo(wx.Panel):
+        self.TopLeftSizer=wx.BoxSizer(wx.VERTICAL)
+
+        #Add this to the window's sizer
+        self.WinSizer.Add(self.TopSizer,1,wx.EXPAND)
+
+        self.mainTabAdvanced=mainTabAdvanced
+
+        # Top row of control panels
+        self.LocationPanel=wx.Panel(self,style=wx.BORDER_SUNKEN,size=(200,100))
+        self.CoresPanel=wx.Panel(self,style=wx.BORDER_SUNKEN,size=(200,100))
+        self.NodesPanel=wx.Panel(self,style=wx.BORDER_SUNKEN,size=(200,100))
+
+        self.TopLeftSizer.Add(self.LocationPanel, 1,wx.EXPAND | wx.ALL,border=5)
+        self.TopLeftSizer.Add(self.CoresPanel, 1,wx.EXPAND | wx.ALL,border=5)
+
+        #Add these panels to their sizer
+        self.TopSizer.Add(self.TopLeftSizer,1,wx.EXPAND | wx.ALL,border=5)
+        self.TopSizer.Add(self.NodesPanel,1,wx.EXPAND| wx.ALL,border=5)
+
+        #Bottom panel, which will contain the sliders and piechart panels
+        self.PhysicsPanel=wx.Panel(self,style=wx.BORDER_SUNKEN)
+
+        #Add this to the window's sizer
+        self.WinSizer.Add(self.PhysicsPanel,1,wx.EXPAND| wx.ALL, border=5)
+
+        #sizer for the bottom row of controls
+        self.BottomSizer=wx.BoxSizer(wx.HORIZONTAL)
+
+        #assign this sizer to the PhysicsPanel
+        self.PhysicsPanel.SetSizer(self.BottomSizer)
+
+        #the bottom panels
+        self.SlidersPanel=wx.Panel(self.PhysicsPanel,size=(200,100))
+        self.PiePanel=wx.Panel(self.PhysicsPanel,size=(200,100))
+
+        #Add the bottom panels to the BottomSizer
+        self.BottomSizer.Add(self.SlidersPanel,1,wx.EXPAND| wx.ALL, border=5)
+        self.BottomSizer.Add(self.PiePanel,1,wx.EXPAND| wx.ALL, border=5)
+
+        locationSizer=wx.BoxSizer(wx.VERTICAL)
+        self.LocationPanel.SetSizer(locationSizer)
+
+        self.text_Location=wx.StaticText(self.LocationPanel,label="Location: Edinburgh")
+        self.time_Location=wx.StaticText(self.LocationPanel,label="Time: 0600 Z")
+        self.weather_Location=wx.StaticText(self.LocationPanel,label="Weather: Cloudy")
+
+        locationSizer.Add(self.text_Location,0,wx.LEFT,border=5)
+        locationSizer.Add(self.time_Location,0,wx.LEFT,border=5)
+        locationSizer.Add(self.weather_Location,0,wx.LEFT,border=5)
+
+        # Cores Panel
+
+        #set up main sizer for the panel
+        coresSizer=wx.BoxSizer(wx.VERTICAL)
+        self.CoresPanel.SetSizer(coresSizer)
+
+        #label for the panel
+        t1=wx.StaticText(self.CoresPanel,label="Number of Cores per Node")
+
+
+        #load initial image - this will be reloaded, but we need something there to workout the dimensions of the panel
+        file="chip1.png"
+        bmp=wx.Image(file, wx.BITMAP_TYPE_ANY).Scale(300,300).ConvertToBitmap()
+        self.bitmap1 = wx.StaticBitmap(self.CoresPanel,bitmap=bmp, size=(100, 100))
+
+        #Radiobox to select the number of cores
+        self.coresRadio=wx.RadioBox(self.CoresPanel,choices=["1","2","3","4"])
+        self.coresRadio.SetSelection(0)
+
+        #bind changing the selection to the UpdateChip method (which redraws the image of the chip)
+        self.Bind(wx.EVT_RADIOBOX,self.UpdateChip,self.coresRadio)
+
+        #Add these to their sizer
+        coresSizer.Add(t1,0,wx.CENTRE,border=5)
+        coresSizer.Add(self.bitmap1,1,wx.ALIGN_CENTRE)
+        coresSizer.Add(self.coresRadio,0,wx.ALIGN_CENTRE)
+
+        # Nodes Panel
+
+        #set up main sizer
+        nodesSizer=wx.BoxSizer(wx.VERTICAL)
+        self.NodesPanel.SetSizer(nodesSizer)
+
+        #label for the panel
+        t2=wx.StaticText(self.NodesPanel,label="Number of Nodes")
+
+        #create a grid of panels corresponding to each pi in Wee Archie.
+        nodesGrid=wx.GridSizer(rows=4,cols=4)
+
+        self.nodes=[]
+        for i in range(16):
+            self.nodes.append(wx.Panel(self.NodesPanel,style=wx.BORDER_SUNKEN))
+
+        #place them in the sizer (filling up rows then columns)
+        for row in range(4):
+            for col in range(4):
+                i=col*4+row
+                nodesGrid.Add(self.nodes[i],1,wx.EXPAND)
+
+        #slider to select the number of nodes
+        self.NodesSlider=wx.Slider(self.NodesPanel,minValue=1,maxValue=16,value=1,name="nodes")
+        self.SetNodes()
+
+        #bind moving the sliders to the method SetNodes (which colours the node panels according to your selection)
+        self.Bind(wx.EVT_SLIDER,self.SetNodes,self.NodesSlider)
+
+        #add these to their sizer
+        nodesSizer.Add(t2,0,wx.CENTRE,border=5)
+        nodesSizer.Add(nodesGrid,1,wx.EXPAND|wx.ALL,border=10)
+        nodesSizer.Add(self.NodesSlider,0,wx.EXPAND)
+
+        #sliders panel
+
+        #set up main sizer
+        slidersSizer=wx.BoxSizer(wx.VERTICAL)
+        self.SlidersPanel.SetSizer(slidersSizer)
+
+        #label for this panel
+        t3=wx.StaticText(self.SlidersPanel,label="Physics")
+        slidersSizer.Add(t3,0,wx.CENTRE,border=5)
+
+        #set up the sliders
+        self.sliders=[]
+        for i in range(3):
+            self.sliders.append(wx.Slider(self.SlidersPanel,minValue=0,maxValue=100,value=33))
+
+        for slider in self.sliders:
+            slidersSizer.Add(slider,1,wx.EXPAND)
+
+        #set up the reset button and bind pressing it to the ResetSliders method
+        self.SliderResetButton=wx.Button(self.SlidersPanel,label="Reset")
+        slidersSizer.Add(self.SliderResetButton,1,wx.EXPAND)
+        self.Bind(wx.EVT_BUTTON,self.ResetSliders,self.SliderResetButton)
+
+        #define the initial values of A, B and C (A+B+C=1)
+        self.A=1./3.
+        self.B=1./3.
+        self.C=1./3.
+
+        #call the method to set the sliders to the appropriate places to reflect the values of A, B, C
+        self.setSliders()
+
+        #bind moving the sliders to the relevant methods to update the values of the others
+        self.Bind(wx.EVT_SLIDER,self.UpdateA,self.sliders[0])
+        self.Bind(wx.EVT_SLIDER,self.UpdateB,self.sliders[1])
+        self.Bind(wx.EVT_SLIDER,self.UpdateC,self.sliders[2])
+
+        #pie chart panel
+
+        #set up the main sizer
+        pieSizer=wx.BoxSizer(wx.VERTICAL)
+        self.PiePanel.SetSizer(pieSizer)
+
+        #t4=wx.StaticText(self.PiePanel,label="pie chart")
+        #pieSizer.Add(t4,0,wx.LEFT)
+
+        #setup the pie chart figure (transparent background  - facecolor=none)
+        self.figure=Figure(facecolor="none")
+        self.canvas = FigureCanvas(self.PiePanel, -1, self.figure)
+        pieSizer.Add(self.canvas,1,wx.GROW)
+
+        #simulation start button
+
+        self.GoButton=wx.Button(self,label="Start Simulation")
+        self.Bind(wx.EVT_BUTTON,self.go,self.GoButton)
+        self.WinSizer.Add(self.GoButton,0,wx.EXPAND)
+
+
+        #assign the main windows's sizer
+        self.SetSizer(self.WinSizer)
+
+        #fit all the graphical elements to the window then display the window
+        self.Fit()
+        self.Show()
+
+        #update the pie chart and the chip graphic (window must be drawn first to get everything positioned properly)
+        self.UpdatePie()
+        self.UpdateChip()
+
+    def UpdateLocationText(self, locationText):
+        self.text_Location.SetLabel("Location: "+locationText)
+        #self.time_Location=wx.StaticText(self.LocationPanel,label="Time: 0600 Z")
+        #self.weather_Location=wx.StaticText(self.LocationPanel,label="Weather: Cloudy")
+
+    #called when the number of cores is altered. This redraws the graphic
+    def UpdateChip(self,e=None):
+        #get the size of the part of the window that contains the graphic
+        (w,h) = self.bitmap1.Size
+
+        #set the width ahd height of the image to be the same (i.e. square)
+        if (w>h):
+            w=h
+        else:
+            h=w
+
+        #get the number of cores selected
+        cores=self.coresRadio.GetSelection()
+
+        #assign the correct image file to be loaded
+        if cores == 0:
+            file="chip1.png"
+        elif cores == 1:
+            file="chip2.png"
+        elif cores == 2:
+            file="chip3.png"
+        else:
+            file="chip4.png"
+
+        #load and scale the image, assign it to the bitmap object
+        bmp=wx.Image(file, wx.BITMAP_TYPE_ANY).Scale(w,h).ConvertToBitmap()
+        self.bitmap1.SetBitmap(bmp)
+
+        #force a redraw of the window to make sure the new image gets positioned correctly
+        self.Layout()
+
+
+
+    #The method called when the start simulation button is pressed
+    def go(self,e=None):
+        print("Cores Per Node=",self.coresRadio.GetSelection()+1)
+        print("Number of Nodes=",self.NodesSlider.GetValue())
+        print("(a,b,c)=(",self.A,",",self.B,",",self.C,")")
+        print("GO!")
+        self.mainTabAdvanced.StartStopSim(None)
+
+
+    #colours node blocks when the node selecting slider is moved
+    def SetNodes(self,e=None):
+        #get the number of nodes selected
+        a=self.NodesSlider.GetValue()
+
+        #colour nodes appropriately
+        for i in range(16):
+            if i < a:
+                self.nodes[i].SetBackgroundColour("Green")
+            else:
+                self.nodes[i].SetBackgroundColour(wx.NullColour)
+        self.Refresh()
+
+
+
+    #(re)draws the pie chart
+    def UpdatePie(self,e=None):
+        #get the values of A, B, C
+        a=self.A
+        b=self.B
+        c=self.C
+
+        values=[a,b,c]
+        labels=["Pressure","Advection","Microphysics"]
+        #clear existing figure
+        self.figure.clf()
+
+        #redraw figure
+        self.axes=self.figure.add_subplot(111)
+        self.axes.pie(values,labels=labels)
+        self.axes.axis("equal")
+        self.canvas.draw()
+        self.canvas.Refresh()
+
+    #resets the sliders to the default values
+    def ResetSliders(self,e=None):
+        self.A=1./3.
+        self.B=1./3.
+        self.C=1./3.
+
+        self.setSliders()
+
+        #redraw the pie chart
+        self.UpdatePie()
+
+
+    #methods called when the pie chart sliders are adjusted
+    def UpdateA(self,e=None):
+        self.UpdateABC(0,self.sliders[0].GetValue())
+
+    def UpdateB(self,e=None):
+        self.UpdateABC(1,self.sliders[1].GetValue())
+
+    def UpdateC(self,e=None):
+        self.UpdateABC(2,self.sliders[2].GetValue())
+
+
+    #sets the sliders to the values of a, b, c
+    def setSliders(self):
+        a=int(self.A*100)
+        b=int(self.B*100)
+        c=int(self.C*100)
+
+        self.sliders[0].SetValue(a)
+        self.sliders[1].SetValue(b)
+        self.sliders[2].SetValue(c)
+
+    #given an updated slider (number i, value a), will alter the other two sliders (b and c) to ensure a+b+c=1
+    def UpdateABC(self,i,a):
+
+        a=float(a)/100.
+
+        #control how a,b,c map to A,B,C (the actual sliders)
+        if (i == 0):
+            b=self.B
+            c=self.C
+        elif (i == 1):
+            b=self.C
+            c=self.A
+        else:
+            b=self.A
+            c=self.B
+
+        #A+B+C should equal 1, but it won't as 'a' has been updated
+        new1 = a+b+c
+        #print("new1=",1)
+
+        #find the amount we need to adjust b and c by to get back to a+b+c=1
+        diff = 1.0-new1
+
+        #divide this amount up proportionately between b and c
+        db = diff * b/(b+c)
+        dc = diff * c/(b+c)
+
+        #update b and c
+        b=b+db
+        c=c+dc
+
+
+        #assign new values
+        if (i == 0):
+            self.A=a
+            self.B=b
+            self.C=c
+        elif (i == 1):
+            self.B=a
+            self.C=b
+            self.A=c
+        else:
+            self.A=b
+            self.B=c
+            self.C=a
+
+        #move sliders as required and update the pie chart
+        self.setSliders()
+        self.UpdatePie()
+
+
+class TabAdvanced(wx.Panel):
     def __init__(self, parent, title, demo, servercomm, mainWeatherWindow):
         wx.Panel.__init__(self, parent)
 
@@ -638,17 +999,23 @@ class TabTwo(wx.Panel):
         self.mainWeatherWindow.TimerCallback(None)
 
 
-class TabOne(wx.Panel):
-    def __init__(self, parent, mainTabTwo):
+class TabLocation(wx.Panel):
+    def __init__(self, parent, mainTabAdvanced, setupTab, setWidth):
         wx.Panel.__init__(self, parent)
 
-        self.mainTabTwo = mainTabTwo
+        self.mainTabAdvanced = mainTabAdvanced
+        self.setupTab=setupTab
+        self.parent=parent
 
+        maxWidth, maxHeight= wx.GetDisplaySize()
+
+        heightCorrector=100
+        maxHeight-=heightCorrector
         # Set up background image of the UK:
         self.MaxImageSize = 2400
         self.Image = wx.StaticBitmap(self, bitmap=wx.EmptyBitmap(self.MaxImageSize, self.MaxImageSize))
         Img = wx.Image(imageFile, wx.BITMAP_TYPE_JPEG)
-        Img = Img.Scale(1800, 2400)
+        Img = Img.Scale(maxHeight/1.4, maxHeight)
         # convert it to a wx.Bitmap, and put it on the wx.StaticBitmap
         self.Image.SetBitmap(wx.BitmapFromImage(Img))
 
@@ -660,9 +1027,16 @@ class TabOne(wx.Panel):
         # Get the size of the image.....attempting to reposition the buttons depending on the window size.
         W, H = self.Image.GetSize()
 
+        print maxWidth
+
+        weatherBtnSizes=40
+
         # Set up image button for Edinburgh(city):
         bmp = wx.Bitmap(self.weather_data(edinburgh, 3166)[0], wx.BITMAP_TYPE_ANY)
-        self.button1 = wx.BitmapButton(self, -1, bmp, size = (80, 80), pos=(W/1.96, H/3.4))
+        image = wx.ImageFromBitmap(bmp)
+        image = image.Scale(weatherBtnSizes-10, weatherBtnSizes-10, wx.IMAGE_QUALITY_HIGH)
+        bmp = wx.BitmapFromImage(image)
+        self.button1 = wx.BitmapButton(self, -1, bmp, size = (weatherBtnSizes, weatherBtnSizes), pos=((W/1.96) + ((setWidth-W)/2), (H/3.4 + heightCorrector)))
         self.Bind(wx.EVT_BUTTON, self.go, self.button1)
         self.button1.Bind(wx.EVT_ENTER_WINDOW, self.changeCursor)
         self.button1.Bind(wx.EVT_ENTER_WINDOW, self.changeCursorBack)
@@ -670,7 +1044,10 @@ class TabOne(wx.Panel):
 
         # Set up image button for Highlands(mountains):
         bmp = wx.Bitmap(self.weather_data(highlands, 3047)[0], wx.BITMAP_TYPE_ANY)
-        self.button2 = wx.BitmapButton(self, -1, bmp, size=(80, 80), pos=(W / 2.3, H / 6.7))
+        image = wx.ImageFromBitmap(bmp)
+        image = image.Scale(weatherBtnSizes-10, weatherBtnSizes-10, wx.IMAGE_QUALITY_HIGH)
+        bmp = wx.BitmapFromImage(image)
+        self.button2 = wx.BitmapButton(self, -1, bmp, size=(weatherBtnSizes, weatherBtnSizes), pos=((W / 2.3) + ((setWidth-W)/2), (H / 6.7 + heightCorrector)))
         self.Bind(wx.EVT_BUTTON, self.go, self.button2)
         self.button2.Bind(wx.EVT_ENTER_WINDOW, self.changeCursor)
         self.button2.Bind(wx.EVT_ENTER_WINDOW, self.changeCursorBack)
@@ -678,7 +1055,10 @@ class TabOne(wx.Panel):
 
         # Set up image button for London(city+river):
         bmp = wx.Bitmap(self.weather_data(london, 3772)[0], wx.BITMAP_TYPE_ANY)
-        self.button3 = wx.BitmapButton(self, -1, bmp, size=(80, 80), pos=(W / 1.4, H / 1.55))
+        image = wx.ImageFromBitmap(bmp)
+        image = image.Scale(weatherBtnSizes-10, weatherBtnSizes-10, wx.IMAGE_QUALITY_HIGH)
+        bmp = wx.BitmapFromImage(image)
+        self.button3 = wx.BitmapButton(self, -1, bmp, size=(weatherBtnSizes, weatherBtnSizes), pos=((W / 1.4) + ((setWidth-W)/2), (H / 1.55 + heightCorrector)))
         self.Bind(wx.EVT_BUTTON, self.go, self.button3)
         self.button3.Bind(wx.EVT_ENTER_WINDOW, self.changeCursor)
         self.button3.Bind(wx.EVT_ENTER_WINDOW, self.changeCursorBack)
@@ -686,23 +1066,26 @@ class TabOne(wx.Panel):
 
         # Set up image button for Cornwall(seaside):
         bmp = wx.Bitmap(self.weather_data(cornwall, 3808)[0], wx.BITMAP_TYPE_ANY)
-        self.button4 = wx.BitmapButton(self, -1, bmp, size=(80, 80), pos=(W / 2.52, H / 1.33))
+        image = wx.ImageFromBitmap(bmp)
+        image = image.Scale(weatherBtnSizes-10, weatherBtnSizes-10, wx.IMAGE_QUALITY_HIGH)
+        bmp = wx.BitmapFromImage(image)
+        self.button4 = wx.BitmapButton(self, -1, bmp, size=(weatherBtnSizes, weatherBtnSizes), pos=((W / 2.52) + ((setWidth-W)/2), (H / 1.33 + heightCorrector)))
         self.Bind(wx.EVT_BUTTON, self.go, self.button4)
         self.button4.Bind(wx.EVT_ENTER_WINDOW, self.changeCursor)
         self.button4.Bind(wx.EVT_ENTER_WINDOW, self.changeCursorBack)
         self.button4.SetDefault()
 
-        # Set up image button for Ireland:
-        bmp = wx.Bitmap(rain, wx.BITMAP_TYPE_ANY)
-        self.button5 = wx.BitmapButton(self, -1, bmp, size=(80, 80), pos=(W / 3.7, H / 2.1))
-        self.Bind(wx.EVT_BUTTON, self.always_rain, self.button5)
-        # Calls the functions that change the cursor icon
-        self.button5.Bind(wx.EVT_ENTER_WINDOW, self.changeCursor)
-        self.button5.Bind(wx.EVT_ENTER_WINDOW, self.changeCursorBack)
-        self.button5.SetDefault()
-
-    def go(self, config):
-        self.mainTabTwo.StartStopSim(None)
+    def go(self, event):
+        if (event.GetEventObject() == self.button1):
+            self.setupTab.UpdateLocationText("Edinburgh")
+        elif (event.GetEventObject() == self.button2):
+            self.setupTab.UpdateLocationText("Highlands")
+        elif (event.GetEventObject() == self.button3):
+            self.setupTab.UpdateLocationText("London")
+        elif (event.GetEventObject() == self.button4):
+            self.setupTab.UpdateLocationText("Cornwall")
+        self.parent.SetSelection(1)
+        #self.mainTabAdvanced.StartStopSim(None)
 
     def weather_data(self, place, numb):
         live = LiveWeather(numb).hour_weather()
@@ -715,15 +1098,9 @@ class TabOne(wx.Panel):
             place.append(rain)
         return place
 
-    def always_rain(self, event):
-        dial = wx.MessageDialog(self, "Who are you kidding? The forecast is always rain here",
-                                "Irish Weather", wx.OK | wx.CANCEL)
-        dial.ShowModal()
-
     # Change the cursor to a hand every time the cursor goes over a button
     def changeCursor(self, event):
         myCursor = wx.StockCursor(wx.CURSOR_HAND)
-        self.button5.SetCursor(myCursor)
         self.button1.SetCursor(myCursor)
         self.button2.SetCursor(myCursor)
         self.button3.SetCursor(myCursor)
@@ -733,7 +1110,6 @@ class TabOne(wx.Panel):
     # Change the cursor back to the arrow every time the cursor leaves a button
     def changeCursorBack(self, event):
         myCursor = wx.StockCursor(wx.CURSOR_ARROW)
-        self.button5.SetCursor(myCursor)
         self.button1.SetCursor(myCursor)
         self.button2.SetCursor(myCursor)
         self.button3.SetCursor(myCursor)
