@@ -492,10 +492,34 @@ class TabSetup(wx.Panel):
         f.write('\ncores_per_pi=' + str(self.coresRadio.GetSelection()+1))
         f.write('\nnum_nodes=' + str(self.NodesSlider.GetValue()))
 
-        #if self.solver.GetValue() == 'Iterative':
-        f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.')
-        #else:
-        #    f.write('\nfftsolver_enabled=.true.\niterativesolver_enabled=.false.')
+        if (self.A < 0.2):
+            f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.\ntolerance=1.e-1')
+        elif (self.A > 0.2 and self.A < 0.3):
+            f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.\ntolerance=1.e-2')
+        elif (self.A > 0.3 and self.A < 0.4):
+            f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.\ntolerance=1.e-3')
+        elif (self.A > 0.4 and self.A < 0.5):
+            f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.\ntolerance=1.e-5')
+        elif (self.A > 0.5 and self.A < 0.6):
+            f.write('\nfftsolver_enabled=.true.\niterativesolver_enabled=.false.')
+        else:
+            f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.\ntolerance=1.e-8')
+
+        if (self.B < 0.2):
+             f.write('\nadvection_flow_fields=pw\nadvection_theta_field=pw\nadvection_q_fields=pw')
+        elif (self.B > 0.2 and self.A < 0.3):
+            f.write('\nadvection_flow_fields=pw\nadvection_theta_field=tvd\nadvection_q_fields=pw')
+        elif (self.B > 0.3 and self.A < 0.4):
+            f.write('\nadvection_flow_fields=pw\nadvection_theta_field=tvd\nadvection_q_fields=tvd')
+        else:
+            f.write('\nadvection_flow_fields=tvd\nadvection_theta_field=tvd\nadvection_q_fields=tvd')
+
+        if (self.B < 0.3):
+            f.write('\ncasim_enabled=.false.\nsimplecloud_enabled=.false.')
+        elif (self.B > 0.2 and self.B < 0.3):
+            f.write('\ncasim_enabled=.false.\nsimplecloud_enabled=.true.')
+        else:
+            f.write('\ncasim_enabled=.true.\nsimplecloud_enabled=.false.')
 
         f.close()
 
