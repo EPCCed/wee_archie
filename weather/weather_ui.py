@@ -12,6 +12,7 @@ matplotlib.use("WXAgg")
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wx import NavigationToolbar2Wx
 from matplotlib.figure import Figure
+from time import strftime
 
 # New module to import the live weather forcast
 from weather_live import LiveWeather
@@ -164,7 +165,7 @@ class NewWindow(wx.Frame):
 
         # Create the tab windows
         tab3 = TabAdvanced(nb, self.title, self.demo, self.servercomm, mainWeatherWindow)
-        tab2 = TabSetup(nb, tab3)
+        tab2 = TabSetup(nb, tab3, self.servercomm, mainWeatherWindow)
         tab1 = TabLocation(nb, tab3, tab2, 1800)
 
         # Add the windows to tabs and name them.
@@ -178,8 +179,10 @@ class NewWindow(wx.Frame):
         p.SetSizer(sizer)
 
 class TabSetup(wx.Panel):
-    def __init__(self, parent, mainTabAdvanced):
+    def __init__(self, parent, mainTabAdvanced, servercomm, mainWeatherWindow):
         wx.Panel.__init__(self, parent)
+        self.weatherLocationCode=None
+        self.servercomm=servercomm
 		#The window's sizer - for the rows of control panels and the go button
         self.WinSizer=wx.BoxSizer(wx.VERTICAL)
         #sizer for the top row of controls
@@ -191,6 +194,7 @@ class TabSetup(wx.Panel):
         self.WinSizer.Add(self.TopSizer,1,wx.EXPAND)
 
         self.mainTabAdvanced=mainTabAdvanced
+        self.mainWeatherWindow=mainWeatherWindow
 
         # Top row of control panels
         self.LocationPanel=wx.Panel(self,style=wx.BORDER_SUNKEN,size=(200,100))
@@ -364,10 +368,12 @@ class TabSetup(wx.Panel):
         self.UpdatePie()
         self.UpdateChip()
 
-    def UpdateLocationText(self, locationText):
+    def UpdateLocationText(self, locationText, weatherText, locationCode):
         self.text_Location.SetLabel("Location: "+locationText)
-        #self.time_Location=wx.StaticText(self.LocationPanel,label="Time: 0600 Z")
-        #self.weather_Location=wx.StaticText(self.LocationPanel,label="Weather: Cloudy")
+        self.weather_Location.SetLabel("Weather: "+weatherText)
+        time = int(strftime("%H")) - 3
+        self.time_Location.SetLabel("Time: "+("0" if time < 10 else "") +str(time)+"00Z")
+        self.weatherLocationCode=locationCode
 
     #called when the number of cores is altered. This redraws the graphic
     def UpdateChip(self,e=None):
@@ -408,7 +414,90 @@ class TabSetup(wx.Panel):
         print("Number of Nodes=",self.NodesSlider.GetValue())
         print("(a,b,c)=(",self.A,",",self.B,",",self.C,")")
         print("GO!")
-        self.mainTabAdvanced.StartStopSim(None)
+        self.StartStopSim(None)
+
+    def StartStopSim(self, e):
+        # if simulation is not started then start a new simulation
+        if not self.servercomm.IsStarted():
+            self.writeConfig()
+
+            dlg = wx.MessageDialog(self, "Do you wish to continue?", "This will start a simulation", wx.OK | wx.CANCEL)
+
+            if dlg.ShowModal() == wx.ID_OK:
+                # write to config
+
+                config = "config.mcf"
+                # config  = "config_nice.mcf"
+                self.mainWeatherWindow.StartSim(config)
+                self.mainWeatherWindow.playing = False
+                # load the first data file
+                self.mainWeatherWindow.getdata.value = True
+
+        # if simulation is started then stop simulation
+        else:
+            dlg = wx.MessageDialog(self, "Are you sure?", "This will stop the current simulation.", wx.OK | wx.CANCEL)
+            if dlg.ShowModal() == wx.ID_OK:
+                self.mainWeatherWindow.StopSim()
+                try:
+                    for actor in self.mainWeatherWindow.renderer.GetActors():
+                        self.mainWeatherWindow.renderer.RemoveActor(actor)
+                    self.mainWeatherWindow.actors.clear()
+                except:
+                    pass
+                self.mainWeatherWindow.vtkwidget.GetRenderWindow().Render()
+
+    def writeConfig(self):
+        # because the events or something does not work for setting there values, set them here
+
+        weatherInstance=LiveWeather(self.weatherLocationCode)
+
+        f = open('config.mcf', 'w+')
+
+        f.write('global_configuration=outreach_config')
+
+        # pressure settings
+        f.write('\nsurface_pressure='+str(weatherInstance.pressure())+'00')
+        f.write('\nsurface_reference_pressure='+str(weatherInstance.pressure())+'00')
+        f.write('\nfixed_cloud_number=1.0e9')
+
+        # switch sef.timeofyear
+
+        f.write('\nf_force_pl_q=-1.2e-8, -1.2e-8, 0.0, 0.0')
+
+        f.write('\nsurface_latent_heat_flux=200.052')
+        f.write('\nsurface_sensible_heat_flux=16.04')
+
+        # amount of water
+        f.write('\nz_init_pl_q=0.0, 520.0, 1480., 2000., 3000.')
+        f.write('\nf_init_pl_q=17.0e-3, 16.3e-3, 10.7e-3, 4.2e-3, 3.0e-3')
+
+        # wind config
+
+        winforce = weatherInstance.wind_speed() # TODO - negative and direction
+
+        f.write('\nz_init_pl_u=0.0, 700.0, 3000.')
+        f.write('\nf_init_pl_u=' + str(round(winforce*-1.7,2)) + ', ' + str(round(winforce*-1.6,2)) + ', ' + str(winforce*-0.8))
+
+        # temperature settings
+        temperature = 273.15 + weatherInstance.temperature()
+        tempstr = str(temperature)
+
+        f.write('\nthref0 = ' + tempstr)
+
+        f.write('\nz_init_pl_theta=0.0, 520.0, 1480., 2000., 3000.')
+
+        f.write('\nf_init_pl_theta=' + tempstr + ', ' + tempstr + ', ' + str(temperature+2) + ', ' + str(temperature+5) + ', ' + str(temperature+7))
+
+        # core number and decomposition
+        f.write('\ncores_per_pi=' + str(self.coresRadio.GetSelection()+1))
+        f.write('\nnum_nodes=' + str(self.NodesSlider.GetValue()))
+
+        #if self.solver.GetValue() == 'Iterative':
+        f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.')
+        #else:
+        #    f.write('\nfftsolver_enabled=.true.\niterativesolver_enabled=.false.')
+
+        f.close()
 
 
     #colours node blocks when the node selecting slider is moved
@@ -1077,15 +1166,29 @@ class TabLocation(wx.Panel):
 
     def go(self, event):
         if (event.GetEventObject() == self.button1):
-            self.setupTab.UpdateLocationText("Edinburgh")
+            self.setupTab.UpdateLocationText("Edinburgh", self.generateWeatherText(3166), 3166)
         elif (event.GetEventObject() == self.button2):
-            self.setupTab.UpdateLocationText("Highlands")
+            self.setupTab.UpdateLocationText("Highlands", self.generateWeatherText(3047), 3047)
         elif (event.GetEventObject() == self.button3):
-            self.setupTab.UpdateLocationText("London")
+            self.setupTab.UpdateLocationText("London", self.generateWeatherText(3772), 3772)
         elif (event.GetEventObject() == self.button4):
-            self.setupTab.UpdateLocationText("Cornwall")
+            self.setupTab.UpdateLocationText("Cornwall", self.generateWeatherText(3808), 3808)
         self.parent.SetSelection(1)
         #self.mainTabAdvanced.StartStopSim(None)
+
+    def generateWeatherText(self, numb):
+        weatherInstance=LiveWeather(numb)
+        weatherString=""
+        live=weatherInstance.hour_weather()
+        if live <= 1:
+            weatherString+="Sunny"
+        elif 9 > live > 1:
+            weatherString+="Cloudy"
+        else:
+            weatherString+="Raining"
+        weatherString+=" "+str(weatherInstance.wind_speed())+"m/s "+weatherInstance.wind_direction()+" "+str(weatherInstance.pressure())+"hpa "+str(weatherInstance.temperature())+"C "+str(weatherInstance.visibility())+"m"
+        return weatherString
+
 
     def weather_data(self, place, numb):
         live = LiveWeather(numb).hour_weather()

@@ -5,7 +5,7 @@ from time import strftime
 
 class LiveWeather(object):
 
-    def __init__(self, place):
+    def __init__(self, place, historical=3):
 
         # Read the current hour
         time = int(strftime("%H"))
@@ -21,16 +21,22 @@ class LiveWeather(object):
             data = json.loads(response.read())
 
             # Get to the right data array
-            days_weather = (data["SiteRep"]["DV"]["Location"]["Period"][0]["Rep"])
+            if (len(data["SiteRep"]["DV"]["Location"]["Period"]) >= 2):
+                todayIndex=1
+            else:
+                todayIndex=0
+            days_weather = (data["SiteRep"]["DV"]["Location"]["Period"][todayIndex]["Rep"])
 
             hour_num = len(days_weather)
             self.hour = []
 
+            targetTime = time
+            if (historical != None): targetTime-=historical
+
             # Loop to get the data from the arrays for the current time
             for i in range(hour_num):
                 hour_weather = int(days_weather[i]["$"]) / 60
-
-                if hour_weather == time:
+                if hour_weather == targetTime:
                     self.hour.append(days_weather[i])
 
         except:
@@ -72,7 +78,7 @@ class LiveWeather(object):
     # Function that returns the temperature (C)
     def temperature(self):
 
-        return int(self.hour[0]["T"])
+        return float(self.hour[0]["T"])
 
     # Function that returns the visibility (m)
     def visibility(self):
