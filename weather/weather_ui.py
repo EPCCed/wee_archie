@@ -204,24 +204,39 @@ class NewWindow(wx.Frame):
         p = wx.Panel(self)
         nb = wx.Notebook(p)
 
-        # Create the tab windows
-        tab3 = TabAdvanced(nb, self.title, self.demo, self.servercomm, mainWeatherWindow)
-        tab2 = TabSetup(nb, tab3, self.servercomm, mainWeatherWindow, self)
-        tab1 = TabLocation(nb, tab3, tab2, width, height)
-
-        # Add the windows to tabs and name them.
-        nb.AddPage(tab1, "Location")
-        nb.AddPage(tab2, "Setup")
-        nb.AddPage(tab3, "Advanced")
-
-        # Set noteboook in a sizer to create the layout
+        #we want to draw the window on screen first to make sure everything is sized coreectly
         sizer = wx.BoxSizer()
         sizer.Add(nb, 1, wx.EXPAND)
+
         p.SetSizer(sizer)
+
+        self.Show()
+        self.Fit()
+
+
+        # Create the tab windows
+        self.tab3=None
+        #self.tab3 = TabAdvanced(nb, self.title, self.demo, self.servercomm, mainWeatherWindow)
+        self.tab2 = TabSetup(nb, self.tab3, self.servercomm, mainWeatherWindow, self)
+        self.tab1 = TabLocation(nb, self.tab3, self.tab2, width, height)
+
+        # Add the windows to tabs and name them.
+        nb.AddPage(self.tab1, "Location")
+        nb.AddPage(self.tab2, "Setup")
+        #nb.AddPage(self.tab3,"Advanced")
+
+        #make sure layout of the tab2 is correct
+        self.tab2.Layout()
+
+        #redraw the chip image and the pie chart to make sure they display correctly
+        self.tab2.UpdateChip()
+        self.tab2.UpdatePie()
+
 
 class TabSetup(wx.Panel):
     def __init__(self, parent, mainTabAdvanced, servercomm, mainWeatherWindow, setupWindow):
         wx.Panel.__init__(self, parent)
+        #self.parent=parent
         self.weatherLocationCode=None
         self.servercomm=servercomm
 		#The window's sizer - for the rows of control panels and the go button
@@ -232,34 +247,37 @@ class TabSetup(wx.Panel):
         #sizer for the top row of controls
         self.TopSizer=wx.BoxSizer(wx.HORIZONTAL)
 
-        self.TopLeftSizer=wx.BoxSizer(wx.VERTICAL)
+        self.LocationPanel=wx.Panel(self,style=wx.BORDER_SUNKEN)
+        #self.TopLeftSizer=wx.BoxSizer(wx.VERTICAL)
 
         #Add this to the window's sizer
+        self.WinSizer.Add(self.LocationPanel,0,wx.EXPAND | wx.ALL,border=5)
         self.WinSizer.Add(self.TopSizer,1,wx.EXPAND)
 
         self.mainTabAdvanced=mainTabAdvanced
         self.mainWeatherWindow=mainWeatherWindow
 
         # Top row of control panels
-        self.LocationPanel=wx.Panel(self,style=wx.BORDER_SUNKEN,size=(200,100))
+
         self.CoresPanel=wx.Panel(self,style=wx.BORDER_SUNKEN,size=(200,100))
         self.NodesPanel=wx.Panel(self,style=wx.BORDER_SUNKEN,size=(200,100))
 
-        self.TopLeftSizer.Add(self.LocationPanel, 1,wx.EXPAND | wx.ALL,border=5)
-        self.TopLeftSizer.Add(self.CoresPanel, 1,wx.EXPAND | wx.ALL,border=5)
+
+        #self.TopLeftSizer.Add(self.LocationPanel, 1,wx.EXPAND | wx.ALL,border=5)
+        #self.TopLeftSizer.Add(self.CoresPanel, 1,wx.EXPAND | wx.ALL,border=5)
 
         #Add these panels to their sizer
-        self.TopSizer.Add(self.TopLeftSizer,1,wx.EXPAND | wx.ALL,border=5)
+        self.TopSizer.Add(self.CoresPanel,1,wx.EXPAND | wx.ALL,border=5)
         self.TopSizer.Add(self.NodesPanel,1,wx.EXPAND| wx.ALL,border=5)
 
         #Bottom panel, which will contain the sliders and piechart panels
         self.PhysicsPanel=wx.Panel(self,style=wx.BORDER_SUNKEN)
 
         #Add this to the window's sizer
-        self.WinSizer.Add(self.PhysicsPanel,1,wx.EXPAND| wx.ALL, border=5)
+        self.WinSizer.Add(self.PhysicsPanel,2,wx.EXPAND| wx.ALL, border=5)
 
         #sizer for the bottom row of controls
-        self.BottomSizer=wx.BoxSizer(wx.HORIZONTAL)
+        self.BottomSizer=wx.BoxSizer(wx.VERTICAL)
 
         #assign this sizer to the PhysicsPanel
         self.PhysicsPanel.SetSizer(self.BottomSizer)
@@ -279,9 +297,9 @@ class TabSetup(wx.Panel):
         self.time_Location=wx.StaticText(self.LocationPanel,label="Time: 0600 Z")
         self.weather_Location=wx.StaticText(self.LocationPanel,label="Weather: Cloudy")
 
-        locationSizer.Add(self.text_Location,0,wx.LEFT,border=5)
-        locationSizer.Add(self.time_Location,0,wx.LEFT,border=5)
-        locationSizer.Add(self.weather_Location,0,wx.LEFT,border=5)
+        locationSizer.Add(self.text_Location,0,wx.LEFT| wx.TOP,border=5)
+        locationSizer.Add(self.time_Location,0,wx.LEFT| wx.ALL,border=5)
+        locationSizer.Add(self.weather_Location,0,wx.LEFT | wx.BOTTOM,border=5)
 
         # Cores Panel
 
@@ -296,7 +314,7 @@ class TabSetup(wx.Panel):
         #load initial image - this will be reloaded, but we need something there to workout the dimensions of the panel
         file="chip1.png"
         bmp=wx.Image(file, wx.BITMAP_TYPE_ANY).Scale(300,300).ConvertToBitmap()
-        self.bitmap1 = wx.StaticBitmap(self.CoresPanel,bitmap=bmp, size=(100, 100))
+        self.bitmap1 = wx.StaticBitmap(self.CoresPanel,bitmap=bmp, size=(300, 300))
 
         #Radiobox to select the number of cores
         self.coresRadio=wx.RadioBox(self.CoresPanel,choices=["1","2","3","4"])
@@ -359,12 +377,22 @@ class TabSetup(wx.Panel):
         for i in range(3):
             self.sliders.append(wx.Slider(self.SlidersPanel,minValue=0,maxValue=100,value=33))
 
-        for slider in self.sliders:
-            slidersSizer.Add(slider,1,wx.EXPAND)
+        #s1=wx.StaticText(self.SlidersPanel,label="Pressure")
+        #s1.SetForegroundColour((255,0,0))
+        slidersSizer.Add(wx.StaticText(self.SlidersPanel,label="Pressure"),0,wx.LEFT)
+        slidersSizer.Add(self.sliders[0],1,wx.EXPAND)
+
+        slidersSizer.Add(wx.StaticText(self.SlidersPanel,label="Advection"),0,wx.LEFT)
+        slidersSizer.Add(self.sliders[1],1,wx.EXPAND)
+
+        slidersSizer.Add(wx.StaticText(self.SlidersPanel,label="Microphysics"),0,wx.LEFT)
+        slidersSizer.Add(self.sliders[2],1,wx.EXPAND)
+
+
 
         #set up the reset button and bind pressing it to the ResetSliders method
         self.SliderResetButton=wx.Button(self.SlidersPanel,label="Reset")
-        slidersSizer.Add(self.SliderResetButton,1,wx.EXPAND)
+        slidersSizer.Add(self.SliderResetButton,1,wx.RIGHT)
         self.Bind(wx.EVT_BUTTON,self.ResetSliders,self.SliderResetButton)
 
         #define the initial values of A, B and C (A+B+C=1)
@@ -405,12 +433,17 @@ class TabSetup(wx.Panel):
         self.SetSizer(self.WinSizer)
 
         #fit all the graphical elements to the window then display the window
-        self.Fit()
-        self.Show()
+
 
         #update the pie chart and the chip graphic (window must be drawn first to get everything positioned properly)
+
+        self.Show()
+        self.Layout()
+
         self.UpdatePie()
         self.UpdateChip()
+
+
 
     def UpdateLocationText(self, locationText, weatherText, locationCode):
         self.text_Location.SetLabel("Location: "+locationText)
@@ -423,7 +456,10 @@ class TabSetup(wx.Panel):
     def UpdateChip(self,e=None):
         #get the size of the part of the window that contains the graphic
         (w,h) = self.bitmap1.Size
-
+        print("w,h=",w,h)
+        if (w ==0 or h==0):
+            w=300
+            h=300
         #set the width ahd height of the image to be the same (i.e. square)
         if (w>h):
             w=h
@@ -449,6 +485,9 @@ class TabSetup(wx.Panel):
 
         #force a redraw of the window to make sure the new image gets positioned correctly
         self.Layout()
+
+
+
 
 
 
@@ -594,18 +633,21 @@ class TabSetup(wx.Panel):
     #(re)draws the pie chart
     def UpdatePie(self,e=None):
         #get the values of A, B, C
+        self.Layout()
+
         a=self.A
         b=self.B
         c=self.C
 
         values=[a,b,c]
         labels=["Pressure","Advection","Microphysics"]
+        colors=["red","green","blue"]
         #clear existing figure
         self.figure.clf()
 
         #redraw figure
         self.axes=self.figure.add_subplot(111)
-        self.axes.pie(values,labels=labels)
+        self.axes.pie(values,labels=labels,colors=colors)
         self.axes.axis("equal")
         self.canvas.draw()
         self.canvas.Refresh()
@@ -646,7 +688,7 @@ class TabSetup(wx.Panel):
     #given an updated slider (number i, value a), will alter the other two sliders (b and c) to ensure a+b+c=1
     def UpdateABC(self,i,a):
 
-        a=float(a)/100.
+        a=float(a)/100.001+0.000005
 
         #control how a,b,c map to A,B,C (the actual sliders)
         if (i == 0):
