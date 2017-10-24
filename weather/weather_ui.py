@@ -120,8 +120,10 @@ class WeatherWindow(UI):
         # show window
         self.Show()
 
+        self.OpenWindow()
+
     # Function to call NewWindow class to allow a button to open it.
-    def OpenWindow(self, event):
+    def OpenWindow(self, event=None):
         self.new = NewWindow(None, -1, self.title, self.demo, self.servercomm, self)
         self.new.Show()
 
@@ -188,7 +190,10 @@ class WeatherWindow(UI):
 # Class to create a new window for the "settings".
 class NewWindow(wx.Frame):
     def __init__(self, parent, id, title, demo, servercomm, mainWeatherWindow):
-        wx.Frame.__init__(self, parent, id, 'Settings', size=(1800, 2800))
+        W,H= wx.GetDisplaySize()
+        height=0.9*H
+        width=height*(9./14.)
+        wx.Frame.__init__(self, parent, id, 'Settings', size=(width, height))
         wx.Frame.CenterOnScreen(self)
 
         self.demo = demo
@@ -202,7 +207,7 @@ class NewWindow(wx.Frame):
         # Create the tab windows
         tab3 = TabAdvanced(nb, self.title, self.demo, self.servercomm, mainWeatherWindow)
         tab2 = TabSetup(nb, tab3, self.servercomm, mainWeatherWindow, self)
-        tab1 = TabLocation(nb, tab3, tab2, 1800)
+        tab1 = TabLocation(nb, tab3, tab2, width, height)
 
         # Add the windows to tabs and name them.
         nb.AddPage(tab1, "Location")
@@ -1160,7 +1165,7 @@ class TabAdvanced(wx.Panel):
 
 
 class TabLocation(wx.Panel):
-    def __init__(self, parent, mainTabAdvanced, setupTab, setWidth):
+    def __init__(self, parent, mainTabAdvanced, setupTab, setWidth, setHeight):
         wx.Panel.__init__(self, parent)
 
         self.mainTabAdvanced = mainTabAdvanced
@@ -1168,6 +1173,9 @@ class TabLocation(wx.Panel):
         self.parent=parent
 
         maxWidth, maxHeight= wx.GetDisplaySize()
+        print("maxwidth,maxheight=",maxWidth,maxHeight)
+        W,H=parent.GetClientSize()
+        print(W,H)
 
         heightCorrector=100
         maxHeight-=heightCorrector
@@ -1175,7 +1183,8 @@ class TabLocation(wx.Panel):
         self.MaxImageSize = 2400
         self.Image = wx.StaticBitmap(self, bitmap=wx.EmptyBitmap(self.MaxImageSize, self.MaxImageSize))
         Img = wx.Image(imageFile, wx.BITMAP_TYPE_JPEG)
-        Img = Img.Scale(maxHeight/1.4, maxHeight)
+        #Img = Img.Scale(maxHeight/1.4, maxHeight)
+        Img = Img.Scale(setHeight/1.4*0.9,setHeight*0.9)
         # convert it to a wx.Bitmap, and put it on the wx.StaticBitmap
         self.Image.SetBitmap(wx.BitmapFromImage(Img))
 
