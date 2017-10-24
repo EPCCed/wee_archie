@@ -41,6 +41,7 @@ class WeatherWindow(UI):
         wx.Frame.CenterOnScreen(self)
 
         self.fullscreen = False
+        self.playing = False
         self.decompositiongrid = True
         self.timeofyear = None
         self.rainmass = 0
@@ -62,14 +63,21 @@ class WeatherWindow(UI):
         self.mode = 0
 
         menubar = wx.MenuBar()
+        playbackMenu = wx.Menu()
+        self.playpauseitem = playbackMenu.Append(wx.ID_ANY, 'Pause', 'Pause playback')
+        cease = playbackMenu.Append(wx.ID_ANY, 'Stop', 'Stop simulation')
+
         fileMenu = wx.Menu()
         settings = fileMenu.Append(wx.ID_ANY, 'Settings', 'Open settings window')
+        playbackAdded = fileMenu.AppendSubMenu(playbackMenu, 'Playback', 'Playback control')
         fitem = fileMenu.Append(wx.ID_EXIT, 'Quit', 'Quit application')
 
         viewMenu = wx.Menu()
         temp = viewMenu.Append(wx.ID_ANY, 'Temperature', 'Change to temp view')
         press = viewMenu.Append(wx.ID_ANY, 'Pressure', 'Change to press view')
         real = viewMenu.Append(wx.ID_ANY, 'Real World', 'Change to real view')
+
+        gridCheckItem=viewMenu.AppendCheckItem(wx.ID_ANY, 'Show grid', 'Show decomposition grid')
 
         menubar.Append(fileMenu, '&File')
         menubar.Append(viewMenu, '&Views')
@@ -80,6 +88,10 @@ class WeatherWindow(UI):
         self.Bind(wx.EVT_MENU, self.temp_view, temp)
         self.Bind(wx.EVT_MENU, self.press_view, press)
         self.Bind(wx.EVT_MENU, self.real_view, real)
+
+        self.Bind(wx.EVT_MENU, self.pauseResult, self.playpauseitem)
+        self.Bind(wx.EVT_MENU, self.onStopSim, cease)
+        self.Bind(wx.EVT_MENU, self.togglegrid, gridCheckItem)
 
         # add another renderer for the bottom part
         self.bottomrenderer = vtk.vtkRenderer()
@@ -131,6 +143,30 @@ class WeatherWindow(UI):
     def StartSim(self, config):
         UI.StartSim(self, config)
 
+    def onStopSim(self, e):
+        self.StopSim()
+
+    def togglegrid(self, e):
+        if self.decompositiongrid is True:
+            self.decompositiongrid = False
+        else:
+            self.decompositiongrid = True
+
+        if self.timer.IsRunning():
+            self.timer.Stop()
+            self.timer.Start()
+
+    def pauseResult(self, e):
+        if not self.playing:  # play
+            self.getdata.value = True
+            self.playpauseitem.SetText("Pause")
+            self.playing = True
+
+        else:  # pause
+            self.getdata.value = False
+            self.playpauseitem.SetText("Resume")
+            self.playing = False
+
     def StopSim(self):
         UI.StopSim(self)
 
@@ -165,7 +201,7 @@ class NewWindow(wx.Frame):
 
         # Create the tab windows
         tab3 = TabAdvanced(nb, self.title, self.demo, self.servercomm, mainWeatherWindow)
-        tab2 = TabSetup(nb, tab3, self.servercomm, mainWeatherWindow)
+        tab2 = TabSetup(nb, tab3, self.servercomm, mainWeatherWindow, self)
         tab1 = TabLocation(nb, tab3, tab2, 1800)
 
         # Add the windows to tabs and name them.
@@ -179,12 +215,15 @@ class NewWindow(wx.Frame):
         p.SetSizer(sizer)
 
 class TabSetup(wx.Panel):
-    def __init__(self, parent, mainTabAdvanced, servercomm, mainWeatherWindow):
+    def __init__(self, parent, mainTabAdvanced, servercomm, mainWeatherWindow, setupWindow):
         wx.Panel.__init__(self, parent)
         self.weatherLocationCode=None
         self.servercomm=servercomm
 		#The window's sizer - for the rows of control panels and the go button
         self.WinSizer=wx.BoxSizer(wx.VERTICAL)
+
+        self.setupWindow=setupWindow
+
         #sizer for the top row of controls
         self.TopSizer=wx.BoxSizer(wx.HORIZONTAL)
 
@@ -432,6 +471,7 @@ class TabSetup(wx.Panel):
                 self.mainWeatherWindow.playing = False
                 # load the first data file
                 self.mainWeatherWindow.getdata.value = True
+                self.setupWindow.Close()
 
         # if simulation is started then stop simulation
         else:
@@ -473,10 +513,17 @@ class TabSetup(wx.Panel):
 
         # wind config
 
+        wind_direction=weatherInstance.wind_direction()[0]
         winforce = weatherInstance.wind_speed() # TODO - negative and direction
 
-        f.write('\nz_init_pl_u=0.0, 700.0, 3000.')
-        f.write('\nf_init_pl_u=' + str(round(winforce*-1.7,2)) + ', ' + str(round(winforce*-1.6,2)) + ', ' + str(winforce*-0.8))
+        if (wind_direction == "N" or wind_direction == "S"):
+            prognotic_wind_field="u"
+        else:
+            prognotic_wind_field="v"
+
+        if (wind_direction == "S" or wind_direction == "W"): winforce=-winforce
+        f.write('\nz_init_pl_'+prognotic_wind_field+'=0.0, 700.0, 3000.')
+        f.write('\nf_init_pl_'+prognotic_wind_field+'=' + str(round(winforce*-1.7,2)) + ', ' + str(round(winforce*-1.6,2)) + ', ' + str(winforce*-0.8))
 
         # temperature settings
         temperature = 273.15 + weatherInstance.temperature()
