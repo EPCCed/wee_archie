@@ -19,28 +19,34 @@ def process(frameno,nfiles,getdata,newdata,pipe,demo,servercomm,finished):
         status=servercomm.GetStatus()
         datafiles=status['files']
         nfiles.value=len(datafiles)
+        #print(datafiles)
 
         if getdata.value == True: #if GUI has requested a new file
             n=frameno.value
+            print("We want file number",n)
 
             try:
                 fname=datafiles[n] #get name of file to download
                 servercomm.GetDataFile(fname,'tmp.nc') #get the data file
+            except:
+                #print("no file to get")
+                time.sleep(1)
+                continue
 
-                try:
-                    root=Dataset('tmp.nc','r') #get the netcdf handle for the data file
-                except:
-                    root=None
+            try:
+                root=Dataset('tmp.nc','r') #get the netcdf handle for the data file
+            except:
+                root=None
+                #print("No root object")
 
-                dto=demo.GetVTKData(root) #read it into a Data Transfer Object
+            dto=demo.GetVTKData(root) #read it into a Data Transfer Object
 
-                newdata.value=True #set flag to tell GUI there is new data available
-                pipe.send(dto) #send the data across
-                ok=pipe.recv() #get a read receipt
-                newdata.value=False #say we no longer have new data (since its been sent and received)
+            newdata.value=True #set flag to tell GUI there is new data available
+            pipe.send(dto) #send the data across
+            ok=pipe.recv() #get a read receipt
+            newdata.value=False #say we no longer have new data (since its been sent and received)
+            time.sleep(1)
 
-            except: #no new data ready...
-                time.sleep(0.1)
 
         else:
             time.sleep(1)
