@@ -167,15 +167,15 @@ class WeatherDemo(client.AbstractDemo):
                 pass
 
         ### Sea
-        try:
-            win.actors['SeaActor']
-        except:
-            win.actors['SeaActor'] = vtk.vtkActor()
-
-        if win.frameno.value ==0:
-            RenderSea(win.waterlevel, coords, win.renderer, win.actors['SeaActor'])
-
-        win.renderer.AddActor(win.actors['SeaActor'])
+        # try:
+        #     win.actors['SeaActor']
+        # except:
+        #     win.actors['SeaActor'] = vtk.vtkActor()
+        #
+        # if win.frameno.value ==0:
+        #     RenderSea(win.waterlevel, coords, win.renderer, win.actors['SeaActor'])
+        #
+        # win.renderer.AddActor(win.actors['SeaActor'])
 
         ### Land
         if win.frameno.value == 0:
@@ -202,27 +202,27 @@ class WeatherDemo(client.AbstractDemo):
             except:
                 pass
 
-        ### Crops
-        try:  # does the actor exist? if not, create one
-            win.actors['CropsActor']
-        except:
-            win.actors['CropsActor'] = vtk.vtkActor()
-
-        win.rainmass += sum(sum(rm))
-        if win.rainmass < 1.5:
-            win.cropslevel = int(win.rainmass * 3) + 2
-        else:
-            if win.cropslevel > 4:
-                win.cropslevel -= 1
-            else:
-                win.cropslevel = 4
-
-        RenderCrops(win.cropslevel, coords, win.actors['CropsActor'])
-
-        if win.rainmass > 1.5:
-            win.actors['CropsActor'].GetProperty().SetColor(0, 0, 0)
-
-        win.renderer.AddActor(win.actors['CropsActor'])
+        # ### Crops
+        # try:  # does the actor exist? if not, create one
+        #     win.actors['CropsActor']
+        # except:
+        #     win.actors['CropsActor'] = vtk.vtkActor()
+        #
+        # win.rainmass += sum(sum(rm))
+        # if win.rainmass < 1.5:
+        #     win.cropslevel = int(win.rainmass * 3) + 2
+        # else:
+        #     if win.cropslevel > 4:
+        #         win.cropslevel -= 1
+        #     else:
+        #         win.cropslevel = 4
+        #
+        # RenderCrops(win.cropslevel, coords, win.actors['CropsActor'])
+        #
+        # if win.rainmass > 1.5:
+        #     win.actors['CropsActor'].GetProperty().SetColor(0, 0, 0)
+        #
+        # win.renderer.AddActor(win.actors['CropsActor'])
 
         ### Camera settings
 
@@ -581,7 +581,8 @@ def RenderCloud(cloud, coords, cloudactor):
     colour=vtk.vtkColorTransferFunction()
 
     for i in range(256):
-        alpha.AddPoint(i,i/512.)
+        #alpha.AddPoint(i,i/1024.)
+        alpha.AddPoint(i,i/256.*0.2)
 
         r=0.5
         g=0.5
@@ -791,43 +792,65 @@ def RenderRain(rain, coords, rainactor):
     #lut.SetAlphaRange(0.6,0.7)
     lut.Build()
 
+    mx=rain.max()
+
     for k in range(0,x,1):
         for j in range(0,y,1):
             for i in range(0,z,1):
-                if rain[k][j][i] > 0.0000001:
-                    points.InsertNextPoint(k, j, i)
-                    scales.InsertNextValue(1)
-                    rgb = [0.0, 0.0, 0.0]
-                    lut.GetColor(rain[k][j][i], rgb)
-                    ucrgb = list(map(int, [x2 * 255 for x2 in rgb]))
-                    col.InsertNextTuple3(ucrgb[0], ucrgb[1], ucrgb[2])
+                if rain[k][j][i] > 0.001:
+                    points.InsertNextPoint(k, j, i-0.25)
+                    points.InsertNextPoint(k,j,i+0.25) #comment if doing glyphs
+                    #scales.InsertNextValue(1)
+                    #rgb = [0.0, 0.0, 0.0]
+                    #lut.GetColor(rain[k][j][i], rgb)
+                    #ucrgb = list(map(int, [x2 * 255 for x2 in rgb]))
+                    #col.InsertNextTuple3(ucrgb[0], ucrgb[1], ucrgb[2])
 
-    grid = vtk.vtkUnstructuredGrid()
-    grid.SetPoints(points)
-    grid.GetPointData().AddArray(scales)
-    grid.GetPointData().SetActiveScalars("Rscales")  # // !!!to set radius first
-    grid.GetPointData().AddArray(col)
+#     grid = vtk.vtkUnstructuredGrid()
+#     grid.SetPoints(points)
+#     grid.GetPointData().AddArray(scales)
+#     grid.GetPointData().SetActiveScalars("Rscales")  # // !!!to set radius first
+#     grid.GetPointData().AddArray(col)
+#
+#     sphere = vtk.vtkSphereSource()
+#     sphere.SetThetaResolution(3)
+#     sphere.SetPhiResolution(3)
+#
+#     glyph3D = vtk.vtkGlyph3D()
+#
+#     glyph3D.SetSourceConnection(sphere.GetOutputPort())
+#     glyph3D.SetInputData(grid)
+#     glyph3D.Update()
+#
+# # update mapper
+#     rainmapper = vtk.vtkPolyDataMapper()
+#     rainmapper.SetInputConnection(glyph3D.GetOutputPort())
+#     rainmapper.SetScalarRange(0, 3)
+#
+#     rainmapper.SetScalarModeToUsePointFieldData()
+#     rainmapper.SelectColorArray("Rcol")  # // !!!to set color (nevertheless you will have nothing)
+#     rainmapper.SetLookupTable(lut)
+#
+#     rainactor.GetProperty().SetOpacity(0.1)
+#     rainactor.SetMapper(rainmapper)
 
-    sphere = vtk.vtkSphereSource()
-    sphere.SetThetaResolution(3)
-    sphere.SetPhiResolution(3)
+    linesPolyData = vtk.vtkPolyData()
+    linesPolyData.Allocate()
 
-    glyph3D = vtk.vtkGlyph3D()
+    for i in range(0, points.GetNumberOfPoints(),2 ):
+        linesPolyData.InsertNextCell(vtk.VTK_LINE, 2, [i, i+1])
 
-    glyph3D.SetSourceConnection(sphere.GetOutputPort())
-    glyph3D.SetInputData(grid)
-    glyph3D.Update()
+    # Add the points to the dataset
+    linesPolyData.SetPoints(points)
 
-# update mapper
+    # update mapper
     rainmapper = vtk.vtkPolyDataMapper()
-    rainmapper.SetInputConnection(glyph3D.GetOutputPort())
-    rainmapper.SetScalarRange(0, 3)
+    rainmapper.SetInputData(linesPolyData)
 
-    rainmapper.SetScalarModeToUsePointFieldData()
-    rainmapper.SelectColorArray("Rcol")  # // !!!to set color (nevertheless you will have nothing)
-    rainmapper.SetLookupTable(lut)
 
-    rainactor.GetProperty().SetOpacity(0.1)
+    rainactor.GetProperty().SetOpacity(0.2)
+    rainactor.GetProperty().SetLineWidth(5)
+    rainactor.GetProperty().SetColor(0.1, 0.1, 0.8)
     rainactor.SetMapper(rainmapper)
 
     t2=time.time()
@@ -919,7 +942,7 @@ def RenderPress(p, coords, pressactor):
             for i in range(z):
                 if p[k][j][i] > 0.000000000001:
                     points.InsertNextPoint(k, j, i)
-                    scales.InsertNextValue(1.5)
+                    scales.InsertNextValue(1)
                     rgb = [0.0, 0.0, 0.0]
                     lut.GetColor(p[k][j][i], rgb)
                     ucrgb = list(map(int, [x * 255 for x in rgb]))
@@ -939,6 +962,33 @@ def RenderPress(p, coords, pressactor):
     glyph3D.SetSourceConnection(sphere.GetOutputPort())
     glyph3D.SetInputData(grid)
     glyph3D.Update()
+
+
+    #for k in range(x):
+    #    for j in range(y-int((y*0.4)), y+20):
+    #        points.InsertNextPoint(k, j, 2)
+#            points.InsertNextPoint(k, j, level)
+
+    # Create a polydata to store everything in
+    # linesPolyData = vtk.vtkPolyData()
+    # linesPolyData.Allocate()
+    #
+    # for i in range(0, points.GetNumberOfPoints(),2 ):
+    #     linesPolyData.InsertNextCell(vtk.VTK_LINE, 2, [i, i+1])
+    #
+    # # Add the points to the dataset
+    # linesPolyData.SetPoints(points)
+    #
+    # # update mapper
+    # rainmapper = vtk.vtkPolyDataMapper()
+    # rainmapper.SetInputData(linesPolyData)
+    #
+    #
+    # rainactor.GetProperty().SetOpacity(0.4)
+    # rainactor.GetProperty().SetLineWidth(10)
+    # rainactor.GetProperty().SetColor(0.1, 0.1, 0.8)
+    # rainactor.SetMapper(rainmapper)
+
 
 # update mapper
     rainmapper = vtk.vtkPolyDataMapper()
@@ -1019,61 +1069,97 @@ def RenderSea(sealevel, coords, renderer, seaactor):
 
 def RenderLand(coords, renderer):
 
-    x,y,z = coords
+    # x,y,z = coords
+    #
+    # points = vtk.vtkPoints()
+    #
+    # for k in range(x):
+    #     for j in range(y-int((y*0.4)), y+20):
+    #         for i in range(-5,3):
+    #             points.InsertNextPoint(k, j, i)
+    #
+    # for k in range(x):
+    #     for j in range(y-int((y*0.4)), y+20):
+    #         for i in range(3,4):
+    #             if random.random()>0.9:
+    #                 points.InsertNextPoint(k, j, i)
+    #
+    # #grid = vtk.vtkUnstructuredGrid()
+    # #grid.SetPoints(points)
+    #
+    # #sphere = vtk.vtkSphereSource()
+    #
+    # #glyph3D = vtk.vtkGlyph3D()
+    #
+    # #glyph3D.SetSourceConnection(sphere.GetOutputPort())
+    # #glyph3D.SetInputData(grid)
+    # #glyph3D.Update()
+    #
+    # polydata = vtk.vtkPolyData()
+    #
+    # polydata.SetPoints(points)
+    #
+    # splatter = vtk.vtkGaussianSplatter()
+    #
+    # splatter.SetInputData(polydata)
+    # splatter.SetRadius(0.06)
+    #
+    # cf = vtk.vtkContourFilter()
+    # cf.SetInputConnection(splatter.GetOutputPort())
+    # cf.SetValue(0, 0.05)
+    #
+    # reverse = vtk.vtkReverseSense()
+    # reverse.SetInputConnection(cf.GetOutputPort())
+    # reverse.ReverseCellsOn()
+    # reverse.ReverseNormalsOn()
+    #
+    #
+    # landmapper = vtk.vtkPolyDataMapper()
+    #
+    # landmapper.SetInputConnection(reverse.GetOutputPort())
+    # landmapper.SetScalarModeToUsePointFieldData()
+    # landmapper.SetScalarRange(0, 3)
 
-    points = vtk.vtkPoints()
+    file1="Edinburgh2.obj"
+    img1='Edinburgh.png'
 
-    for k in range(x):
-        for j in range(y-int((y*0.4)), y+20):
-            for i in range(-5,3):
-                points.InsertNextPoint(k, j, i)
-
-    for k in range(x):
-        for j in range(y-int((y*0.4)), y+20):
-            for i in range(3,4):
-                if random.random()>0.9:
-                    points.InsertNextPoint(k, j, i)
-
-    #grid = vtk.vtkUnstructuredGrid()
-    #grid.SetPoints(points)
-
-    #sphere = vtk.vtkSphereSource()
-
-    #glyph3D = vtk.vtkGlyph3D()
-
-    #glyph3D.SetSourceConnection(sphere.GetOutputPort())
-    #glyph3D.SetInputData(grid)
-    #glyph3D.Update()
-
-    polydata = vtk.vtkPolyData()
-
-    polydata.SetPoints(points)
-
-    splatter = vtk.vtkGaussianSplatter()
-
-    splatter.SetInputData(polydata)
-    splatter.SetRadius(0.06)
-
-    cf = vtk.vtkContourFilter()
-    cf.SetInputConnection(splatter.GetOutputPort())
-    cf.SetValue(0, 0.05)
-
-    reverse = vtk.vtkReverseSense()
-    reverse.SetInputConnection(cf.GetOutputPort())
-    reverse.ReverseCellsOn()
-    reverse.ReverseNormalsOn()
+    #read in 3d surface
+    objreader1=vtk.vtkOBJReader()
+    objreader1.SetFileName(file1)
+    objreader1.Update()
 
 
-    landmapper = vtk.vtkPolyDataMapper()
+    #read in image
+    imgreader1=vtk.vtkPNGReader()
+    imgreader1.SetFileName(img1)
+    imgreader1.Update()
 
-    landmapper.SetInputConnection(reverse.GetOutputPort())
-    landmapper.SetScalarModeToUsePointFieldData()
-    landmapper.SetScalarRange(0, 3)
-    landactor = vtk.vtkActor()
-    landactor.GetProperty().SetOpacity(1.0)
-    landactor.GetProperty().SetColor(0.475, 0.31, 0.09)
+    #Convert the image to a texture
+    texture1=vtk.vtkTexture()
+    texture1.SetInputConnection(imgreader1.GetOutputPort())
+
+
+    #get polydata output from OBJ reader
+    polydata1=objreader1.GetOutput()
+
+
+    #create mapper for the polydata
+    mapper1=vtk.vtkPolyDataMapper()
+    mapper1.SetInputData(polydata1)
+
+
+    #create actor. attach mapper and texture
+    landactor=vtk.vtkActor()
+    landactor.SetMapper(mapper1)
+    landactor.SetTexture(texture1)
+    landactor.GetProperty().SetAmbient(1.0) #improve lighting
+    landactor.RotateX(90) #flip round by 180 degrees (else it's upside down)
+    landactor.RotateY(-90) #flip round by 180 degrees (else it's upside down)
+    landactor.SetPosition(0,0,-2)
+
+    #axes = vtk.vtkAxesActor()
+    #renderer.AddActor(axes)
     renderer.AddActor(landactor)
-    landactor.SetMapper(landmapper)
 
 
 def RenderCrops(level, coords, cropsactor):
