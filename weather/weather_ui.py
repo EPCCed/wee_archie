@@ -64,7 +64,7 @@ class WeatherWindow(UI):
 
         menubar = wx.MenuBar()
         playbackMenu = wx.Menu()
-        self.playpauseitem = playbackMenu.Append(wx.ID_ANY, 'Pause', 'Pause playback')
+        self.playpauseitem = playbackMenu.Append(wx.ID_ANY, 'Play', 'Pause playback')
         cease = playbackMenu.Append(wx.ID_ANY, 'Stop', 'Stop simulation')
 
         fileMenu = wx.Menu()
