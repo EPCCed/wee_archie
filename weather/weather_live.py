@@ -38,6 +38,11 @@ class LiveWeather(object):
                 hour_weather = int(days_weather[i]["$"]) / 60
                 if hour_weather == targetTime:
                     self.hour.append(days_weather[i])
+            if len(self.hour) == 0:
+                print "Some error retrieving weather... Using default values"
+                response = {"d": 'NNE', "Pt": 'R', "H": 40.2, "P": 1014, "S": 7, "T": 19.0, "W": 1, "V": 30000, "Dp": 5.3, }
+                self.hour = []
+                self.hour.append(response)
 
         except:
 
