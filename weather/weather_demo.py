@@ -20,7 +20,7 @@ class WeatherDemo(client.AbstractDemo):
 
     # read in data and convert it to a data transfer object
     def GetVTKData(self, root): # root=netcdf handle
-
+        t1=time.time()
         q = root.variables['q']
 
         pres = root.variables['p'][:]
@@ -54,11 +54,15 @@ class WeatherDemo(client.AbstractDemo):
         dto = DTO()
         dto.SetData(data)
 
+        print("Data successfully DTO'd")
+        t2=time.time()
+        print("DTO extraction took",t2-t1,"s")
+
         return dto
 
     # Renders a frame with data contained within the data transfer object, data
     def RenderFrame(self, win, dto):
-
+        t1=time.time()
         #unpack  data transfer object
         data = dto.GetData()
         vapor, clouds, rain, coords, rm, timepersec, overalltime, commtime, th, p = data
@@ -105,11 +109,11 @@ class WeatherDemo(client.AbstractDemo):
             try:
                 win.actors['CloudActor']
             except:
-                win.actors['CloudActor'] = vtk.vtkActor()
-                win.renderer.AddActor(win.actors['CloudActor'])
+                win.actors['CloudActor'] = vtk.vtkVolume()
+                #win.renderer.AddVolume(win.actors['CloudActor'])
 
             RenderCloud(clouds, coords, win.actors['CloudActor'])
-            win.renderer.AddActor(win.actors['CloudActor'])
+            win.renderer.AddVolume(win.actors['CloudActor'])
 
             ### Rain
             try:
@@ -168,7 +172,8 @@ class WeatherDemo(client.AbstractDemo):
         except:
             win.actors['SeaActor'] = vtk.vtkActor()
 
-        RenderSea(win.waterlevel, coords, win.renderer, win.actors['SeaActor'])
+        if win.frameno.value ==0:
+            RenderSea(win.waterlevel, coords, win.renderer, win.actors['SeaActor'])
 
         win.renderer.AddActor(win.actors['SeaActor'])
 
@@ -258,6 +263,9 @@ class WeatherDemo(client.AbstractDemo):
 
         win.vtkwidget.GetRenderWindow().AddRenderer(win.views['BarPlot'].GetRenderer())
         win.vtkwidget.GetRenderWindow().Render()
+
+        t2=time.time()
+        print("Total frame rendering time=",t2-t1)
 
 
 def Screenshot(rw):
@@ -529,101 +537,173 @@ def RenderCloud(cloud, coords, cloudactor):
 
     x,y,z = coords
 
-    points = vtk.vtkPoints()
+    t1=time.time()
+    cloudarray=cloud
+    mn=cloud.min()
+    mx=cloud.max()
 
-    scales = vtk.vtkFloatArray()
-    scales.SetName("scales")
+    #scale between 0 and 255
+    cloudarray=(cloudarray)/(mx)*255
 
-    col = vtk.vtkUnsignedCharArray()
-    col.SetName('Ccol')  # Any name will work here.
-    col.SetNumberOfComponents(3)
-
-    nc = vtk.vtkNamedColors()
-
-    tableSize = x * y * z
-    lut = vtk.vtkLookupTable()
-    lut.SetNumberOfTableValues(tableSize)
-    lut.Build()
-
-    # Fill in a few known colors, the rest will be generated if needed
-    lut.SetTableValue(0, nc.GetColor4d("Black"))
-    lut.SetTableValue(1, nc.GetColor4d("Banana"))
-    lut.SetTableValue(2, nc.GetColor4d("Tomato"))
-    lut.SetTableValue(3, nc.GetColor4d("Wheat"))
-    lut.SetTableValue(4, nc.GetColor4d("Lavender"))
-    lut.SetTableValue(5, nc.GetColor4d("Flesh"))
-    lut.SetTableValue(6, nc.GetColor4d("Raspberry"))
-    lut.SetTableValue(7, nc.GetColor4d("Salmon"))
-    lut.SetTableValue(8, nc.GetColor4d("Mint"))
-    lut.SetTableValue(9, nc.GetColor4d("Peacock"))
+    #cast to uint
 
 
-    for i in range(z):
-        for j in range(y):
-            for k in range(x):
-                if cloud[k][j][i] > 0:
-                    #print(i,j,k)
-                    points.InsertNextPoint(k, j, i)
-                    scales.InsertNextValue(1)  # random radius between 0 and 0.99
-                    rgb = [0.0, 0.0, 0.0]
-                    lut.GetColor(cloud[k][j][i], rgb)
-                    ucrgb = list(map(int, [xx * 255 for xx in rgb]))
-                    col.InsertNextTuple3(255,0,0)#ucrgb[0], ucrgb[1], ucrgb[2])
-                    #print (" "+str(ucrgb)+" : "+str(rgb))
+    data=cloudarray.astype(numpy.uint8)
 
-    grid = vtk.vtkUnstructuredGrid()
-    grid.SetPoints(points)
-    grid.GetPointData().AddArray(scales)
-    grid.GetPointData().SetActiveScalars("scales")
-    sr = grid.GetScalarRange()# // !!!to set radius first
-    grid.GetPointData().AddArray(col)
 
-    sphere = vtk.vtkSphereSource()
+    data=numpy.ascontiguousarray(data)
 
-    glyph3D = vtk.vtkGlyph3D()
-    glyph3D.SetSourceConnection(sphere.GetOutputPort())
-    glyph3D.SetInputData(grid)
-    glyph3D.Update()
 
-    polydata = vtk.vtkPolyData()
+    #Apparently VTK is rubbish at hacving people manually making VTK data structures, so we write this array to a string, which is then read into a VTK reader... inefficient I know... :/
+    dataImporter = vtk.vtkImageImport()
 
-    polydata.SetPoints(points)
-    #polydata.GetPointData().SetScalars(col)
-    #polydata.GetPointData().SetScalars(col)
+    #make string (want it in Fortran order (column major) else everything is transposed
+    data_string = data.tostring(order="F")
 
-    splatter = vtk.vtkGaussianSplatter()
+    #read in string
+    dataImporter.CopyImportVoidPointer(data_string, len(data_string))
 
-    splatter.SetInputData(polydata)
-    splatter.SetRadius(0.07)
+    # The type of the newly imported data is set to unsigned char (uint8)
+    dataImporter.SetDataScalarTypeToUnsignedChar()
 
-    cf = vtk.vtkContourFilter()
+    # Because the data that is imported only contains an intensity value (it isnt RGB-coded or someting similar), the importer must be told this is the case (only one data value by gridpoint)
+    dataImporter.SetNumberOfScalarComponents(1)
 
-    if points.GetNumberOfPoints() > 0:
-        cf.SetInputConnection(splatter.GetOutputPort())
-    else: #weird things happen if you give him a splatter with no points
-        cf.SetInputData(polydata)
+    # The following two functions describe how the data is stored and the dimensions of the array it is stored in. For this
+    # simple case, all axes are of length 75 and begins with the first element. For other data, this is probably not the case.
+    # I have to admit however, that I honestly dont know the difference between SetDataExtent() and SetWholeExtent() although
+    # VTK complains if not both are used.
+    dataImporter.SetDataExtent(0,x-1, 0, y-1, 0, z-1) #fun fact, for data[x,y,z] this uses z,y,x
+    dataImporter.SetWholeExtent(0,x-1, 0, y-1, 0, z-1)
 
-    cf.SetValue(0, 0.01)
-    cf.GetOutput().GetPointData().SetScalars(col)
+    #create alpha and colour functions (map values 0-255 to colour and transparency)
+    alpha=vtk.vtkPiecewiseFunction()
+    colour=vtk.vtkColorTransferFunction()
 
-    reverse = vtk.vtkReverseSense()
-    reverse.SetInputConnection(cf.GetOutputPort())
-    reverse.ReverseCellsOn()
-    reverse.ReverseNormalsOn()
+    for i in range(256):
+        alpha.AddPoint(i,i/512.)
 
-    cloudmapper = vtk.vtkPolyDataMapper()
-    cloudmapper.SetInputConnection(cf.GetOutputPort())
-    cloudmapper.SetScalarModeToUseCellFieldData()
-    #cloudmapper.SetScalarRange(sr)
-    cloudmapper.SelectColorArray("Ccol")  # // !!!to set color (nevertheless you will have nothing)
-    cloudmapper.SetLookupTable(lut)
+        r=0.5
+        g=0.5
+        b=0.5
+        colour.AddRGBPoint(i,r,g,b)
 
-    cloudactor.GetProperty().SetOpacity(1.0)
-    cloudactor.SetMapper(cloudmapper)
+    # The preavious two classes stored properties. Because we want to apply these properties to the volume we want to render,
+    # we have to store them in a class that stores volume prpoperties.
+    volumeProperty = vtk.vtkVolumeProperty()
+    volumeProperty.SetColor(colour)
+    volumeProperty.SetScalarOpacity(alpha)
+
+
+    # This class describes how the volume is rendered (through ray tracing).
+    #compositeFunction = vtk.vtkVolumeRayCastCompositeFunction()
+    # We can finally create our volume. We also have to specify the data for it, as well as how the data will be rendered.
+    volumeMapper = vtk.vtkFixedPointVolumeRayCastMapper()
+    #volumeMapper.SetVolumeRayCastFunction(compositeFunction)
+    volumeMapper.SetInputConnection(dataImporter.GetOutputPort())
+
+    cloudactor.SetMapper(volumeMapper)
+    cloudactor.SetProperty(volumeProperty)
+
+    t2=time.time()
+
+    print("Time to draw clouds = ",t2-t1)
+
+    # points = vtk.vtkPoints()
+    #
+    # scales = vtk.vtkFloatArray()
+    # scales.SetName("scales")
+    #
+    # col = vtk.vtkUnsignedCharArray()
+    # col.SetName('Ccol')  # Any name will work here.
+    # col.SetNumberOfComponents(3)
+    #
+    # nc = vtk.vtkNamedColors()
+    #
+    # tableSize = x * y * z
+    # lut = vtk.vtkLookupTable()
+    # lut.SetNumberOfTableValues(tableSize)
+    # lut.Build()
+    #
+    # # Fill in a few known colors, the rest will be generated if needed
+    # lut.SetTableValue(0, nc.GetColor4d("Black"))
+    # lut.SetTableValue(1, nc.GetColor4d("Banana"))
+    # lut.SetTableValue(2, nc.GetColor4d("Tomato"))
+    # lut.SetTableValue(3, nc.GetColor4d("Wheat"))
+    # lut.SetTableValue(4, nc.GetColor4d("Lavender"))
+    # lut.SetTableValue(5, nc.GetColor4d("Flesh"))
+    # lut.SetTableValue(6, nc.GetColor4d("Raspberry"))
+    # lut.SetTableValue(7, nc.GetColor4d("Salmon"))
+    # lut.SetTableValue(8, nc.GetColor4d("Mint"))
+    # lut.SetTableValue(9, nc.GetColor4d("Peacock"))
+    #
+    #
+    # for i in range(0,z,2):
+    #     for j in range(0,y,2):
+    #         for k in range(0,x,2):
+    #             if cloud[k][j][i] > 0:
+    #                 #print(i,j,k)
+    #                 points.InsertNextPoint(k, j, i)
+    #                 scales.InsertNextValue(1)  # random radius between 0 and 0.99
+    #                 rgb = [0.0, 0.0, 0.0]
+    #                 lut.GetColor(cloud[k][j][i], rgb)
+    #                 ucrgb = list(map(int, [xx * 255 for xx in rgb]))
+    #                 col.InsertNextTuple3(255,0,0)#ucrgb[0], ucrgb[1], ucrgb[2])
+    #                 #print (" "+str(ucrgb)+" : "+str(rgb))
+    #
+    # #grid = vtk.vtkUnstructuredGrid()
+    # #grid.SetPoints(points)
+    # #grid.GetPointData().AddArray(scales)
+    # #grid.GetPointData().SetActiveScalars("scales")
+    # #sr = grid.GetScalarRange()# // !!!to set radius first
+    # #grid.GetPointData().AddArray(col)
+    #
+    # #sphere = vtk.vtkSphereSource()
+    #
+    # #glyph3D = vtk.vtkGlyph3D()
+    # #glyph3D.SetSourceConnection(sphere.GetOutputPort())
+    # #glyph3D.SetInputData(grid)
+    # #glyph3D.Update()
+    #
+    # polydata = vtk.vtkPolyData()
+    #
+    # polydata.SetPoints(points)
+    # #polydata.GetPointData().SetScalars(col)
+    # #polydata.GetPointData().SetScalars(col)
+    #
+    # splatter = vtk.vtkGaussianSplatter()
+    #
+    # splatter.SetInputData(polydata)
+    # splatter.SetRadius(0.07)
+    #
+    # cf = vtk.vtkContourFilter()
+    #
+    # if points.GetNumberOfPoints() > 0:
+    #     cf.SetInputConnection(splatter.GetOutputPort())
+    # else: #weird things happen if you give him a splatter with no points
+    #     cf.SetInputData(polydata)
+    #
+    # cf.SetValue(0, 0.01)
+    # cf.GetOutput().GetPointData().SetScalars(col)
+    #
+    # reverse = vtk.vtkReverseSense()
+    # reverse.SetInputConnection(cf.GetOutputPort())
+    # reverse.ReverseCellsOn()
+    # reverse.ReverseNormalsOn()
+    #
+    # cloudmapper = vtk.vtkPolyDataMapper()
+    # cloudmapper.SetInputConnection(cf.GetOutputPort())
+    # cloudmapper.SetScalarModeToUseCellFieldData()
+    # #cloudmapper.SetScalarRange(sr)
+    # cloudmapper.SelectColorArray("Ccol")  # // !!!to set color (nevertheless you will have nothing)
+    # cloudmapper.SetLookupTable(lut)
+    #
+    # cloudactor.GetProperty().SetOpacity(1.0)
+    # cloudactor.SetMapper(cloudmapper)
 
 
 def RenderVapor(vapor, coords):
-
+    print("Vapour?")
     x, y, z = coords
     points = vtk.vtkPoints()
 
@@ -693,6 +773,8 @@ def RenderRain(rain, coords, rainactor):
     x, y, z = coords
     points = vtk.vtkPoints()
 
+    t1=time.time()
+
     scales = vtk.vtkFloatArray()
     scales.SetName("Rscales")
 
@@ -709,15 +791,15 @@ def RenderRain(rain, coords, rainactor):
     #lut.SetAlphaRange(0.6,0.7)
     lut.Build()
 
-    for k in range(x):
-        for j in range(y):
-            for i in range(z):
+    for k in range(0,x,1):
+        for j in range(0,y,1):
+            for i in range(0,z,1):
                 if rain[k][j][i] > 0.0000001:
                     points.InsertNextPoint(k, j, i)
                     scales.InsertNextValue(1)
                     rgb = [0.0, 0.0, 0.0]
                     lut.GetColor(rain[k][j][i], rgb)
-                    ucrgb = list(map(int, [x * 255 for x in rgb]))
+                    ucrgb = list(map(int, [x2 * 255 for x2 in rgb]))
                     col.InsertNextTuple3(ucrgb[0], ucrgb[1], ucrgb[2])
 
     grid = vtk.vtkUnstructuredGrid()
@@ -727,6 +809,8 @@ def RenderRain(rain, coords, rainactor):
     grid.GetPointData().AddArray(col)
 
     sphere = vtk.vtkSphereSource()
+    sphere.SetThetaResolution(3)
+    sphere.SetPhiResolution(3)
 
     glyph3D = vtk.vtkGlyph3D()
 
@@ -745,6 +829,10 @@ def RenderRain(rain, coords, rainactor):
 
     rainactor.GetProperty().SetOpacity(0.1)
     rainactor.SetMapper(rainmapper)
+
+    t2=time.time()
+
+    print("Rain time=",t2-t1)
 
 def RenderTemp(th, coords, rainactor):
 
@@ -879,7 +967,7 @@ def RenderSea(sealevel, coords, renderer, seaactor):
 
     for k in range(x):
         for j in range(-20, int((y*0.6))):
-            for i in range(-10,level):
+            for i in range(-5,level):
                 points.InsertNextPoint(k, j, i)
 
     for k in range(x):
@@ -888,16 +976,16 @@ def RenderSea(sealevel, coords, renderer, seaactor):
                 if random.random()>0.85:
                     points.InsertNextPoint(k, j, i)
 
-    grid = vtk.vtkUnstructuredGrid()
-    grid.SetPoints(points)
+    #grid = vtk.vtkUnstructuredGrid()
+    #grid.SetPoints(points)
 
-    sphere = vtk.vtkSphereSource()
+    #sphere = vtk.vtkSphereSource()
 
-    glyph3D = vtk.vtkGlyph3D()
+    #glyph3D = vtk.vtkGlyph3D()
 
-    glyph3D.SetSourceConnection(sphere.GetOutputPort())
-    glyph3D.SetInputData(grid)
-    glyph3D.Update()
+    #glyph3D.SetSourceConnection(sphere.GetOutputPort())
+    #glyph3D.SetInputData(grid)
+    #glyph3D.Update()
 
     polydata = vtk.vtkPolyData()
 
@@ -946,16 +1034,16 @@ def RenderLand(coords, renderer):
                 if random.random()>0.9:
                     points.InsertNextPoint(k, j, i)
 
-    grid = vtk.vtkUnstructuredGrid()
-    grid.SetPoints(points)
+    #grid = vtk.vtkUnstructuredGrid()
+    #grid.SetPoints(points)
 
-    sphere = vtk.vtkSphereSource()
+    #sphere = vtk.vtkSphereSource()
 
-    glyph3D = vtk.vtkGlyph3D()
+    #glyph3D = vtk.vtkGlyph3D()
 
-    glyph3D.SetSourceConnection(sphere.GetOutputPort())
-    glyph3D.SetInputData(grid)
-    glyph3D.Update()
+    #glyph3D.SetSourceConnection(sphere.GetOutputPort())
+    #glyph3D.SetInputData(grid)
+    #glyph3D.Update()
 
     polydata = vtk.vtkPolyData()
 
