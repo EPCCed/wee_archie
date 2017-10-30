@@ -30,13 +30,13 @@ class LiveWeather(object):
             hour_num = len(days_weather)
             self.hour = []
 
-            targetTime = time
-            if (historical != None): targetTime-=historical
+            self.targetTime = time
+            if (historical != None): self.targetTime-=historical
 
             # Loop to get the data from the arrays for the current time
             for i in range(hour_num):
                 hour_weather = int(days_weather[i]["$"]) / 60
-                if hour_weather == targetTime:
+                if hour_weather == self.targetTime:
                     self.hour.append(days_weather[i])
             if len(self.hour) == 0:
                 print "Some error retrieving weather... Using default values"
@@ -50,6 +50,9 @@ class LiveWeather(object):
             response = {"d": 'NNE', "Pt": 'R', "H": 40.2, "P": 1014, "S": 7, "T": 19.0, "W": 1, "V": 30000, "Dp": 5.3, }
             self.hour = []
             self.hour.append(response)
+
+    def target_time(self):
+        return self.targetTime
 
     # Function that returns the weather type variable
     def hour_weather(self):

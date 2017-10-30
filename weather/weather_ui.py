@@ -237,19 +237,12 @@ class NewWindow(wx.Frame):
         # if simulation is not started then start a new simulation
         if not self.servercomm.IsStarted():
             self.writeConfig()
-
-            dlg = wx.MessageDialog(self, "Do you wish to continue?", "This will start a simulation", wx.OK | wx.CANCEL)
-
-            if dlg.ShowModal() == wx.ID_OK:
-                # write to config
-
-                config = "config.mcf"
-                # config  = "config_nice.mcf"
-                self.mainWeatherWindow.StartSim(config)
-                self.mainWeatherWindow.playing = False
-                # load the first data file
-                self.mainWeatherWindow.getdata.value = True
-                self.Close()
+            config = "config.mcf"
+            self.mainWeatherWindow.StartSim(config)
+            self.mainWeatherWindow.playing = True
+            # load the first data file
+            self.mainWeatherWindow.getdata.value = True
+            self.Close()
 
         # if simulation is started then stop simulation
         else:
@@ -268,6 +261,8 @@ class NewWindow(wx.Frame):
         # because the events or something does not work for setting there values, set them here
 
         weatherInstance=LiveWeather(self.weatherLocationCode)
+
+        self.demo.setBaseHour(weatherInstance.target_time())
 
         f = open('config.mcf', 'w+')
 

@@ -6,6 +6,19 @@ import time
 import math
 import numpy
 
+class vtkTimerCallback():
+    def __init__(self, parent, win):
+        self.timer_count = 0
+        self.starttime=int(time.time())
+        self.lasttime=self.starttime
+        self.win=win
+        self.parent=parent
+
+    def execute(self,obj,event):
+        ctime=int(time.time())
+        if (ctime > self.lasttime):
+            updateStopWatchHand(self.win, (self.lasttime-self.starttime) + 1)
+            self.lasttime+=1
 
 #Data transfer object
 class DTO(client.AbstractDTO):
@@ -17,6 +30,9 @@ class DTO(client.AbstractDTO):
 
 #class containing demo-specific functions
 class WeatherDemo(client.AbstractDemo):
+
+    def __init__(self):
+        self.init_scene=False
 
     # read in data and convert it to a data transfer object
     def GetVTKData(self, root): # root=netcdf handle
@@ -44,11 +60,12 @@ class WeatherDemo(client.AbstractDemo):
         rain = (q[2]/q[2].max())
 
         timepersec = root.variables['time_per_sec'][0]
+        modeltime = root.variables['model_time'][0]
 
         overalltime = root.variables['overall_time'][:]
         communicationtime =root.variables['communication_time'][:]
 
-        data = [vapor, clouds, rain, coords, rm, timepersec, overalltime, communicationtime, th, p]
+        data = [vapor, clouds, rain, coords, rm, timepersec, overalltime, communicationtime, th, p, modeltime]
 
         # create data transfer object and put the array into it
         dto = DTO()
@@ -60,12 +77,15 @@ class WeatherDemo(client.AbstractDemo):
 
         return dto
 
+    def setBaseHour(self, basehour):
+        self.basehour=basehour
+
     # Renders a frame with data contained within the data transfer object, data
     def RenderFrame(self, win, dto):
         t1=time.time()
         #unpack  data transfer object
         data = dto.GetData()
-        vapor, clouds, rain, coords, rm, timepersec, overalltime, commtime, th, p = data
+        vapor, clouds, rain, coords, rm, timepersec, overalltime, commtime, th, p, modeltime = data
 
         win.renderer.SetBackground(0.22,.67,.87)
         win.renderer.SetViewport(0, 0.3, 1, 1)
@@ -77,29 +97,6 @@ class WeatherDemo(client.AbstractDemo):
         # The actors need to be created only once, that is why we have a actors dictionary in the win. This way we
         # will only add each actor once to the renderer. The other things like data structures, filters and mappers are
         # created and destroyed in each function.
-        try:
-            win.actors['TimePerSecActor']
-        except:
-            win.actors['TimePerSecActor'] = vtk.vtkTextActor()
-
-        win.actors['TimePerSecActor'].SetInput(str(round(timepersec, 2)) + " sps")
-        win.actors['TimePerSecActor'].GetTextProperty().SetColor(1.0, 0.0, 0.0)
-
-        text_representation = vtk.vtkTextRepresentation()
-        text_representation.GetPositionCoordinate().SetValue(0.5, 0.5)
-        text_representation.GetPosition2Coordinate().SetValue(0.2, 0.2)
-        text_representation.SetPosition(0,0.8)
-
-        try:
-            win.widgets['SPSWidget']
-        except:
-            win.widgets['SPSWidget'] = vtk.vtkTextWidget()
-            win.widgets['SPSWidget'].SetRepresentation(text_representation)
-
-        win.widgets['SPSWidget'].SetInteractor(win.vtkwidget.GetRenderWindow().GetInteractor())
-        win.widgets['SPSWidget'].SetTextActor(win.actors['TimePerSecActor'])
-        win.widgets['SPSWidget'].SelectableOff()
-        win.widgets['SPSWidget'].On()
 
         # To switch between the temperature, pressure and 'real' world views.
         if self.mode == 0:
@@ -178,7 +175,7 @@ class WeatherDemo(client.AbstractDemo):
         # win.renderer.AddActor(win.actors['SeaActor'])
 
         ### Land
-        if win.frameno.value == 0:
+        if (not self.init_scene):
             #TODO landactor try
             RenderLand(coords, win.renderer)
 
@@ -262,10 +259,128 @@ class WeatherDemo(client.AbstractDemo):
         win.views['BarPlot'].GetRenderer().SetViewport(0,0,1,0.3)
 
         win.vtkwidget.GetRenderWindow().AddRenderer(win.views['BarPlot'].GetRenderer())
+
+        try:
+            win.views['StatusLine']
+        except:
+            win.views['StatusLine'] = vtk.vtkContextView()
+
+        win.views['StatusLine'].GetRenderer().SetBackground(0.22,.67,.87)
+        win.views['StatusLine'].GetRenderer().SetViewport(0.85,0.3,1,1)
+
+        win.vtkwidget.GetRenderWindow().AddRenderer(win.views['StatusLine'].GetRenderer())
+        win.views['StatusLine'].GetRenderer().Render()
+
+        generateStatusBar(self, win, win.views['StatusLine'].GetRenderer(), modeltime)
+
+        if (not self.init_scene):
+            timecallback=vtkTimerCallback(self, win)
+            win.vtkwidget.AddObserver(vtk.vtkCommand.TimerEvent, timecallback.execute) # 'TimerEvent', timecallback.execute)
+            win.vtkwidget.CreateRepeatingTimer(1000)
+
+        #print(str(win.views['StatusLine'].GetScene().GetSceneWidth()) + " "+str(win.views['StatusLine'].GetScene().GetSceneHeight()))
+
         win.vtkwidget.GetRenderWindow().Render()
+        if (not self.init_scene): self.init_scene=True
 
         t2=time.time()
         print("Total frame rendering time=",t2-t1)
+
+def updateStopWatchHand(win, seconds_remaining):
+    win.views['StatusLine'].GetScene().RemoveItem(win.stopWatchHand)
+    win.stopWatchHand=generateStopWatchHand(seconds_remaining)
+    win.views['StatusLine'].GetScene().AddItem(win.stopWatchHand)
+    win.vtkwidget.GetRenderWindow().Render()
+
+def generateStatusBar(self, win, renderer, modeltime):
+    if (not self.init_scene):
+        imageReader = vtk.vtkPNGReader()
+        imageReader.SetFileName("clockface.png")
+        imageReader.Update()
+
+        imageResizer=vtk.vtkImageResize()
+        imageResizer.SetInputData(imageReader.GetOutput())
+        imageResizer.SetResizeMethod(imageResizer.MAGNIFICATION_FACTORS)
+        imageResizer.SetMagnificationFactors(0.3,0.3,0.3)
+        imageResizer.Update()
+
+        imgItem=vtk.vtkImageItem()
+        imgItem.SetImage(imageResizer.GetOutput())
+        imgItem.SetPosition(80, 580)
+        win.views['StatusLine'].GetScene().AddItem(imgItem)
+
+        imageReader2 = vtk.vtkPNGReader()
+        imageReader2.SetFileName("stopwatch.png")
+        imageReader2.Update()
+
+        imageResizer2=vtk.vtkImageResize()
+        imageResizer2.SetInputData(imageReader2.GetOutput())
+        imageResizer2.SetResizeMethod(imageResizer2.MAGNIFICATION_FACTORS)
+        imageResizer2.SetMagnificationFactors(0.4,0.4,0.4)
+        imageResizer2.Update()
+
+        imgItem2=vtk.vtkImageItem()
+        imgItem2.SetImage(imageResizer2.GetOutput())
+        imgItem2.SetPosition(80, 300)
+        win.views['StatusLine'].GetScene().AddItem(imgItem2)
+        win.stopWatchHand=generateStopWatchHand(60)
+        win.views['StatusLine'].GetScene().AddItem(win.stopWatchHand)
+    else:
+        win.views['StatusLine'].GetScene().RemoveItem(win.timeOfDayHourHand)
+        win.views['StatusLine'].GetScene().RemoveItem(win.timeOfDayMinuteHand)
+
+    rebased_modeltime=modeltime*4
+    currenthour_angle=((self.basehour - 12 if self.basehour > 12 else self.basehour) * 30) + ((rebased_modeltime/3600) *30)
+    currentminute_angle=((rebased_modeltime%3600)/3600) * 360
+
+    win.timeOfDayHourHand=generateTimeOfDayHand("hourhand.png", currenthour_angle, 106, 605)
+    win.timeOfDayMinuteHand=generateTimeOfDayHand("minutehand.png", currentminute_angle, 90, 590)
+    win.views['StatusLine'].GetScene().AddItem(win.timeOfDayMinuteHand)
+    win.views['StatusLine'].GetScene().AddItem(win.timeOfDayHourHand)
+
+def generateStopWatchHand(seconds_remaining):
+    if (seconds_remaining == 60):
+        angle=0.0
+    else:
+        angle=(60-seconds_remaining) * 6
+    return generateClockHand("stopwatch_hand.png", angle, 117, 337, 0.15)
+
+def generateTimeOfDayHand(filename, angle, xpos, ypos):
+    return generateClockHand(filename, angle, xpos, ypos, 0.3)
+
+def generateClockHand(filename, angle, xpos, ypos, mag):
+    imageReader = vtk.vtkPNGReader()
+    imageReader.SetFileName(filename)
+    imageReader.Update()
+    imageResizer=vtk.vtkImageResize()
+    imageResizer.SetInputData(imageReader.GetOutput())
+    imageResizer.SetResizeMethod(imageResizer.MAGNIFICATION_FACTORS)
+    imageResizer.SetMagnificationFactors(mag,mag,mag)
+    imageResizer.Update()
+
+    bounds=[0.0]*6
+    imageResizer.GetOutput().GetBounds(bounds)
+
+    center=[0.0]*3
+    center[0] = (bounds[1] + bounds[0]) / 2.0
+    center[1] = (bounds[3] + bounds[2]) / 2.0
+    center[2] = (bounds[5] + bounds[4]) / 2.0
+
+    transformer=vtk.vtkTransform()
+    transformer.Translate(center[0], center[1], center[2])
+    transformer.RotateZ(angle)
+    transformer.Translate(-center[0], -center[1], -center[2])
+
+    imageReslicer=vtk.vtkImageReslice()
+    imageReslicer.SetInputData(imageResizer.GetOutput())
+    imageReslicer.SetResliceTransform(transformer)
+    imageReslicer.SetInterpolationModeToLinear()
+    imageReslicer.Update()
+
+    imgItem=vtk.vtkImageItem()
+    imgItem.SetImage(imageReslicer.GetOutput())
+    imgItem.SetPosition(xpos, ypos)
+    return imgItem
 
 
 def Screenshot(rw):
