@@ -305,14 +305,13 @@ class WeatherDemo(client.AbstractDemo):
         win.vtkwidget.GetRenderWindow().AddRenderer(win.views['StatusLine'].GetRenderer())
         win.views['StatusLine'].GetRenderer().Render()
 
-        generateStatusBar(self, win, win.views['StatusLine'].GetRenderer(), modeltime, wind_u, wind_v)
+        generateStatusBar(self, win, win.views['StatusLine'].GetRenderer(), modeltime, wind_u, wind_v,
+            win.views['StatusLine'].GetScene().GetSceneWidth(), win.views['StatusLine'].GetScene().GetSceneHeight())
 
         if (not self.init_scene):
             timecallback=vtkTimerCallback(self, win)
             win.timer_observer=win.vtkwidget.AddObserver(vtk.vtkCommand.TimerEvent, timecallback.execute) # 'TimerEvent', timecallback.execute)
             win.timer_id=win.vtkwidget.CreateRepeatingTimer(1000)
-
-        #print(str(win.views['StatusLine'].GetScene().GetSceneWidth()) + " "+str(win.views['StatusLine'].GetScene().GetSceneHeight()))
 
         win.vtkwidget.GetRenderWindow().Render()
         if (not self.init_scene): self.init_scene=True
@@ -322,11 +321,11 @@ class WeatherDemo(client.AbstractDemo):
 
 def updateStopWatchHand(win, seconds_remaining):
     win.views['StatusLine'].GetScene().RemoveItem(win.stopWatchHand)
-    win.stopWatchHand=generateStopWatchHand(seconds_remaining)
+    win.stopWatchHand=generateStopWatchHand(seconds_remaining, win.bar_width, win.bar_height)
     win.views['StatusLine'].GetScene().AddItem(win.stopWatchHand)
     win.vtkwidget.GetRenderWindow().Render()
 
-def generateStatusBar(self, win, renderer, modeltime, wind_u, wind_v):
+def generateStatusBar(self, win, renderer, modeltime, wind_u, wind_v, bar_width, bar_height):
     if (not self.init_scene):
         imageReader = vtk.vtkPNGReader()
         imageReader.SetFileName("clockface.png")
@@ -340,7 +339,7 @@ def generateStatusBar(self, win, renderer, modeltime, wind_u, wind_v):
 
         imgItem=vtk.vtkImageItem()
         imgItem.SetImage(imageResizer.GetOutput())
-        imgItem.SetPosition(80, 580)
+        imgItem.SetPosition(bar_width*0.277, bar_height*0.734)
         win.views['StatusLine'].GetScene().AddItem(imgItem)
 
         imageReader2 = vtk.vtkPNGReader()
@@ -355,17 +354,19 @@ def generateStatusBar(self, win, renderer, modeltime, wind_u, wind_v):
 
         imgItem2=vtk.vtkImageItem()
         imgItem2.SetImage(imageResizer2.GetOutput())
-        imgItem2.SetPosition(80, 350)
+        imgItem2.SetPosition(bar_width*0.277, bar_height*0.443)
         win.views['StatusLine'].GetScene().AddItem(imgItem2)
-        win.stopWatchHand=generateStopWatchHand(60)
+        win.stopWatchHand=generateStopWatchHand(60, bar_width, bar_height)
         win.views['StatusLine'].GetScene().AddItem(win.stopWatchHand)
 
-        win.views['StatusLine'].GetScene().AddItem(generateCompassRose(115,210))
-        win.views['StatusLine'].GetScene().AddItem(generateCompassRose(115,70))
-        win.compass2_hand=generateWindDirectionHand(120,70, self.obs_wind_dir)
-        win.compass2_strength=generateCompassStength(167, 120, self.obs_wind_strength)
+        win.views['StatusLine'].GetScene().AddItem(generateCompassRose(bar_width*0.399,bar_height*0.265))
+        win.views['StatusLine'].GetScene().AddItem(generateCompassRose(bar_width*0.399,bar_height*0.0886))
+        win.compass2_hand=generateWindDirectionHand(bar_width*0.4166,bar_height*0.0886, self.obs_wind_dir)
+        win.compass2_strength=generateCompassStength(bar_width*0.5798, bar_height*0.1518, self.obs_wind_strength)
         win.views['StatusLine'].GetScene().AddItem(win.compass2_hand)
         win.views['StatusLine'].GetScene().AddItem(win.compass2_strength)
+        win.bar_width=bar_width
+        win.bar_height=bar_height
     else:
         win.views['StatusLine'].GetScene().RemoveItem(win.timeOfDayHourHand)
         win.views['StatusLine'].GetScene().RemoveItem(win.timeOfDayMinuteHand)
@@ -376,14 +377,14 @@ def generateStatusBar(self, win, renderer, modeltime, wind_u, wind_v):
     currenthour_angle=((self.basehour - 12 if self.basehour > 12 else self.basehour) * 30) + ((rebased_modeltime/3600) *30)
     currentminute_angle=((rebased_modeltime%3600)/3600) * 360
 
-    win.timeOfDayHourHand=generateTimeOfDayHand("hourhand.png", currenthour_angle, 106, 605)
-    win.timeOfDayMinuteHand=generateTimeOfDayHand("minutehand.png", currentminute_angle, 90, 590)
+    win.timeOfDayHourHand=generateTimeOfDayHand("hourhand.png", currenthour_angle, bar_width*0.368, bar_height*0.7658)
+    win.timeOfDayMinuteHand=generateTimeOfDayHand("minutehand.png", currentminute_angle, bar_width*0.3125, bar_height*0.7468)
     win.views['StatusLine'].GetScene().AddItem(win.timeOfDayMinuteHand)
     win.views['StatusLine'].GetScene().AddItem(win.timeOfDayHourHand)
 
     win_strength, win_direction=calcWindStrenghDirection(wind_u, wind_v)
-    win.compass1_hand=generateWindDirectionHand(120, 210, win_direction)
-    win.compass1_strength=generateCompassStength(167, 260, win_strength)
+    win.compass1_hand=generateWindDirectionHand(bar_width*0.4166, bar_height*0.2658, win_direction)
+    win.compass1_strength=generateCompassStength(bar_width*0.5798, bar_height*0.3291, win_strength)
     win.views['StatusLine'].GetScene().AddItem(win.compass1_hand)
     win.views['StatusLine'].GetScene().AddItem(win.compass1_strength)
 
@@ -472,12 +473,12 @@ def generateWindDirectionHand(xpos, ypos, wind_angle):
     imgItem.SetPosition(xpos, ypos)
     return imgItem
 
-def generateStopWatchHand(seconds_remaining):
+def generateStopWatchHand(seconds_remaining, bar_width, bar_height):
     if (seconds_remaining == 60):
         angle=0.0
     else:
         angle=(60-seconds_remaining) * 6
-    return generateClockHand("stopwatch_hand.png", angle, 117, 387, 0.15)
+    return generateClockHand("stopwatch_hand.png", angle, bar_width*0.40625, bar_height*0.4898, 0.15)
 
 def generateTimeOfDayHand(filename, angle, xpos, ypos):
     return generateClockHand(filename, angle, xpos, ypos, 0.3)
