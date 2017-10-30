@@ -25,7 +25,7 @@ class vtkTimerCallback():
                 self.win.StopSim()
                 self.win.playing = False
                 self.win.getdata.value = False
-                self.win.showScoreBoard(self.parent.achievedtime, self.parent.accuracy_achieved / self.parent.accuracy_ticks)
+                self.win.showScoreBoard(math.ceil(self.parent.achievedtime/60), self.parent.accuracy_achieved / self.parent.accuracy_ticks)
             else:
                 #if (elapsedTick == 25): self.win.mode=1
                 #if (elapsedTick == 35): self.win.mode=2
@@ -124,7 +124,7 @@ class WeatherDemo(client.AbstractDemo):
 
         self.mode = win.mode
 
-        self.achievedtime=modeltime*4
+        self.achievedtime=modeltime*2
 
         self.updateCurrentAccuracyScore(avg_temp, avg_pressure)
 
@@ -320,6 +320,22 @@ class WeatherDemo(client.AbstractDemo):
         print("Total frame rendering time=",t2-t1)
 
 def updateStopWatchHand(win, seconds_remaining):
+    if (seconds_remaining == 55):
+        win.views['StatusLine'].GetScene().RemoveItem(win.stopwatchImg)
+        imageReader2 = vtk.vtkPNGReader()
+        imageReader2.SetFileName("stopwatch_red.png")
+        imageReader2.Update()
+
+        imageResizer2=vtk.vtkImageResize()
+        imageResizer2.SetInputData(imageReader2.GetOutput())
+        imageResizer2.SetResizeMethod(imageResizer2.MAGNIFICATION_FACTORS)
+        imageResizer2.SetMagnificationFactors(0.4,0.4,0.4)
+        imageResizer2.Update()
+
+        win.stopwatchImg=vtk.vtkImageItem()
+        win.stopwatchImg.SetImage(imageResizer2.GetOutput())
+        win.stopwatchImg.SetPosition(win.bar_width*0.277, win.bar_height*0.443)
+        win.views['StatusLine'].GetScene().AddItem(win.stopwatchImg)
     win.views['StatusLine'].GetScene().RemoveItem(win.stopWatchHand)
     win.stopWatchHand=generateStopWatchHand(seconds_remaining, win.bar_width, win.bar_height)
     win.views['StatusLine'].GetScene().AddItem(win.stopWatchHand)
@@ -352,10 +368,10 @@ def generateStatusBar(self, win, renderer, modeltime, wind_u, wind_v, bar_width,
         imageResizer2.SetMagnificationFactors(0.4,0.4,0.4)
         imageResizer2.Update()
 
-        imgItem2=vtk.vtkImageItem()
-        imgItem2.SetImage(imageResizer2.GetOutput())
-        imgItem2.SetPosition(bar_width*0.277, bar_height*0.443)
-        win.views['StatusLine'].GetScene().AddItem(imgItem2)
+        win.stopwatchImg=vtk.vtkImageItem()
+        win.stopwatchImg.SetImage(imageResizer2.GetOutput())
+        win.stopwatchImg.SetPosition(bar_width*0.277, bar_height*0.443)
+        win.views['StatusLine'].GetScene().AddItem(win.stopwatchImg)
         win.stopWatchHand=generateStopWatchHand(60, bar_width, bar_height)
         win.views['StatusLine'].GetScene().AddItem(win.stopWatchHand)
 
@@ -373,7 +389,7 @@ def generateStatusBar(self, win, renderer, modeltime, wind_u, wind_v, bar_width,
         win.views['StatusLine'].GetScene().RemoveItem(win.compass1_hand)
         win.views['StatusLine'].GetScene().RemoveItem(win.compass1_strength)
 
-    rebased_modeltime=modeltime*4
+    rebased_modeltime=modeltime*2
     currenthour_angle=((self.basehour - 12 if self.basehour > 12 else self.basehour) * 30) + ((rebased_modeltime/3600) *30)
     currentminute_angle=((rebased_modeltime%3600)/3600) * 360
 
