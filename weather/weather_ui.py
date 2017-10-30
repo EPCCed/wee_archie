@@ -244,8 +244,8 @@ class FinishedWindow(wx.Frame):
                 if (data[1] > max_x): max_x=data[1]
 
         plt.title('Score board')
-        plt.xlabel('Accuracy')
-        plt.ylabel('Seconds simulated')
+        plt.xlabel('Accuracy (%)')
+        plt.ylabel('Minutes simulated')
         plt.xlim(0, 100)
         print((str(max_x)))
         plt.ylim(0, max_x)
