@@ -62,10 +62,13 @@ class WeatherDemo(client.AbstractDemo):
         timepersec = root.variables['time_per_sec'][0]
         modeltime = root.variables['model_time'][0]
 
+        wind_u = root.variables['wind_u'][0]
+        wind_v = root.variables['wind_v'][0]
+
         overalltime = root.variables['overall_time'][:]
         communicationtime =root.variables['communication_time'][:]
 
-        data = [vapor, clouds, rain, coords, rm, timepersec, overalltime, communicationtime, th, p, modeltime]
+        data = [vapor, clouds, rain, coords, rm, timepersec, overalltime, communicationtime, th, p, modeltime, wind_u, wind_v]
 
         # create data transfer object and put the array into it
         dto = DTO()
@@ -77,15 +80,17 @@ class WeatherDemo(client.AbstractDemo):
 
         return dto
 
-    def setBaseHour(self, basehour):
+    def setSubmittedParameters(self, basehour, obs_wind_dir, obs_wind_strength):
         self.basehour=basehour
+        self.obs_wind_dir=obs_wind_dir
+        self.obs_wind_strength=obs_wind_strength
 
     # Renders a frame with data contained within the data transfer object, data
     def RenderFrame(self, win, dto):
         t1=time.time()
         #unpack  data transfer object
         data = dto.GetData()
-        vapor, clouds, rain, coords, rm, timepersec, overalltime, commtime, th, p, modeltime = data
+        vapor, clouds, rain, coords, rm, timepersec, overalltime, commtime, th, p, modeltime, wind_u, wind_v = data
 
         win.renderer.SetBackground(0.22,.67,.87)
         win.renderer.SetViewport(0, 0.3, 1, 1)
@@ -271,7 +276,7 @@ class WeatherDemo(client.AbstractDemo):
         win.vtkwidget.GetRenderWindow().AddRenderer(win.views['StatusLine'].GetRenderer())
         win.views['StatusLine'].GetRenderer().Render()
 
-        generateStatusBar(self, win, win.views['StatusLine'].GetRenderer(), modeltime)
+        generateStatusBar(self, win, win.views['StatusLine'].GetRenderer(), modeltime, wind_u, wind_v)
 
         if (not self.init_scene):
             timecallback=vtkTimerCallback(self, win)
@@ -292,7 +297,7 @@ def updateStopWatchHand(win, seconds_remaining):
     win.views['StatusLine'].GetScene().AddItem(win.stopWatchHand)
     win.vtkwidget.GetRenderWindow().Render()
 
-def generateStatusBar(self, win, renderer, modeltime):
+def generateStatusBar(self, win, renderer, modeltime, wind_u, wind_v):
     if (not self.init_scene):
         imageReader = vtk.vtkPNGReader()
         imageReader.SetFileName("clockface.png")
@@ -325,9 +330,18 @@ def generateStatusBar(self, win, renderer, modeltime):
         win.views['StatusLine'].GetScene().AddItem(imgItem2)
         win.stopWatchHand=generateStopWatchHand(60)
         win.views['StatusLine'].GetScene().AddItem(win.stopWatchHand)
+
+        win.views['StatusLine'].GetScene().AddItem(generateCompassRose(20,100))
+        win.views['StatusLine'].GetScene().AddItem(generateCompassRose(160,100))
+        win.compass2_hand=generateWindDirectionHand(160,100, self.obs_wind_dir)
+        win.compass2_strength=generateCompassStength(210, 150, self.obs_wind_strength)
+        win.views['StatusLine'].GetScene().AddItem(win.compass2_hand)
+        win.views['StatusLine'].GetScene().AddItem(win.compass2_strength)
     else:
         win.views['StatusLine'].GetScene().RemoveItem(win.timeOfDayHourHand)
         win.views['StatusLine'].GetScene().RemoveItem(win.timeOfDayMinuteHand)
+        win.views['StatusLine'].GetScene().RemoveItem(win.compass1_hand)
+        win.views['StatusLine'].GetScene().RemoveItem(win.compass1_strength)
 
     rebased_modeltime=modeltime*4
     currenthour_angle=((self.basehour - 12 if self.basehour > 12 else self.basehour) * 30) + ((rebased_modeltime/3600) *30)
@@ -337,6 +351,97 @@ def generateStatusBar(self, win, renderer, modeltime):
     win.timeOfDayMinuteHand=generateTimeOfDayHand("minutehand.png", currentminute_angle, 90, 590)
     win.views['StatusLine'].GetScene().AddItem(win.timeOfDayMinuteHand)
     win.views['StatusLine'].GetScene().AddItem(win.timeOfDayHourHand)
+
+    win_strength, win_direction=calcWindStrenghDirection(wind_u, wind_v)
+    win.compass1_hand=generateWindDirectionHand(25, 100, win_direction)
+    win.compass1_strength=generateCompassStength(72, 150, win_strength)
+    win.views['StatusLine'].GetScene().AddItem(win.compass1_hand)
+    win.views['StatusLine'].GetScene().AddItem(win.compass1_strength)
+
+def calcWindStrenghDirection(wind_u, wind_v):
+    angle=math.degrees(90)
+    x_u=abs(wind_u) * math.cos(angle)
+    y_u=abs(wind_u) * math.sin(angle)
+
+    x_v=abs(wind_v) * math.cos(-angle)
+    y_v=abs(wind_v) * math.sin(-angle)
+
+    tot_x=x_u+x_v
+    tot_y=y_u+y_v
+
+    strength=math.sqrt(tot_x**2 + tot_y**2)
+    direction_angle=90 - math.degrees(math.atan(tot_y/tot_x))
+
+    if (wind_u < 0.0 and wind_v < 0.0):
+        direction=180 + direction_angle
+    elif (wind_u < 0.0):
+        direction=180 - direction_angle
+    elif (wind_v < 0.0):
+        direction=360 - direction_angle
+    else:
+        direction=direction_angle
+
+    return strength, direction
+
+def generateCompassStength(xpos, ypos, strength):
+    tooltip=vtk.vtkTooltipItem()
+    tooltip.SetText("{:.1f}".format(strength))
+    tooltip.SetPosition(xpos, ypos)
+    tooltip.GetTextProperties().SetBackgroundOpacity(0.0)
+    tooltip.GetPen().SetOpacityF(0.0)
+    tooltip.GetBrush().SetOpacityF(0.0)
+    return tooltip
+
+def generateCompassRose(xpos, ypos):
+    imageReader = vtk.vtkPNGReader()
+    imageReader.SetFileName("wind_compass.png")
+    imageReader.Update()
+
+    imageResizer=vtk.vtkImageResize()
+    imageResizer.SetInputData(imageReader.GetOutput())
+    imageResizer.SetResizeMethod(imageResizer.MAGNIFICATION_FACTORS)
+    imageResizer.SetMagnificationFactors(0.15,0.15,0.15)
+    imageResizer.Update()
+
+    imgItem=vtk.vtkImageItem()
+    imgItem.SetImage(imageResizer.GetOutput())
+    imgItem.SetPosition(xpos, ypos)
+    return imgItem
+
+def generateWindDirectionHand(xpos, ypos, wind_angle):
+    imageReader = vtk.vtkPNGReader()
+    imageReader.SetFileName("wind_compass_hand.png")
+    imageReader.Update()
+
+    imageResizer=vtk.vtkImageResize()
+    imageResizer.SetInputData(imageReader.GetOutput())
+    imageResizer.SetResizeMethod(imageResizer.MAGNIFICATION_FACTORS)
+    imageResizer.SetMagnificationFactors(0.15,0.15,0.15)
+    imageResizer.Update()
+
+    bounds=[0.0]*6
+    imageResizer.GetOutput().GetBounds(bounds)
+
+    center=[0.0]*3
+    center[0] = (bounds[1] + bounds[0]) / 2.0
+    center[1] = (bounds[3] + bounds[2]) / 2.0
+    center[2] = (bounds[5] + bounds[4]) / 2.0
+
+    transformer=vtk.vtkTransform()
+    transformer.Translate(center[0], center[1], center[2])
+    transformer.RotateZ(wind_angle)
+    transformer.Translate(-center[0], -center[1], -center[2])
+
+    imageReslicer=vtk.vtkImageReslice()
+    imageReslicer.SetInputData(imageResizer.GetOutput())
+    imageReslicer.SetResliceTransform(transformer)
+    imageReslicer.SetInterpolationModeToLinear()
+    imageReslicer.Update()
+
+    imgItem=vtk.vtkImageItem()
+    imgItem.SetImage(imageReslicer.GetOutput())
+    imgItem.SetPosition(xpos, ypos)
+    return imgItem
 
 def generateStopWatchHand(seconds_remaining):
     if (seconds_remaining == 60):

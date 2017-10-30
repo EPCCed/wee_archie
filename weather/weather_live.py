@@ -5,6 +5,9 @@ from time import strftime
 
 class LiveWeather(object):
 
+    weatherCompassPoints = {"N" : 0, "NNE" : 22, "NE" : 45, "ENE" : 68, "E" : 90, "ESE" : 112, "SE" : 135, "SSE" : 158, "S" : 180, "SSW" : 202, "SW" : 225, "WSW" : 248,
+                            "W" : 270, "WNW" : 292, "NW" : 315, "NNW" : 338}
+
     def __init__(self, place, historical=3):
 
         # Read the current hour
@@ -58,6 +61,9 @@ class LiveWeather(object):
     def hour_weather(self):
 
         return int(self.hour[0]["W"])
+
+    def wind_compass_direction(self):
+        return self.weatherCompassPoints[self.wind_direction()]
 
     # Function that returns the wind direction (compass)
     def wind_direction(self):

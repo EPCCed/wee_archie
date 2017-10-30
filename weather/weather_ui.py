@@ -262,7 +262,7 @@ class NewWindow(wx.Frame):
 
         weatherInstance=LiveWeather(self.weatherLocationCode)
 
-        self.demo.setBaseHour(weatherInstance.target_time())
+        self.demo.setSubmittedParameters(weatherInstance.target_time(), weatherInstance.wind_compass_direction(), weatherInstance.wind_speed())
 
         f = open('config.mcf', 'w+')
 
@@ -287,11 +287,12 @@ class NewWindow(wx.Frame):
         # wind config
         winforce=[0.0]*2
 
-        strength=weatherInstance.wind_speed()/len(weatherInstance.wind_direction())
+        strength=float(weatherInstance.wind_speed())/len(weatherInstance.wind_direction())
         for i in range(len(weatherInstance.wind_direction())):
             wind_direction=weatherInstance.wind_direction()[i]
             idx=0 if wind_direction == "N" or wind_direction == "S" else 1
             winforce[idx]+=strength if wind_direction == "S" or wind_direction == "W" else -strength
+            print (wind_direction + " "+str(strength))
 
         if (winforce[0] > 0.0):
             f.write('\nz_init_pl_u=0.0, 700.0, 3000.')
