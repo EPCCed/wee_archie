@@ -3,6 +3,7 @@ import client
 import wx
 from wx.lib.masked import *
 import vtk
+import sys
 
 import numpy as np
 
@@ -12,6 +13,7 @@ matplotlib.use("WXAgg")
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wx import NavigationToolbar2Wx
 from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
 from time import strftime
 
 # New module to import the live weather forcast
@@ -24,6 +26,7 @@ imageFile = 'uk.jpg'
 rain = 'resizedrain.jpg'
 cloud = 'resizedcloud.jpg'
 sun = 'resizedsun.jpg'
+scoreFile='scores'
 
 edinburgh = []
 london = []
@@ -62,13 +65,19 @@ class WeatherWindow(UI):
 
         self.mode = 0
 
+        try:
+            self.scores=np.loadtxt(scoreFile, delimiter=',')
+        except:
+            self.scores=np.array([[0,0]], dtype=int)
+
         menubar = wx.MenuBar()
         playbackMenu = wx.Menu()
-        self.playpauseitem = playbackMenu.Append(wx.ID_ANY, 'Play', 'Pause playback')
+        self.playpauseitem = playbackMenu.Append(wx.ID_ANY, 'Pause', 'Pause playback')
         cease = playbackMenu.Append(wx.ID_ANY, 'Stop', 'Stop simulation')
 
         fileMenu = wx.Menu()
         settings = fileMenu.Append(wx.ID_ANY, 'Settings', 'Open settings window')
+        scoreboard = fileMenu.Append(wx.ID_ANY, 'Score board', 'Open scoreboard window')
         playbackAdded = fileMenu.AppendSubMenu(playbackMenu, 'Playback', 'Playback control')
         fitem = fileMenu.Append(wx.ID_EXIT, 'Quit', 'Quit application')
 
@@ -85,6 +94,7 @@ class WeatherWindow(UI):
 
         self.Bind(wx.EVT_MENU, self.OnQuit, fitem)
         self.Bind(wx.EVT_MENU, self.OpenWindow, settings)
+        self.Bind(wx.EVT_MENU, self.OpenScoreboard, scoreboard)
         self.Bind(wx.EVT_MENU, self.temp_view, temp)
         self.Bind(wx.EVT_MENU, self.press_view, press)
         self.Bind(wx.EVT_MENU, self.real_view, real)
@@ -121,6 +131,16 @@ class WeatherWindow(UI):
         self.Show()
 
         self.OpenWindow()
+
+    def OpenScoreboard(self, event=None):
+        self.showScoreBoard(1000, 50)
+
+    def showScoreBoard(self, time_modelled, accuracy_achieved):
+        newWindow=FinishedWindow(self, time_modelled, accuracy_achieved)
+        newWindow.Show()
+        if (not (time_modelled is None or accuracy_achieved is None)):
+            self.scores=np.append(self.scores, [[accuracy_achieved, time_modelled]], axis=0)
+            np.savetxt(scoreFile, self.scores, delimiter=',', fmt='%d')
 
     # Function to call NewWindow class to allow a button to open it.
     def OpenWindow(self, event=None):
@@ -179,12 +199,64 @@ class WeatherWindow(UI):
 
     def OnClose(self, e):
         UI.OnClose(self, e)
+        try:
+            self.StopSim()
+        except:
+            pass
+        sys.exit()
 
     # ----------------------------------------------------------------------
     # ------------- New methods specific to demo go here -------------------
     # ----------------------------------------------------------------------
 
-########----------------------------------------Sam's new classes---------------------------
+class FinishedWindow(wx.Frame):
+    def __init__(self, parent, time_modelled, accuracy_achieved):
+        #W,H= wx.GetDisplaySize()
+        #height=0.9*H
+        #width=height*(9./14.)
+        wx.Frame.__init__(self, parent, -1, 'Score board')
+        wx.Frame.CenterOnScreen(self)
+
+        p = wx.Panel(self)
+        sizer = wx.BoxSizer()
+
+        self.WinSizer=wx.BoxSizer(wx.VERTICAL)
+
+        self.LocationPanel=wx.Panel(self,style=wx.BORDER_SUNKEN)
+        self.WinSizer.Add(self.LocationPanel,0,wx.EXPAND | wx.ALL,border=5)
+
+        locationSizer=wx.BoxSizer(wx.VERTICAL)
+        self.LocationPanel.SetSizer(locationSizer)
+
+        # Create plot
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1, axisbg="1.0")
+
+        max_x=0
+
+        if (not (time_modelled is None or accuracy_achieved is None)):
+            ax.scatter(accuracy_achieved, time_modelled, alpha=0.8, c="red", edgecolors='none', s=30)
+            if (time_modelled > max_x): max_x=time_modelled
+
+        for data in parent.scores:
+            if (data[0] > 0 and data[1] > 0):
+                ax.scatter(data[0], data[1], alpha=0.8, c="green", edgecolors='none', s=30)
+                if (data[1] > max_x): max_x=data[1]
+
+        plt.title('Score board')
+        plt.xlabel('Accuracy')
+        plt.ylabel('Seconds simulated')
+        plt.xlim(0, 100)
+        print((str(max_x)))
+        plt.ylim(0, max_x)
+
+        self.canvas = FigureCanvas(self.LocationPanel, -1, fig)
+        locationSizer.Add(self.canvas,1,wx.GROW)
+
+        #assign the main windows's sizer
+        self.SetSizer(self.WinSizer)
+        self.Show()
+        self.Fit()
 
 
 # Class to create a new window for the "settings".
@@ -262,7 +334,8 @@ class NewWindow(wx.Frame):
 
         weatherInstance=LiveWeather(self.weatherLocationCode)
 
-        self.demo.setSubmittedParameters(weatherInstance.target_time(), weatherInstance.wind_compass_direction(), weatherInstance.wind_speed())
+        self.demo.setSubmittedParameters(weatherInstance.target_time(), weatherInstance.wind_compass_direction(), weatherInstance.wind_speed(),
+                weatherInstance.pressure(), weatherInstance.temperature())
 
         f = open('config.mcf', 'w+')
 
@@ -316,31 +389,65 @@ class NewWindow(wx.Frame):
         f.write('\ncores_per_pi=' + str(self.tab2.coresRadio.GetSelection()+1))
         f.write('\nnum_nodes=' + str(self.tab2.NodesSlider.GetValue()))
 
-        if (self.tab3.A < 0.2):
+        pressure_accuracy=self.tab3.A
+        wind_accuracy=self.tab3.B
+        micro_phys_accuracy=self.tab3.C
+
+        if (self.tab2.accuracySlider.GetValue() < 30):
+            pressure_accuracy=0.1
+            wind_accuracy=0.1
+            micro_phys_accuracy=0.1
+        if (self.tab2.accuracySlider.GetValue() < 40):
+            pressure_accuracy=0.1
+            wind_accuracy=0.1
+            micro_phys_accuracy=0.21
+        elif (self.tab2.accuracySlider.GetValue() < 60):
+            pressure_accuracy=0.21
+            wind_accuracy=0.21
+            micro_phys_accuracy=0.31
+        elif (self.tab2.accuracySlider.GetValue() < 70):
+            pressure_accuracy=0.31
+            wind_accuracy=0.31
+            micro_phys_accuracy=0.31
+        elif (self.tab2.accuracySlider.GetValue() < 80):
+            pressure_accuracy=0.41
+            wind_accuracy=0.41
+            micro_phys_accuracy=0.41
+        elif (self.tab2.accuracySlider.GetValue() < 90):
+            pressure_accuracy=0.51
+            wind_accuracy=0.51
+            micro_phys_accuracy=0.51
+        elif (self.tab2.accuracySlider.GetValue() <= 100):
+            pressure_accuracy=0.7
+            wind_accuracy=0.7
+            micro_phys_accuracy=0.7
+
+
+        if (pressure_accuracy < 0.2):
             f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.\ntolerance=1.e-1')
-        elif (self.tab3.A > 0.2 and self.tab3.A < 0.3):
+        elif (pressure_accuracy >= 0.2 and pressure_accuracy < 0.3):
             f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.\ntolerance=1.e-2')
-        elif (self.tab3.A > 0.3 and self.tab3.A < 0.4):
+        elif (pressure_accuracy >= 0.3 and pressure_accuracy < 0.4):
             f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.\ntolerance=1.e-3')
-        elif (self.tab3.A > 0.4 and self.tab3.A < 0.5):
+        elif (pressure_accuracy >= 0.4 and pressure_accuracy < 0.5):
             f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.\ntolerance=1.e-5')
-        elif (self.tab3.A > 0.5 and self.tab3.A < 0.6):
+        elif (pressure_accuracy >= 0.5 and pressure_accuracy < 0.6):
             f.write('\nfftsolver_enabled=.true.\niterativesolver_enabled=.false.')
         else:
             f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.\ntolerance=1.e-8')
 
-        if (self.tab3.B < 0.2):
+        if (wind_accuracy < 0.2):
              f.write('\nadvection_flow_fields=pw\nadvection_theta_field=pw\nadvection_q_fields=pw')
-        elif (self.tab3.B > 0.2 and self.tab3.B < 0.3):
+        elif (wind_accuracy >= 0.2 and wind_accuracy < 0.3):
             f.write('\nadvection_flow_fields=pw\nadvection_theta_field=tvd\nadvection_q_fields=pw')
-        elif (self.tab3.B > 0.3 and self.tab3.B < 0.4):
+        elif (wind_accuracy >= 0.3 and wind_accuracy < 0.4):
             f.write('\nadvection_flow_fields=pw\nadvection_theta_field=tvd\nadvection_q_fields=tvd')
         else:
             f.write('\nadvection_flow_fields=tvd\nadvection_theta_field=tvd\nadvection_q_fields=tvd')
 
-        if (self.tab3.C < 0.3):
+        if (micro_phys_accuracy < 0.3):
             f.write('\ncasim_enabled=.false.\nsimplecloud_enabled=.false.')
-        elif (self.tab3.C > 0.2 and self.tab3.C < 0.3):
+        elif (micro_phys_accuracy >= 0.2 and micro_phys_accuracy < 0.3):
             f.write('\ncasim_enabled=.false.\nsimplecloud_enabled=.true.')
         else:
             f.write('\ncasim_enabled=.true.\nsimplecloud_enabled=.false.')
@@ -564,10 +671,12 @@ class TabSetup(wx.Panel):
         self.TopSizer=wx.BoxSizer(wx.HORIZONTAL)
 
         self.LocationPanel=wx.Panel(self,style=wx.BORDER_SUNKEN)
+        self.AccuracyPanel=wx.Panel(self,style=wx.BORDER_SUNKEN)
         #self.TopLeftSizer=wx.BoxSizer(wx.VERTICAL)
 
         #Add this to the window's sizer
         self.WinSizer.Add(self.LocationPanel,0,wx.EXPAND | wx.ALL,border=5)
+        self.WinSizer.Add(self.AccuracyPanel,0,wx.EXPAND | wx.ALL,border=5)
         self.WinSizer.Add(self.TopSizer,1,wx.EXPAND)
 
         # Top row of control panels
@@ -593,6 +702,13 @@ class TabSetup(wx.Panel):
         locationSizer.Add(self.text_Location,0,wx.LEFT| wx.TOP,border=5)
         locationSizer.Add(self.time_Location,0,wx.LEFT| wx.ALL,border=5)
         locationSizer.Add(self.weather_Location,0,wx.LEFT | wx.BOTTOM,border=5)
+
+        accuracySizer=wx.BoxSizer(wx.HORIZONTAL)
+        self.AccuracyPanel.SetSizer(accuracySizer)
+        accuracy_text=wx.StaticText(self.AccuracyPanel,label="Accuracy:")
+        self.accuracySlider=wx.Slider(self.AccuracyPanel,minValue=1,maxValue=100,value=60,name="accuracy")
+        accuracySizer.Add(accuracy_text,0,wx.LEFT | wx.TOP ,border=5)
+        accuracySizer.Add(self.accuracySlider,1,wx.EXPAND | wx.TOP,border=5)
 
         # Cores Panel
 

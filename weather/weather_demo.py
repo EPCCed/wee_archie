@@ -15,10 +15,23 @@ class vtkTimerCallback():
         self.parent=parent
 
     def execute(self,obj,event):
+        if (not self.win.playing): return
         ctime=int(time.time())
         if (ctime > self.lasttime):
-            updateStopWatchHand(self.win, (self.lasttime-self.starttime) + 1)
-            self.lasttime+=1
+            elapsedTick=(self.lasttime+1)-self.starttime
+            if (elapsedTick > 60):
+                self.win.vtkwidget.RemoveObserver(self.win.timer_observer)
+                self.win.vtkwidget.DestroyTimer(self.win.timer_id, None)
+                self.win.StopSim()
+                self.win.playing = False
+                self.win.getdata.value = False
+                self.win.showScoreBoard(self.parent.achievedtime, self.parent.accuracy_achieved / self.parent.accuracy_ticks)
+            else:
+                #if (elapsedTick == 25): self.win.mode=1
+                #if (elapsedTick == 35): self.win.mode=2
+                #if (elapsedTick == 45): self.win.mode=0
+                updateStopWatchHand(self.win, (self.lasttime-self.starttime) + 1)
+                self.lasttime+=1
 
 #Data transfer object
 class DTO(client.AbstractDTO):
@@ -30,9 +43,10 @@ class DTO(client.AbstractDTO):
 
 #class containing demo-specific functions
 class WeatherDemo(client.AbstractDemo):
-
     def __init__(self):
         self.init_scene=False
+        self.accuracy_achieved=0.0
+        self.accuracy_ticks=0
 
     # read in data and convert it to a data transfer object
     def GetVTKData(self, root): # root=netcdf handle
@@ -68,7 +82,12 @@ class WeatherDemo(client.AbstractDemo):
         overalltime = root.variables['overall_time'][:]
         communicationtime =root.variables['communication_time'][:]
 
-        data = [vapor, clouds, rain, coords, rm, timepersec, overalltime, communicationtime, th, p, modeltime, wind_u, wind_v]
+        x, y, z = coords
+
+        avg_temp=numpy.sum(th[:,:,2])/(x*y)
+        avg_pressure=numpy.sum(p[:,:,2])/(x*y)
+
+        data = [vapor, clouds, rain, coords, rm, timepersec, overalltime, communicationtime, th, p, modeltime, wind_u, wind_v, avg_temp, avg_pressure]
 
         # create data transfer object and put the array into it
         dto = DTO()
@@ -80,17 +99,23 @@ class WeatherDemo(client.AbstractDemo):
 
         return dto
 
-    def setSubmittedParameters(self, basehour, obs_wind_dir, obs_wind_strength):
+    def setSubmittedParameters(self, basehour, obs_wind_dir, obs_wind_strength, obs_pressure, obs_temp):
         self.basehour=basehour
         self.obs_wind_dir=obs_wind_dir
         self.obs_wind_strength=obs_wind_strength
+        self.obs_pressure=obs_pressure
+        self.obs_temp=obs_temp
+
+    def updateCurrentAccuracyScore(self, avg_temp, avg_pressure):
+        self.accuracy_achieved+=50
+        self.accuracy_ticks+=1
 
     # Renders a frame with data contained within the data transfer object, data
     def RenderFrame(self, win, dto):
         t1=time.time()
         #unpack  data transfer object
         data = dto.GetData()
-        vapor, clouds, rain, coords, rm, timepersec, overalltime, commtime, th, p, modeltime, wind_u, wind_v = data
+        vapor, clouds, rain, coords, rm, timepersec, overalltime, commtime, th, p, modeltime, wind_u, wind_v, avg_temp, avg_pressure = data
 
         win.renderer.SetBackground(0.22,.67,.87)
         win.renderer.SetViewport(0, 0.3, 1, 1)
@@ -98,6 +123,10 @@ class WeatherDemo(client.AbstractDemo):
         x, y, z = coords
 
         self.mode = win.mode
+
+        self.achievedtime=modeltime*4
+
+        self.updateCurrentAccuracyScore(avg_temp, avg_pressure)
 
         # The actors need to be created only once, that is why we have a actors dictionary in the win. This way we
         # will only add each actor once to the renderer. The other things like data structures, filters and mappers are
@@ -166,7 +195,7 @@ class WeatherDemo(client.AbstractDemo):
                 win.renderer.RemoveActor(win.actors['CloudActor'])
                 win.renderer.RemoveActor(win.actors['TempActor'])
             except:
-                pass
+                passvtkTimerCallback
 
         ### Sea
         # try:
@@ -280,8 +309,8 @@ class WeatherDemo(client.AbstractDemo):
 
         if (not self.init_scene):
             timecallback=vtkTimerCallback(self, win)
-            win.vtkwidget.AddObserver(vtk.vtkCommand.TimerEvent, timecallback.execute) # 'TimerEvent', timecallback.execute)
-            win.vtkwidget.CreateRepeatingTimer(1000)
+            win.timer_observer=win.vtkwidget.AddObserver(vtk.vtkCommand.TimerEvent, timecallback.execute) # 'TimerEvent', timecallback.execute)
+            win.timer_id=win.vtkwidget.CreateRepeatingTimer(1000)
 
         #print(str(win.views['StatusLine'].GetScene().GetSceneWidth()) + " "+str(win.views['StatusLine'].GetScene().GetSceneHeight()))
 
@@ -326,15 +355,15 @@ def generateStatusBar(self, win, renderer, modeltime, wind_u, wind_v):
 
         imgItem2=vtk.vtkImageItem()
         imgItem2.SetImage(imageResizer2.GetOutput())
-        imgItem2.SetPosition(80, 300)
+        imgItem2.SetPosition(80, 350)
         win.views['StatusLine'].GetScene().AddItem(imgItem2)
         win.stopWatchHand=generateStopWatchHand(60)
         win.views['StatusLine'].GetScene().AddItem(win.stopWatchHand)
 
-        win.views['StatusLine'].GetScene().AddItem(generateCompassRose(20,100))
-        win.views['StatusLine'].GetScene().AddItem(generateCompassRose(160,100))
-        win.compass2_hand=generateWindDirectionHand(160,100, self.obs_wind_dir)
-        win.compass2_strength=generateCompassStength(210, 150, self.obs_wind_strength)
+        win.views['StatusLine'].GetScene().AddItem(generateCompassRose(115,210))
+        win.views['StatusLine'].GetScene().AddItem(generateCompassRose(115,70))
+        win.compass2_hand=generateWindDirectionHand(120,70, self.obs_wind_dir)
+        win.compass2_strength=generateCompassStength(167, 120, self.obs_wind_strength)
         win.views['StatusLine'].GetScene().AddItem(win.compass2_hand)
         win.views['StatusLine'].GetScene().AddItem(win.compass2_strength)
     else:
@@ -353,8 +382,8 @@ def generateStatusBar(self, win, renderer, modeltime, wind_u, wind_v):
     win.views['StatusLine'].GetScene().AddItem(win.timeOfDayHourHand)
 
     win_strength, win_direction=calcWindStrenghDirection(wind_u, wind_v)
-    win.compass1_hand=generateWindDirectionHand(25, 100, win_direction)
-    win.compass1_strength=generateCompassStength(72, 150, win_strength)
+    win.compass1_hand=generateWindDirectionHand(120, 210, win_direction)
+    win.compass1_strength=generateCompassStength(167, 260, win_strength)
     win.views['StatusLine'].GetScene().AddItem(win.compass1_hand)
     win.views['StatusLine'].GetScene().AddItem(win.compass1_strength)
 
@@ -448,7 +477,7 @@ def generateStopWatchHand(seconds_remaining):
         angle=0.0
     else:
         angle=(60-seconds_remaining) * 6
-    return generateClockHand("stopwatch_hand.png", angle, 117, 337, 0.15)
+    return generateClockHand("stopwatch_hand.png", angle, 117, 387, 0.15)
 
 def generateTimeOfDayHand(filename, angle, xpos, ypos):
     return generateClockHand(filename, angle, xpos, ypos, 0.3)
@@ -1108,7 +1137,6 @@ def RenderTemp(th, coords, rainactor):
                     lut.GetColor(th[k][j][i], rgb)
                     ucrgb = list(map(int, [x * 255 for x in rgb]))
                     col.InsertNextTuple3(ucrgb[0], ucrgb[1], ucrgb[2])
-                    print(" " + str(ucrgb) + " : " + str(th[k][j][i]))
 
     grid = vtk.vtkUnstructuredGrid()
     grid.SetPoints(points)
@@ -1167,7 +1195,6 @@ def RenderPress(p, coords, pressactor):
                     lut.GetColor(p[k][j][i], rgb)
                     ucrgb = list(map(int, [x * 255 for x in rgb]))
                     col.InsertNextTuple3(ucrgb[0], ucrgb[1], ucrgb[2])
-                    print(" " + str(ucrgb) + " : " + str(p[k][j][i]))
 
     grid = vtk.vtkUnstructuredGrid()
     grid.SetPoints(points)
