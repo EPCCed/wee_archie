@@ -285,18 +285,21 @@ class NewWindow(wx.Frame):
         f.write('\nf_init_pl_q=17.0e-3, 16.3e-3, 10.7e-3, 4.2e-3, 3.0e-3')
 
         # wind config
+        winforce=[0.0]*2
 
-        wind_direction=weatherInstance.wind_direction()[0]
-        winforce = weatherInstance.wind_speed() # TODO - negative and direction
+        strength=weatherInstance.wind_speed()/len(weatherInstance.wind_direction())
+        for i in range(len(weatherInstance.wind_direction())):
+            wind_direction=weatherInstance.wind_direction()[i]
+            idx=0 if wind_direction == "N" or wind_direction == "S" else 1
+            winforce[idx]+=strength if wind_direction == "S" or wind_direction == "W" else -strength
 
-        if (wind_direction == "N" or wind_direction == "S"):
-            prognotic_wind_field="u"
-        else:
-            prognotic_wind_field="v"
+        if (winforce[0] > 0.0):
+            f.write('\nz_init_pl_u=0.0, 700.0, 3000.')
+            f.write('\nf_init_pl_u=' + str(round(winforce[0]*-1.7,2)) + ', ' + str(round(winforce[0]*-1.6,2)) + ', ' + str(winforce[0]*-0.8))
 
-        if (wind_direction == "S" or wind_direction == "W"): winforce=-winforce
-        f.write('\nz_init_pl_'+prognotic_wind_field+'=0.0, 700.0, 3000.')
-        f.write('\nf_init_pl_'+prognotic_wind_field+'=' + str(round(winforce*-1.7,2)) + ', ' + str(round(winforce*-1.6,2)) + ', ' + str(winforce*-0.8))
+        if (winforce[1] > 0.0):
+            f.write('\nz_init_pl_v=0.0, 700.0, 3000.')
+            f.write('\nf_init_pl_v=' + str(round(winforce[1]*-1.7,2)) + ', ' + str(round(winforce[1]*-1.6,2)) + ', ' + str(winforce[1]*-0.8))
 
         # temperature settings
         temperature = 273.15 + weatherInstance.temperature()
