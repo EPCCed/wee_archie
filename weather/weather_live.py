@@ -74,6 +74,12 @@ class LiveWeather(object):
     def wind_speed(self):
         return int(self.hour[0]["S"])
 
+    def wind_gust(self):
+        if "G" in self.hour[0]:
+            return int(self.hour[0]["G"])
+        else:
+            return -1
+
     # Function that returns the humidity (%)
     def humidity(self):
 

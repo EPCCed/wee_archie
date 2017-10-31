@@ -359,21 +359,39 @@ class NewWindow(wx.Frame):
 
         # wind config
         winforce=[0.0]*2
+        windmultiplier=[1.0]*2
 
         strength=float(weatherInstance.wind_speed())/len(weatherInstance.wind_direction())
         for i in range(len(weatherInstance.wind_direction())):
             wind_direction=weatherInstance.wind_direction()[i]
             idx=0 if wind_direction == "N" or wind_direction == "S" else 1
-            winforce[idx]+=strength if wind_direction == "S" or wind_direction == "W" else -strength
-            print (wind_direction + " "+str(strength))
+            winforce[idx]+=-strength if wind_direction == "S" or wind_direction == "W" else strength
+            print (wind_direction + " "+str(winforce[idx]))
 
-        if (winforce[0] > 0.0):
+        wind_gust=weatherInstance.wind_gust()
+        if (wind_gust > 0):
+            gust_difference=wind_gust-weatherInstance.wind_speed()
+            if (gust_difference > 0):
+                windmultiplier[0]+=gust_difference/100
+                windmultiplier[1]+=windmultiplier[0]*2
+            else:
+                if (weatherInstance.wind_speed > 20):
+                    windmultiplier[0]=1.2
+                    windmultiplier[1]=1.4
+
+        if (winforce[0] == 0.0):
+            f.write('\nl_init_pl_u=.false.')
+        else:
+            f.write('\nl_init_pl_u=.true.')
             f.write('\nz_init_pl_u=0.0, 700.0, 3000.')
-            f.write('\nf_init_pl_u=' + str(round(winforce[0]*-1.7,2)) + ', ' + str(round(winforce[0]*-1.6,2)) + ', ' + str(winforce[0]*-0.8))
+            f.write('\nf_init_pl_u=' + str(round(winforce[0],2)) + ', ' + str(round(winforce[0]*windmultiplier[0],2)) + ', ' + str(winforce[0]*windmultiplier[1]))
 
-        if (winforce[1] > 0.0):
+        if (winforce[1] == 0.0):
+            f.write('\nl_init_pl_v=.false.')
+        else:
+            f.write('\nl_init_pl_v=.true.')
             f.write('\nz_init_pl_v=0.0, 700.0, 3000.')
-            f.write('\nf_init_pl_v=' + str(round(winforce[1]*-1.7,2)) + ', ' + str(round(winforce[1]*-1.6,2)) + ', ' + str(winforce[1]*-0.8))
+            f.write('\nf_init_pl_v=' + str(round(winforce[1],2)) + ', ' + str(round(winforce[1]*windmultiplier[0],2)) + ', ' + str(winforce[1]*windmultiplier[1]))
 
         # temperature settings
         temperature = 273.15 + weatherInstance.temperature()

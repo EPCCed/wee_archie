@@ -405,28 +405,24 @@ def generateStatusBar(self, win, renderer, modeltime, wind_u, wind_v, bar_width,
     win.views['StatusLine'].GetScene().AddItem(win.compass1_strength)
 
 def calcWindStrenghDirection(wind_u, wind_v):
-    angle=math.degrees(90)
-    x_u=abs(wind_u) * math.cos(angle)
-    y_u=abs(wind_u) * math.sin(angle)
+    print(str(wind_u)+ " "+str(wind_v))
+    strength=abs(wind_u + wind_v)
+    wind_u_abs=abs(wind_u)
+    wind_v_abs=abs(wind_v)
+    diag= 45 / ((wind_u_abs / wind_v_abs) if wind_u_abs > wind_v_abs else (wind_v_abs / wind_u_abs))
 
-    x_v=abs(wind_v) * math.cos(-angle)
-    y_v=abs(wind_v) * math.sin(-angle)
-
-    tot_x=x_u+x_v
-    tot_y=y_u+y_v
-
-    strength=math.sqrt(tot_x**2 + tot_y**2)
-    direction_angle=90 - math.degrees(math.atan(tot_y/tot_x))
-
-    if (wind_u < 0.0 and wind_v < 0.0):
-        direction=180 + direction_angle
-    elif (wind_u < 0.0):
-        direction=180 - direction_angle
-    elif (wind_v < 0.0):
-        direction=360 - direction_angle
+    if wind_u_abs > wind_v_abs:
+        start_angle = 180 if wind_u < 0.0 else 0
+        if (wind_v < 0.0):
+            direction=(360 - diag) if start_angle == 0 else (start_angle+diag)
+        else:
+            direction=(start_angle + diag) if start_angle == 0 else (start_angle-diag)
     else:
-        direction=direction_angle
-
+        start_angle = 270 if wind_u < 0.0 else 90
+        if (wind_u < 0.0):
+            direction=(start_angle - diag) if start_angle == 270 else (start_angle+diag)
+        else:
+            direction=(start_angle + diag) if start_angle == 270 else (start_angle-diag)
     return strength, direction
 
 def generateCompassStength(xpos, ypos, strength):
