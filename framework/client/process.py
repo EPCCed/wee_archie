@@ -27,6 +27,7 @@ def process(frameno,nfiles,getdata,newdata,pipe,demo,servercomm,finished):
 
             try:
                 fname=datafiles[n] #get name of file to download
+                print("Getting file ",fname)
                 servercomm.GetDataFile(fname,'tmp.nc') #get the data file
             except:
                 #print("no file to get")

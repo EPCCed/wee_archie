@@ -193,6 +193,7 @@ class WeatherWindow(UI):
         UI.StopSim(self)
 
     def TimerCallback(self, e):
+        self.GetLatestFrame=True
         UI.TimerCallback(self, e)
 
         #self.logger.SetValue("Frame %d of %d" % (self.CurrentFrame, self.nfiles.value - 1))
@@ -304,6 +305,9 @@ class NewWindow(wx.Frame):
         #redraw the chip image and the pie chart to make sure they display correctly
         self.tab2.UpdateChip()
         self.tab3.UpdatePie()
+
+        self.tab2.Hide()
+        self.tab3.Hide()
 
     def StartStopSim(self, e):
         # if simulation is not started then start a new simulation
@@ -686,7 +690,7 @@ class TabSetup(wx.Panel):
         self.setupWindow=setupWindow
 
         #sizer for the top row of controls
-        self.TopSizer=wx.BoxSizer(wx.HORIZONTAL)
+        self.TopSizer=wx.BoxSizer(wx.VERTICAL)
 
         self.LocationPanel=wx.Panel(self,style=wx.BORDER_SUNKEN)
         self.AccuracyPanel=wx.Panel(self,style=wx.BORDER_SUNKEN)
@@ -740,7 +744,7 @@ class TabSetup(wx.Panel):
 
         #load initial image - this will be reloaded, but we need something there to workout the dimensions of the panel
         file="chip1.png"
-        bmp=wx.Image(file, wx.BITMAP_TYPE_ANY).Scale(300,300).ConvertToBitmap()
+        bmp=wx.Image(file, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         self.bitmap1 = wx.StaticBitmap(self.CoresPanel,bitmap=bmp, size=(300, 300))
 
         #Radiobox to select the number of cores
@@ -959,8 +963,11 @@ class TabLocation(wx.Panel):
             self.setupWindow.weatherLocationCode=3808
 
         if (self.parent.GetPageCount() == 1):
+            self.parallelismConfigTab.Show()
+            self.weatherConfigTab.Show()
             self.parent.AddPage(self.parallelismConfigTab, "Parallelism")
             self.parent.AddPage(self.weatherConfigTab, "Weather")
+
         self.parent.SetSelection(1)
 
     def generateWeatherText(self, numb):
