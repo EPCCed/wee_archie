@@ -73,6 +73,11 @@ class AbstractUI(wx.Frame):
     def TimerCallback(self,e):
         if self.servercomm.IsStarted():
 
+            try:
+                self.GetLatestFrame
+            except:
+                self.GetLatestFrame=False
+
 
             if self.newdata.value: #if new data is available
 
@@ -83,7 +88,10 @@ class AbstractUI(wx.Frame):
                     self.CurrentFrame=self.frameno.value #set the current frame number to the one the process has just read in
 
                     if self.playing: #increment frame number by 1 and tell process to fetch it
-                        self.frameno.value += 1
+                        if self.GetLatestFrame:
+                            self.frameno.value=-1
+                        else:
+                            self.frameno.value += 1
                         self.getdata.value=True
                     else: #we don't need any more data
                         self.getdata.value=False

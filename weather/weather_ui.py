@@ -193,6 +193,7 @@ class WeatherWindow(UI):
         UI.StopSim(self)
 
     def TimerCallback(self, e):
+        self.GetLatestFrame=True
         UI.TimerCallback(self, e)
 
         #self.logger.SetValue("Frame %d of %d" % (self.CurrentFrame, self.nfiles.value - 1))
