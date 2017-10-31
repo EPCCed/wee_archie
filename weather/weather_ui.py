@@ -305,6 +305,9 @@ class NewWindow(wx.Frame):
         self.tab2.UpdateChip()
         self.tab3.UpdatePie()
 
+        self.tab2.Hide()
+        self.tab3.Hide()
+
     def StartStopSim(self, e):
         # if simulation is not started then start a new simulation
         if not self.servercomm.IsStarted():
@@ -941,8 +944,11 @@ class TabLocation(wx.Panel):
             self.setupWindow.weatherLocationCode=3808
 
         if (self.parent.GetPageCount() == 1):
+            self.parallelismConfigTab.Show()
+            self.weatherConfigTab.Show()
             self.parent.AddPage(self.parallelismConfigTab, "Parallelism")
             self.parent.AddPage(self.weatherConfigTab, "Weather")
+
         self.parent.SetSelection(1)
 
     def generateWeatherText(self, numb):
