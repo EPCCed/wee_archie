@@ -668,7 +668,7 @@ class TabSetup(wx.Panel):
         self.setupWindow=setupWindow
 
         #sizer for the top row of controls
-        self.TopSizer=wx.BoxSizer(wx.HORIZONTAL)
+        self.TopSizer=wx.BoxSizer(wx.VERTICAL)
 
         self.LocationPanel=wx.Panel(self,style=wx.BORDER_SUNKEN)
         self.AccuracyPanel=wx.Panel(self,style=wx.BORDER_SUNKEN)
@@ -722,7 +722,7 @@ class TabSetup(wx.Panel):
 
         #load initial image - this will be reloaded, but we need something there to workout the dimensions of the panel
         file="chip1.png"
-        bmp=wx.Image(file, wx.BITMAP_TYPE_ANY).Scale(300,300).ConvertToBitmap()
+        bmp=wx.Image(file, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
         self.bitmap1 = wx.StaticBitmap(self.CoresPanel,bitmap=bmp, size=(300, 300))
 
         #Radiobox to select the number of cores
