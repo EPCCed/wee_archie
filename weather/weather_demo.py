@@ -166,7 +166,7 @@ class WeatherDemo(client.AbstractDemo):
             try:
                 win.actors['TempActor']
             except:
-                win.actors['TempActor'] = vtk.vtkActor()
+                win.actors['TempActor'] = vtk.vtkVolume()
 
             RenderTemp(th, coords, win.actors['TempActor'])
             win.renderer.AddActor(win.actors['TempActor'])
@@ -184,7 +184,7 @@ class WeatherDemo(client.AbstractDemo):
             try:
                 win.actors['PressActor']
             except:
-                win.actors['PressActor'] = vtk.vtkActor()
+                win.actors['PressActor'] = vtk.vtkVolume()
 
             RenderPress(p, coords, win.actors['PressActor'])
             win.renderer.AddActor(win.actors['PressActor'])
@@ -195,7 +195,7 @@ class WeatherDemo(client.AbstractDemo):
                 win.renderer.RemoveActor(win.actors['CloudActor'])
                 win.renderer.RemoveActor(win.actors['TempActor'])
             except:
-                passvtkTimerCallback
+                pass
 
         ### Sea
         # try:
@@ -1123,148 +1123,303 @@ def RenderRain(rain, coords, rainactor):
 
     print("Rain time=",t2-t1)
 
-def RenderTemp(th, coords, rainactor):
+def RenderTemp(th, coords, tempactor):
 
-    x, y, z = coords
-    points = vtk.vtkPoints()
+    x,y,z = coords
 
-    scales = vtk.vtkFloatArray()
-    scales.SetName("Tscales")
+    t1=time.time()
+    tharray=th
+    mn=th.min()
+    mx=th.max()
 
-    col = vtk.vtkUnsignedCharArray()
-    col.SetName('Tcol')  # Any name will work here.
-    col.SetNumberOfComponents(3)
+    #scale between 0 and 255
+    tharray=(tharray-mn)/(mx-mn)*255
 
-    nc = vtk.vtkNamedColors()
+    #cast to uint
 
-    tableSize = x * y * z
-    lut = vtk.vtkLookupTable()
-    lut.SetNumberOfTableValues(200)
-    lut.SetHueRange(0.6, 0.0)
-    #lut.SetAlphaRange(0.6,0.7)
-    lut.Build()
 
-    for k in range(x):
-        for j in range(y):
-            for i in range(z):
-                if th[k][j][i] > 0.0000001:
-                    points.InsertNextPoint(k, j, i)
-                    scales.InsertNextValue(1.5)
-                    rgb = [0.0, 0.0, 0.0]
-                    lut.GetColor(th[k][j][i], rgb)
-                    ucrgb = list(map(int, [x * 255 for x in rgb]))
-                    col.InsertNextTuple3(ucrgb[0], ucrgb[1], ucrgb[2])
+    data=tharray.astype(numpy.uint8)
 
-    grid = vtk.vtkUnstructuredGrid()
-    grid.SetPoints(points)
-    grid.GetPointData().AddArray(scales)
-    grid.GetPointData().SetActiveScalars("Tscales")  # // !!!to set radius first
-    grid.GetPointData().AddArray(col)
 
-    sphere = vtk.vtkSphereSource()
+    data=numpy.ascontiguousarray(data)
 
-    glyph3D = vtk.vtkGlyph3D()
 
-    glyph3D.SetSourceConnection(sphere.GetOutputPort())
-    glyph3D.SetInputData(grid)
-    glyph3D.Update()
+    #Apparently VTK is rubbish at hacving people manually making VTK data structures, so we write this array to a string, which is then read into a VTK reader... inefficient I know... :/
+    dataImporter = vtk.vtkImageImport()
 
-# update mapper
-    rainmapper = vtk.vtkPolyDataMapper()
-    rainmapper.SetInputConnection(glyph3D.GetOutputPort())
-    rainmapper.SetScalarRange(0, 3)
+    #make string (want it in Fortran order (column major) else everything is transposed
+    data_string = data.tostring(order="F")
 
-    rainmapper.SetScalarModeToUsePointFieldData()
-    rainmapper.SelectColorArray("Tcol")  # // !!!to set color (nevertheless you will have nothing)
-    rainmapper.SetLookupTable(lut)
+    #read in string
+    dataImporter.CopyImportVoidPointer(data_string, len(data_string))
 
-    rainactor.GetProperty().SetOpacity(0.1)
-    rainactor.SetMapper(rainmapper)
+    # The type of the newly imported data is set to unsigned char (uint8)
+    dataImporter.SetDataScalarTypeToUnsignedChar()
+
+    # Because the data that is imported only contains an intensity value (it isnt RGB-coded or someting similar), the importer must be told this is the case (only one data value by gridpoint)
+    dataImporter.SetNumberOfScalarComponents(1)
+
+    # The following two functions describe how the data is stored and the dimensions of the array it is stored in. For this
+    # simple case, all axes are of length 75 and begins with the first element. For other data, this is probably not the case.
+    # I have to admit however, that I honestly dont know the difference between SetDataExtent() and SetWholeExtent() although
+    # VTK complains if not both are used.
+    dataImporter.SetDataExtent(0,x-1, 0, y-1, 0, z-1) #fun fact, for data[x,y,z] this uses z,y,x
+    dataImporter.SetWholeExtent(0,x-1, 0, y-1, 0, z-1)
+
+    #create alpha and colour functions (map values 0-255 to colour and transparency)
+    alpha=vtk.vtkPiecewiseFunction()
+    colour=vtk.vtkColorTransferFunction()
+
+    for i in range(256):
+        #alpha.AddPoint(i,i/1024.)
+        alpha.AddPoint(i,0.3)
+
+        r=(i*2)/255.
+        g=0.3
+        b=(255.-2*i)/255
+        if (r > 1.):
+            r=1.
+        if (b < 0.):
+            b=0.
+        colour.AddRGBPoint(i,r,g,b)
+
+    # The preavious two classes stored properties. Because we want to apply these properties to the volume we want to render,
+    # we have to store them in a class that stores volume prpoperties.
+    volumeProperty = vtk.vtkVolumeProperty()
+    volumeProperty.SetColor(colour)
+    volumeProperty.SetScalarOpacity(alpha)
+
+
+    # This class describes how the volume is rendered (through ray tracing).
+    #compositeFunction = vtk.vtkVolumeRayCastCompositeFunction()
+    # We can finally create our volume. We also have to specify the data for it, as well as how the data will be rendered.
+    volumeMapper = vtk.vtkFixedPointVolumeRayCastMapper()
+    #volumeMapper.SetVolumeRayCastFunction(compositeFunction)
+    volumeMapper.SetInputConnection(dataImporter.GetOutputPort())
+
+    tempactor.SetMapper(volumeMapper)
+    tempactor.SetProperty(volumeProperty)
+
+    t2=time.time()
+
+#     x, y, z = coords
+#     points = vtk.vtkPoints()
+#
+#     scales = vtk.vtkFloatArray()
+#     scales.SetName("Tscales")
+#
+#     col = vtk.vtkUnsignedCharArray()
+#     col.SetName('Tcol')  # Any name will work here.
+#     col.SetNumberOfComponents(3)
+#
+#     nc = vtk.vtkNamedColors()
+#
+#     tableSize = x * y * z
+#     lut = vtk.vtkLookupTable()
+#     lut.SetNumberOfTableValues(200)
+#     lut.SetHueRange(0.6, 0.0)
+#     #lut.SetAlphaRange(0.6,0.7)
+#     lut.Build()
+#
+#     for k in range(x):
+#         for j in range(y):
+#             for i in range(z):
+#                 if th[k][j][i] > 0.0000001:
+#                     points.InsertNextPoint(k, j, i)
+#                     scales.InsertNextValue(1.5)
+#                     rgb = [0.0, 0.0, 0.0]
+#                     lut.GetColor(th[k][j][i], rgb)
+#                     ucrgb = list(map(int, [x * 255 for x in rgb]))
+#                     col.InsertNextTuple3(ucrgb[0], ucrgb[1], ucrgb[2])
+#
+#     grid = vtk.vtkUnstructuredGrid()
+#     grid.SetPoints(points)
+#     grid.GetPointData().AddArray(scales)
+#     grid.GetPointData().SetActiveScalars("Tscales")  # // !!!to set radius first
+#     grid.GetPointData().AddArray(col)
+#
+#     sphere = vtk.vtkSphereSource()
+#
+#     glyph3D = vtk.vtkGlyph3D()
+#
+#     glyph3D.SetSourceConnection(sphere.GetOutputPort())
+#     glyph3D.SetInputData(grid)
+#     glyph3D.Update()
+#
+# # update mapper
+#     rainmapper = vtk.vtkPolyDataMapper()
+#     rainmapper.SetInputConnection(glyph3D.GetOutputPort())
+#     rainmapper.SetScalarRange(0, 3)
+#
+#     rainmapper.SetScalarModeToUsePointFieldData()
+#     rainmapper.SelectColorArray("Tcol")  # // !!!to set color (nevertheless you will have nothing)
+#     rainmapper.SetLookupTable(lut)
+#
+#     rainactor.GetProperty().SetOpacity(0.1)
+#     rainactor.SetMapper(rainmapper)
 
 def RenderPress(p, coords, pressactor):
 
-    x, y, z = coords
-    points = vtk.vtkPoints()
+    x,y,z = coords
 
-    scales = vtk.vtkFloatArray()
-    scales.SetName("Pscales")
+    t1=time.time()
+    parray=p
+    mn=p.min()
+    mx=p.max()
 
-    col = vtk.vtkUnsignedCharArray()
-    col.SetName('Pcol')  # Any name will work here.
-    col.SetNumberOfComponents(3)
+    #scale between 0 and 255
+    parray=(parray-mn)/(mx-mn)*255
 
-    nc = vtk.vtkNamedColors()
-
-    tableSize = x * y * z
-    lut = vtk.vtkLookupTable()
-    lut.SetNumberOfTableValues(200)
-    lut.SetHueRange(0.6, 0.0)
-    #lut.SetAlphaRange(0.6,0.7)
-    lut.Build()
-
-    for k in range(x):
-        for j in range(y):
-            for i in range(z):
-                if p[k][j][i] > 0.000000000001:
-                    points.InsertNextPoint(k, j, i)
-                    scales.InsertNextValue(1)
-                    rgb = [0.0, 0.0, 0.0]
-                    lut.GetColor(p[k][j][i], rgb)
-                    ucrgb = list(map(int, [x * 255 for x in rgb]))
-                    col.InsertNextTuple3(ucrgb[0], ucrgb[1], ucrgb[2])
-
-    grid = vtk.vtkUnstructuredGrid()
-    grid.SetPoints(points)
-    grid.GetPointData().AddArray(scales)
-    grid.GetPointData().SetActiveScalars("Pscales")  # // !!!to set radius first
-    grid.GetPointData().AddArray(col)
-
-    sphere = vtk.vtkSphereSource()
-
-    glyph3D = vtk.vtkGlyph3D()
-
-    glyph3D.SetSourceConnection(sphere.GetOutputPort())
-    glyph3D.SetInputData(grid)
-    glyph3D.Update()
+    #cast to uint
 
 
-    #for k in range(x):
-    #    for j in range(y-int((y*0.4)), y+20):
-    #        points.InsertNextPoint(k, j, 2)
-#            points.InsertNextPoint(k, j, level)
-
-    # Create a polydata to store everything in
-    # linesPolyData = vtk.vtkPolyData()
-    # linesPolyData.Allocate()
-    #
-    # for i in range(0, points.GetNumberOfPoints(),2 ):
-    #     linesPolyData.InsertNextCell(vtk.VTK_LINE, 2, [i, i+1])
-    #
-    # # Add the points to the dataset
-    # linesPolyData.SetPoints(points)
-    #
-    # # update mapper
-    # rainmapper = vtk.vtkPolyDataMapper()
-    # rainmapper.SetInputData(linesPolyData)
-    #
-    #
-    # rainactor.GetProperty().SetOpacity(0.4)
-    # rainactor.GetProperty().SetLineWidth(10)
-    # rainactor.GetProperty().SetColor(0.1, 0.1, 0.8)
-    # rainactor.SetMapper(rainmapper)
+    data=parray.astype(numpy.uint8)
 
 
-# update mapper
-    rainmapper = vtk.vtkPolyDataMapper()
-    rainmapper.SetInputConnection(glyph3D.GetOutputPort())
-    rainmapper.SetScalarRange(0, 3)
+    data=numpy.ascontiguousarray(data)
 
-    rainmapper.SetScalarModeToUsePointFieldData()
-    rainmapper.SelectColorArray("Pcol")  # // !!!to set color (nevertheless you will have nothing)
-    rainmapper.SetLookupTable(lut)
 
-    pressactor.GetProperty().SetOpacity(0.1)
-    pressactor.SetMapper(rainmapper)
+    #Apparently VTK is rubbish at hacving people manually making VTK data structures, so we write this array to a string, which is then read into a VTK reader... inefficient I know... :/
+    dataImporter = vtk.vtkImageImport()
+
+    #make string (want it in Fortran order (column major) else everything is transposed
+    data_string = data.tostring(order="F")
+
+    #read in string
+    dataImporter.CopyImportVoidPointer(data_string, len(data_string))
+
+    # The type of the newly imported data is set to unsigned char (uint8)
+    dataImporter.SetDataScalarTypeToUnsignedChar()
+
+    # Because the data that is imported only contains an intensity value (it isnt RGB-coded or someting similar), the importer must be told this is the case (only one data value by gridpoint)
+    dataImporter.SetNumberOfScalarComponents(1)
+
+    # The following two functions describe how the data is stored and the dimensions of the array it is stored in. For this
+    # simple case, all axes are of length 75 and begins with the first element. For other data, this is probably not the case.
+    # I have to admit however, that I honestly dont know the difference between SetDataExtent() and SetWholeExtent() although
+    # VTK complains if not both are used.
+    dataImporter.SetDataExtent(0,x-1, 0, y-1, 0, z-1) #fun fact, for data[x,y,z] this uses z,y,x
+    dataImporter.SetWholeExtent(0,x-1, 0, y-1, 0, z-1)
+
+    #create alpha and colour functions (map values 0-255 to colour and transparency)
+    alpha=vtk.vtkPiecewiseFunction()
+    colour=vtk.vtkColorTransferFunction()
+
+    for i in range(256):
+        #alpha.AddPoint(i,i/1024.)
+        alpha.AddPoint(i,0.3)
+
+        if (i < 128):
+            r = (128.-i)/128.
+            g = (i/128.)
+            b=0.
+        else:
+            r=0
+            g = (256.-i)/128.
+            b = (i-128.)/128.
+        colour.AddRGBPoint(i,r,g,b)
+
+    # The preavious two classes stored properties. Because we want to apply these properties to the volume we want to render,
+    # we have to store them in a class that stores volume prpoperties.
+    volumeProperty = vtk.vtkVolumeProperty()
+    volumeProperty.SetColor(colour)
+    volumeProperty.SetScalarOpacity(alpha)
+
+
+    # This class describes how the volume is rendered (through ray tracing).
+    #compositeFunction = vtk.vtkVolumeRayCastCompositeFunction()
+    # We can finally create our volume. We also have to specify the data for it, as well as how the data will be rendered.
+    volumeMapper = vtk.vtkFixedPointVolumeRayCastMapper()
+    #volumeMapper.SetVolumeRayCastFunction(compositeFunction)
+    volumeMapper.SetInputConnection(dataImporter.GetOutputPort())
+
+    pressactor.SetMapper(volumeMapper)
+    pressactor.SetProperty(volumeProperty)
+
+    t2=time.time()
+
+#     x, y, z = coords
+#     points = vtk.vtkPoints()
+#
+#     scales = vtk.vtkFloatArray()
+#     scales.SetName("Pscales")
+#
+#     col = vtk.vtkUnsignedCharArray()
+#     col.SetName('Pcol')  # Any name will work here.
+#     col.SetNumberOfComponents(3)
+#
+#     nc = vtk.vtkNamedColors()
+#
+#     tableSize = x * y * z
+#     lut = vtk.vtkLookupTable()
+#     lut.SetNumberOfTableValues(200)
+#     lut.SetHueRange(0.6, 0.0)
+#     #lut.SetAlphaRange(0.6,0.7)
+#     lut.Build()
+#
+#     for k in range(x):
+#         for j in range(y):
+#             for i in range(z):
+#                 if p[k][j][i] > 0.000000000001:
+#                     points.InsertNextPoint(k, j, i)
+#                     scales.InsertNextValue(1)
+#                     rgb = [0.0, 0.0, 0.0]
+#                     lut.GetColor(p[k][j][i], rgb)
+#                     ucrgb = list(map(int, [x * 255 for x in rgb]))
+#                     col.InsertNextTuple3(ucrgb[0], ucrgb[1], ucrgb[2])
+#
+#     grid = vtk.vtkUnstructuredGrid()
+#     grid.SetPoints(points)
+#     grid.GetPointData().AddArray(scales)
+#     grid.GetPointData().SetActiveScalars("Pscales")  # // !!!to set radius first
+#     grid.GetPointData().AddArray(col)
+#
+#     sphere = vtk.vtkSphereSource()
+#
+#     glyph3D = vtk.vtkGlyph3D()
+#
+#     glyph3D.SetSourceConnection(sphere.GetOutputPort())
+#     glyph3D.SetInputData(grid)
+#     glyph3D.Update()
+#
+#
+#     #for k in range(x):
+#     #    for j in range(y-int((y*0.4)), y+20):
+#     #        points.InsertNextPoint(k, j, 2)
+# #            points.InsertNextPoint(k, j, level)
+#
+#     # Create a polydata to store everything in
+#     # linesPolyData = vtk.vtkPolyData()
+#     # linesPolyData.Allocate()
+#     #
+#     # for i in range(0, points.GetNumberOfPoints(),2 ):
+#     #     linesPolyData.InsertNextCell(vtk.VTK_LINE, 2, [i, i+1])
+#     #
+#     # # Add the points to the dataset
+#     # linesPolyData.SetPoints(points)
+#     #
+#     # # update mapper
+#     # rainmapper = vtk.vtkPolyDataMapper()
+#     # rainmapper.SetInputData(linesPolyData)
+#     #
+#     #
+#     # rainactor.GetProperty().SetOpacity(0.4)
+#     # rainactor.GetProperty().SetLineWidth(10)
+#     # rainactor.GetProperty().SetColor(0.1, 0.1, 0.8)
+#     # rainactor.SetMapper(rainmapper)
+#
+#
+# # update mapper
+#     rainmapper = vtk.vtkPolyDataMapper()
+#     rainmapper.SetInputConnection(glyph3D.GetOutputPort())
+#     rainmapper.SetScalarRange(0, 3)
+#
+#     rainmapper.SetScalarModeToUsePointFieldData()
+#     rainmapper.SelectColorArray("Pcol")  # // !!!to set color (nevertheless you will have nothing)
+#     rainmapper.SetLookupTable(lut)
+#
+#     pressactor.GetProperty().SetOpacity(0.1)
+#     pressactor.SetMapper(rainmapper)
 
 def RenderSea(sealevel, coords, renderer, seaactor):
 
