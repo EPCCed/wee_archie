@@ -26,10 +26,12 @@ class LiveWeather(object):
 
             # Grab the data from the url and process it
 
+
             try:
                 response = urllib2.urlopen(url, timeout=3)
             except:
                 print("Timeout!")
+
             data = json.loads(response.read())
 
             # Get to the right data array
@@ -42,8 +44,6 @@ class LiveWeather(object):
             hour_num = len(days_weather)
             print("hour_num=",hour_num)
             self.hour = []
-
-
 
             # Loop to get the data from the arrays for the current time
             for i in range(hour_num):
@@ -58,7 +58,6 @@ class LiveWeather(object):
                 self.hour.append(response)
 
         except:
-
             print "No internet, using default values instead"
             response = {"D": 'NNE', "Pt": 'R', "H": 40.2, "P": 1014, "S": 7, "T": 19.0, "W": 1, "V": 30000, "Dp": 5.3, }
             self.hour = []
