@@ -235,14 +235,14 @@ class FinishedWindow(wx.Frame):
 
         max_x=0
 
-        if (not (time_modelled is None or accuracy_achieved is None)):
-            ax.scatter(accuracy_achieved, time_modelled, alpha=0.8, c="red", edgecolors='none', s=30)
-            if (time_modelled > max_x): max_x=time_modelled
-
         for data in parent.scores:
             if (data[0] > 0 and data[1] > 0):
                 ax.scatter(data[0], data[1], alpha=0.8, c="green", edgecolors='none', s=30)
                 if (data[1] > max_x): max_x=data[1]
+
+        if (not (time_modelled is None or accuracy_achieved is None)):
+            ax.scatter(accuracy_achieved, time_modelled, alpha=0.8, c="red", edgecolors='none', s=30)
+            if (time_modelled > max_x): max_x=time_modelled
 
         plt.title('Score board')
         plt.xlabel('Accuracy (%)')
@@ -310,28 +310,23 @@ class NewWindow(wx.Frame):
         self.tab3.Hide()
 
     def StartStopSim(self, e):
-        # if simulation is not started then start a new simulation
-        if not self.servercomm.IsStarted():
-            self.writeConfig()
-            config = "config.mcf"
-            self.mainWeatherWindow.StartSim(config)
-            self.mainWeatherWindow.playing = True
-            # load the first data file
-            self.mainWeatherWindow.getdata.value = True
-            self.Close()
 
-        # if simulation is started then stop simulation
-        else:
-            dlg = wx.MessageDialog(self, "Are you sure?", "This will stop the current simulation.", wx.OK | wx.CANCEL)
-            if dlg.ShowModal() == wx.ID_OK:
-                self.mainWeatherWindow.StopSim()
-                try:
-                    for actor in self.mainWeatherWindow.renderer.GetActors():
-                        self.mainWeatherWindow.renderer.RemoveActor(actor)
-                    self.mainWeatherWindow.actors.clear()
-                except:
-                    pass
-                self.mainWeatherWindow.vtkwidget.GetRenderWindow().Render()
+        if (self.demo.init_scene):
+            self.demo.init_scene=False
+            self.demo.accuracy_achieved=0.0
+            self.demo.accuracy_ticks=0
+            self.demo.resetScene(self.mainWeatherWindow)
+
+        # if simulation is not started then start a new simulation
+        if self.servercomm.IsStarted(): self.mainWeatherWindow.StopSim()
+
+        self.writeConfig()
+        config = "config.mcf"
+        self.mainWeatherWindow.StartSim(config)
+        self.mainWeatherWindow.playing = True
+        # load the first data file
+        self.mainWeatherWindow.getdata.value = True
+        self.Close()
 
     def writeConfig(self):
         # because the events or something does not work for setting there values, set them here
@@ -899,8 +894,6 @@ class TabLocation(wx.Panel):
 
         # Get the size of the image.....attempting to reposition the buttons depending on the window size.
         W, H = self.Image.GetSize()
-
-        print maxWidth
 
         weatherBtnSizes=40
 

@@ -319,6 +319,13 @@ class WeatherDemo(client.AbstractDemo):
         t2=time.time()
         print("Total frame rendering time=",t2-t1)
 
+    def resetScene(self, win):
+        win.renderer.RemoveAllViewProps()
+        win.renderer.ResetCamera()
+        win.vtkwidget.GetRenderWindow().Render()
+        win.vtkwidget.RemoveObserver(win.timer_observer)
+        win.vtkwidget.DestroyTimer(win.timer_id, None)
+
 def updateStopWatchHand(win, seconds_remaining):
     if (seconds_remaining == 55):
         win.views['StatusLine'].GetScene().RemoveItem(win.stopwatchImg)
