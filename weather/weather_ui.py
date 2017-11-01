@@ -269,6 +269,8 @@ class NewWindow(wx.Frame):
         wx.Frame.__init__(self, parent, id, 'Settings', size=(width, height))
         wx.Frame.CenterOnScreen(self)
 
+        self.demo=demo
+
         self.weatherLocationCode=3166
         self.mainWeatherWindow=mainWeatherWindow
 
@@ -945,15 +947,19 @@ class TabLocation(wx.Panel):
         if (event.GetEventObject() == self.button1):
             self.parallelismConfigTab.UpdateLocationText("Edinburgh", self.generateWeatherText(3166))
             self.setupWindow.weatherLocationCode=3166
+            self.setupWindow.demo.Location="Edinburgh"
         elif (event.GetEventObject() == self.button2):
             self.parallelismConfigTab.UpdateLocationText("Highlands", self.generateWeatherText(3047))
             self.setupWindow.weatherLocationCode=3047
+            self.setupWindow.demo.Location="Schiehallion"
         elif (event.GetEventObject() == self.button3):
             self.parallelismConfigTab.UpdateLocationText("London", self.generateWeatherText(3772))
             self.setupWindow.weatherLocationCode=3772
+            self.setupWindow.demo.Location="London"
         elif (event.GetEventObject() == self.button4):
             self.parallelismConfigTab.UpdateLocationText("Cornwall", self.generateWeatherText(3808))
             self.setupWindow.weatherLocationCode=3808
+            self.setupWindow.demo.Location="StIves"
 
         if (self.parent.GetPageCount() == 1):
             self.parallelismConfigTab.Show()
@@ -964,6 +970,7 @@ class TabLocation(wx.Panel):
         self.parent.SetSelection(1)
 
     def generateWeatherText(self, numb):
+        print("requesting weather data...")
         weatherInstance=LiveWeather(numb)
         weatherString=""
         live=weatherInstance.hour_weather()
@@ -974,10 +981,12 @@ class TabLocation(wx.Panel):
         else:
             weatherString+="Raining"
         weatherString+=" "+str(weatherInstance.wind_speed())+"m/s "+weatherInstance.wind_direction()+" "+str(weatherInstance.pressure())+"hpa "+str(weatherInstance.temperature())+"C "+str(weatherInstance.visibility())+"m"
+        print("Weather data gotten!")
         return weatherString
 
 
     def weather_data(self, place, numb):
+        print("Getting weather data...")
         live = LiveWeather(numb).hour_weather()
         place = place
         if live <= 1:
@@ -986,6 +995,7 @@ class TabLocation(wx.Panel):
             place.append(cloud)
         else:
             place.append(rain)
+        print("weather data gotten")
         return place
 
     # Change the cursor to a hand every time the cursor goes over a button

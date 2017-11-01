@@ -55,12 +55,12 @@ class WeatherDemo(client.AbstractDemo):
 
         pres = root.variables['p'][:]
         p = numpy.array(pres)
-        p = ((p + 1000)/1000) - 0.2
+        #p = ((p + 1000)/1000) - 0.2
 
 
         theta = root.variables['th'][:]
         th = numpy.array(theta)
-        th = th/4
+        #th = th/4
 
         #th_ref = root.variables['th_ref'][:]
 
@@ -122,6 +122,8 @@ class WeatherDemo(client.AbstractDemo):
         win.renderer.SetViewport(0, 0.3, 1, 1)
         win.bottomrenderer.SetViewport(0,0,1,0.3)
         x, y, z = coords
+
+        print("LOCATION=",self.Location)
 
         self.mode = win.mode
 
@@ -243,7 +245,7 @@ class WeatherDemo(client.AbstractDemo):
         ### Land
         if (not self.init_scene):
             #TODO landactor try
-            RenderLand(coords, win.renderer)
+            RenderLand(self,coords, win.renderer)
 
         ### Decomposition grid redering, TODO
         if win.decompositiongrid is True:
@@ -1555,7 +1557,7 @@ def RenderSea(sealevel, coords, renderer, seaactor):
     seaactor.SetMapper(seamapper)
 
 
-def RenderLand(coords, renderer):
+def RenderLand(self,coords, renderer):
 
     # x,y,z = coords
     #
@@ -1608,8 +1610,22 @@ def RenderLand(coords, renderer):
     # landmapper.SetScalarModeToUsePointFieldData()
     # landmapper.SetScalarRange(0, 3)
 
-    file1="Edinburgh2.obj"
-    img1='Edinburgh.png'
+    if self.Location=="Edinburgh":
+        file1="Edinburgh2.obj"
+        img1='Edinburgh.png'
+    elif self.Location=="London":
+        file1="London2.obj"
+        img1='London.png'
+    elif self.Location=="Schiehallion":
+        file1="Schiehallion2.obj"
+        img1='Schiehallion.png'
+    elif self.Location=="StIves":
+        file1="StIves2.obj"
+        img1='StIves.png'
+    else:
+        print("Error in location: ",self.Location)
+
+
 
     #read in 3d surface
     objreader1=vtk.vtkOBJReader()
