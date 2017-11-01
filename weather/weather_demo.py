@@ -27,9 +27,9 @@ class vtkTimerCallback():
                 self.win.getdata.value = False
                 self.win.showScoreBoard(math.ceil(self.parent.achievedtime/60), self.parent.accuracy_achieved / self.parent.accuracy_ticks)
             else:
-                #if (elapsedTick == 25): self.win.mode=1
-                #if (elapsedTick == 35): self.win.mode=2
-                #if (elapsedTick == 45): self.win.mode=0
+                if (elapsedTick == 25): self.win.mode=1
+                if (elapsedTick == 35): self.win.mode=2
+                if (elapsedTick == 45): self.win.mode=0
                 updateStopWatchHand(self.win, (self.lasttime-self.starttime) + 1)
                 self.lasttime+=1
 
@@ -351,6 +351,13 @@ class WeatherDemo(client.AbstractDemo):
         t2=time.time()
         print("Total frame rendering time=",t2-t1)
 
+    def resetScene(self, win):
+        win.renderer.RemoveAllViewProps()
+        win.renderer.ResetCamera()
+        win.vtkwidget.GetRenderWindow().Render()
+        win.vtkwidget.RemoveObserver(win.timer_observer)
+        win.vtkwidget.DestroyTimer(win.timer_id, None)
+
 def updateStopWatchHand(win, seconds_remaining):
     if (seconds_remaining == 55):
         win.views['StatusLine'].GetScene().RemoveItem(win.stopwatchImg)
@@ -437,28 +444,24 @@ def generateStatusBar(self, win, renderer, modeltime, wind_u, wind_v, bar_width,
     win.views['StatusLine'].GetScene().AddItem(win.compass1_strength)
 
 def calcWindStrenghDirection(wind_u, wind_v):
-    angle=math.degrees(90)
-    x_u=abs(wind_u) * math.cos(angle)
-    y_u=abs(wind_u) * math.sin(angle)
+    print(str(wind_u)+ " "+str(wind_v))
+    strength=abs(wind_u + wind_v)
+    wind_u_abs=abs(wind_u)
+    wind_v_abs=abs(wind_v)
+    diag= 45 / ((wind_u_abs / wind_v_abs) if wind_u_abs > wind_v_abs else (wind_v_abs / wind_u_abs))
 
-    x_v=abs(wind_v) * math.cos(-angle)
-    y_v=abs(wind_v) * math.sin(-angle)
-
-    tot_x=x_u+x_v
-    tot_y=y_u+y_v
-
-    strength=math.sqrt(tot_x**2 + tot_y**2)
-    direction_angle=90 - math.degrees(math.atan(tot_y/tot_x))
-
-    if (wind_u < 0.0 and wind_v < 0.0):
-        direction=180 + direction_angle
-    elif (wind_u < 0.0):
-        direction=180 - direction_angle
-    elif (wind_v < 0.0):
-        direction=360 - direction_angle
+    if wind_u_abs > wind_v_abs:
+        start_angle = 180 if wind_u < 0.0 else 0
+        if (wind_v < 0.0):
+            direction=(360 - diag) if start_angle == 0 else (start_angle+diag)
+        else:
+            direction=(start_angle + diag) if start_angle == 0 else (start_angle-diag)
     else:
-        direction=direction_angle
-
+        start_angle = 270 if wind_u < 0.0 else 90
+        if (wind_u < 0.0):
+            direction=(start_angle - diag) if start_angle == 270 else (start_angle+diag)
+        else:
+            direction=(start_angle + diag) if start_angle == 270 else (start_angle-diag)
     return strength, direction
 
 def generateCompassStength(xpos, ypos, strength):

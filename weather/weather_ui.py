@@ -235,14 +235,14 @@ class FinishedWindow(wx.Frame):
 
         max_x=0
 
-        if (not (time_modelled is None or accuracy_achieved is None)):
-            ax.scatter(accuracy_achieved, time_modelled, alpha=0.8, c="red", edgecolors='none', s=30)
-            if (time_modelled > max_x): max_x=time_modelled
-
         for data in parent.scores:
             if (data[0] > 0 and data[1] > 0):
                 ax.scatter(data[0], data[1], alpha=0.8, c="green", edgecolors='none', s=30)
                 if (data[1] > max_x): max_x=data[1]
+
+        if (not (time_modelled is None or accuracy_achieved is None)):
+            ax.scatter(accuracy_achieved, time_modelled, alpha=0.8, c="red", edgecolors='none', s=30)
+            if (time_modelled > max_x): max_x=time_modelled
 
         plt.title('Score board')
         plt.xlabel('Accuracy (%)')
@@ -310,28 +310,23 @@ class NewWindow(wx.Frame):
         self.tab3.Hide()
 
     def StartStopSim(self, e):
-        # if simulation is not started then start a new simulation
-        if not self.servercomm.IsStarted():
-            self.writeConfig()
-            config = "config.mcf"
-            self.mainWeatherWindow.StartSim(config)
-            self.mainWeatherWindow.playing = True
-            # load the first data file
-            self.mainWeatherWindow.getdata.value = True
-            self.Close()
 
-        # if simulation is started then stop simulation
-        else:
-            dlg = wx.MessageDialog(self, "Are you sure?", "This will stop the current simulation.", wx.OK | wx.CANCEL)
-            if dlg.ShowModal() == wx.ID_OK:
-                self.mainWeatherWindow.StopSim()
-                try:
-                    for actor in self.mainWeatherWindow.renderer.GetActors():
-                        self.mainWeatherWindow.renderer.RemoveActor(actor)
-                    self.mainWeatherWindow.actors.clear()
-                except:
-                    pass
-                self.mainWeatherWindow.vtkwidget.GetRenderWindow().Render()
+        if (self.demo.init_scene):
+            self.demo.init_scene=False
+            self.demo.accuracy_achieved=0.0
+            self.demo.accuracy_ticks=0
+            self.demo.resetScene(self.mainWeatherWindow)
+
+        # if simulation is not started then start a new simulation
+        if self.servercomm.IsStarted(): self.mainWeatherWindow.StopSim()
+
+        self.writeConfig()
+        config = "config.mcf"
+        self.mainWeatherWindow.StartSim(config)
+        self.mainWeatherWindow.playing = True
+        # load the first data file
+        self.mainWeatherWindow.getdata.value = True
+        self.Close()
 
     def writeConfig(self):
         # because the events or something does not work for setting there values, set them here
@@ -363,21 +358,39 @@ class NewWindow(wx.Frame):
 
         # wind config
         winforce=[0.0]*2
+        windmultiplier=[1.0]*2
 
         strength=float(weatherInstance.wind_speed())/len(weatherInstance.wind_direction())
         for i in range(len(weatherInstance.wind_direction())):
             wind_direction=weatherInstance.wind_direction()[i]
             idx=0 if wind_direction == "N" or wind_direction == "S" else 1
-            winforce[idx]+=strength if wind_direction == "S" or wind_direction == "W" else -strength
-            print (wind_direction + " "+str(strength))
+            winforce[idx]+=-strength if wind_direction == "S" or wind_direction == "W" else strength
+            print (wind_direction + " "+str(winforce[idx]))
 
-        if (winforce[0] > 0.0):
+        wind_gust=weatherInstance.wind_gust()
+        if (wind_gust > 0):
+            gust_difference=wind_gust-weatherInstance.wind_speed()
+            if (gust_difference > 0):
+                windmultiplier[0]+=gust_difference/100
+                windmultiplier[1]+=windmultiplier[0]*2
+            else:
+                if (weatherInstance.wind_speed > 20):
+                    windmultiplier[0]=1.2
+                    windmultiplier[1]=1.4
+
+        if (winforce[0] == 0.0):
+            f.write('\nl_init_pl_u=.false.')
+        else:
+            f.write('\nl_init_pl_u=.true.')
             f.write('\nz_init_pl_u=0.0, 700.0, 3000.')
-            f.write('\nf_init_pl_u=' + str(round(winforce[0]*-1.7,2)) + ', ' + str(round(winforce[0]*-1.6,2)) + ', ' + str(winforce[0]*-0.8))
+            f.write('\nf_init_pl_u=' + str(round(winforce[0],2)) + ', ' + str(round(winforce[0]*windmultiplier[0],2)) + ', ' + str(winforce[0]*windmultiplier[1]))
 
-        if (winforce[1] > 0.0):
+        if (winforce[1] == 0.0):
+            f.write('\nl_init_pl_v=.false.')
+        else:
+            f.write('\nl_init_pl_v=.true.')
             f.write('\nz_init_pl_v=0.0, 700.0, 3000.')
-            f.write('\nf_init_pl_v=' + str(round(winforce[1]*-1.7,2)) + ', ' + str(round(winforce[1]*-1.6,2)) + ', ' + str(winforce[1]*-0.8))
+            f.write('\nf_init_pl_v=' + str(round(winforce[1],2)) + ', ' + str(round(winforce[1]*windmultiplier[0],2)) + ', ' + str(winforce[1]*windmultiplier[1]))
 
         # temperature settings
         temperature = 273.15 + weatherInstance.temperature()
@@ -881,8 +894,6 @@ class TabLocation(wx.Panel):
 
         # Get the size of the image.....attempting to reposition the buttons depending on the window size.
         W, H = self.Image.GetSize()
-
-        print maxWidth
 
         weatherBtnSizes=40
 
