@@ -13,6 +13,9 @@ class LiveWeather(object):
         # Read the current hour
         time = int(strftime("%H"))
 
+        self.targetTime = time
+        if (historical != None): self.targetTime-=historical
+
         try:
 
             # The UK Met Office live weather url
@@ -20,8 +23,7 @@ class LiveWeather(object):
                   "%s?res=hourly&key=25617c79-940e-4254-8e5a-fbdc6d5f0f14" % place
 
             # Grab the data from the url and process it
-
-            response = urllib2.urlopen(url, timeout=3)
+            response = urllib.urlopen(url, timeout=3.0)
             data = json.loads(response.read())
 
             # Get to the right data array
@@ -34,9 +36,6 @@ class LiveWeather(object):
             hour_num = len(days_weather)
             self.hour = []
 
-            self.targetTime = time
-            if (historical != None): self.targetTime-=historical
-
             # Loop to get the data from the arrays for the current time
             for i in range(hour_num):
                 hour_weather = int(days_weather[i]["$"]) / 60
@@ -44,13 +43,12 @@ class LiveWeather(object):
                     self.hour.append(days_weather[i])
             if len(self.hour) == 0:
                 print "Some error retrieving weather... Using default values"
-                response = {"d": 'NNE', "Pt": 'R', "H": 40.2, "P": 1014, "S": 7, "T": 19.0, "W": 1, "V": 30000, "Dp": 5.3, }
+                response = {"D": 'NNE', "Pt": 'R', "H": 40.2, "P": 1014, "S": 7, "T": 19.0, "W": 1, "V": 30000, "Dp": 5.3, }
                 self.hour = []
                 self.hour.append(response)
 
         except:
-
-            print "No internet, using default values instead"
+            #print "No internet, using default values instead"
             response = {"D": 'NNE', "Pt": 'R', "H": 40.2, "P": 1014, "S": 7, "T": 19.0, "W": 1, "V": 30000, "Dp": 5.3, }
             self.hour = []
             self.hour.append(response)
