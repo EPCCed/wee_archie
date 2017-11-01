@@ -113,6 +113,7 @@ class WeatherDemo(client.AbstractDemo):
     # Renders a frame with data contained within the data transfer object, data
     def RenderFrame(self, win, dto):
         t1=time.time()
+        self.win=win
         #unpack  data transfer object
         data = dto.GetData()
         vapor, clouds, rain, coords, rm, timepersec, overalltime, commtime, th, p, modeltime, wind_u, wind_v, avg_temp, avg_pressure = data
@@ -158,9 +159,19 @@ class WeatherDemo(client.AbstractDemo):
             ### Remove actors
             try:
                 win.renderer.RemoveActor(win.actors['TempActor'])
+            except:
+                pass
+
+            try:
                 win.renderer.RemoveActor(win.actors['PressActor'])
             except:
                 pass
+
+            try:
+                win.renderer.RemoveActor(win.actors['colourbar'])
+            except:
+                pass
+
         elif self.mode == 1:
             ### Temperature
             try:
@@ -168,13 +179,24 @@ class WeatherDemo(client.AbstractDemo):
             except:
                 win.actors['TempActor'] = vtk.vtkVolume()
 
-            RenderTemp(th, coords, win.actors['TempActor'])
+
+            try:
+                win.renderer.RemoveActor(win.actors['colourbar'])
+            except:
+                pass
+
+            win.actors["colourbar"]=RenderTemp(self,th, coords, win.actors['TempActor'])
             win.renderer.AddActor(win.actors['TempActor'])
+            win.renderer.AddActor(win.actors["colourbar"])
 
             ### Remove actors
             try:
                 win.renderer.RemoveActor(win.actors['RainActor'])
                 win.renderer.RemoveActor(win.actors['CloudActor'])
+            except:
+                pass
+
+            try:
                 win.renderer.RemoveActor(win.actors['PressActor'])
             except:
                 pass
@@ -186,13 +208,23 @@ class WeatherDemo(client.AbstractDemo):
             except:
                 win.actors['PressActor'] = vtk.vtkVolume()
 
-            RenderPress(p, coords, win.actors['PressActor'])
+            try:
+                win.renderer.RemoveActor(win.actors['colourbar'])
+            except:
+                pass
+
+            win.actors["colourbar"]=r=RenderPress(p, coords, win.actors['PressActor'])
             win.renderer.AddActor(win.actors['PressActor'])
+            win.renderer.AddActor(win.actors["colourbar"])
 
             ### Remove actors
             try:
                 win.renderer.RemoveActor(win.actors['RainActor'])
                 win.renderer.RemoveActor(win.actors['CloudActor'])
+            except:
+                pass
+
+            try:
                 win.renderer.RemoveActor(win.actors['TempActor'])
             except:
                 pass
@@ -1123,7 +1155,7 @@ def RenderRain(rain, coords, rainactor):
 
     print("Rain time=",t2-t1)
 
-def RenderTemp(th, coords, tempactor):
+def RenderTemp(self,th, coords, tempactor):
 
     x,y,z = coords
 
@@ -1170,6 +1202,10 @@ def RenderTemp(th, coords, tempactor):
     alpha=vtk.vtkPiecewiseFunction()
     colour=vtk.vtkColorTransferFunction()
 
+    lut=vtk.vtkLookupTable()
+    lut.SetNumberOfTableValues(256)
+    lut.SetTableRange(mn,mx)
+
     for i in range(256):
         #alpha.AddPoint(i,i/1024.)
         alpha.AddPoint(i,0.3)
@@ -1182,6 +1218,19 @@ def RenderTemp(th, coords, tempactor):
         if (b < 0.):
             b=0.
         colour.AddRGBPoint(i,r,g,b)
+        lut.SetTableValue(i,r,g,b,1.0)
+
+    lut.Build()
+
+    colourbar=vtk.vtkScalarBarActor()
+
+    colourbar.SetLookupTable(lut)
+    #colourbar.SetAnnotationTextScaling(1)
+    #colourbar.SetOrientationToHorizontal()
+    colourbar.SetPosition(0.1,0.1)
+    colourbar.SetTitle("Temperature")
+
+    self.win.renderer.AddActor(colourbar)
 
     # The preavious two classes stored properties. Because we want to apply these properties to the volume we want to render,
     # we have to store them in a class that stores volume prpoperties.
@@ -1201,6 +1250,8 @@ def RenderTemp(th, coords, tempactor):
     tempactor.SetProperty(volumeProperty)
 
     t2=time.time()
+
+    return colourbar
 
 #     x, y, z = coords
 #     points = vtk.vtkPoints()
@@ -1305,6 +1356,10 @@ def RenderPress(p, coords, pressactor):
     alpha=vtk.vtkPiecewiseFunction()
     colour=vtk.vtkColorTransferFunction()
 
+    lut=vtk.vtkLookupTable()
+    lut.SetNumberOfTableValues(256)
+    lut.SetTableRange(mn,mx)
+
     for i in range(256):
         #alpha.AddPoint(i,i/1024.)
         alpha.AddPoint(i,0.3)
@@ -1318,6 +1373,15 @@ def RenderPress(p, coords, pressactor):
             g = (256.-i)/128.
             b = (i-128.)/128.
         colour.AddRGBPoint(i,r,g,b)
+        lut.SetTableValue(i,r,g,b,1.0)
+
+    lut.Build()
+
+    colourbar=vtk.vtkScalarBarActor()
+
+    colourbar.SetLookupTable(lut)
+    colourbar.SetPosition(0.1,0.1)
+    colourbar.SetTitle("Pressure")
 
     # The preavious two classes stored properties. Because we want to apply these properties to the volume we want to render,
     # we have to store them in a class that stores volume prpoperties.
@@ -1337,6 +1401,8 @@ def RenderPress(p, coords, pressactor):
     pressactor.SetProperty(volumeProperty)
 
     t2=time.time()
+
+    return colourbar
 
 #     x, y, z = coords
 #     points = vtk.vtkPoints()
