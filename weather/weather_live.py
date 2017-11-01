@@ -1,4 +1,4 @@
-import urllib
+import urllib2
 import json
 from time import strftime
 
@@ -20,7 +20,8 @@ class LiveWeather(object):
                   "%s?res=hourly&key=25617c79-940e-4254-8e5a-fbdc6d5f0f14" % place
 
             # Grab the data from the url and process it
-            response = urllib.urlopen(url)
+
+            response = urllib2.urlopen(url, timeout=3)
             data = json.loads(response.read())
 
             # Get to the right data array
@@ -49,8 +50,8 @@ class LiveWeather(object):
 
         except:
 
-            #print "No internet, using default values instead"
-            response = {"d": 'NNE', "Pt": 'R', "H": 40.2, "P": 1014, "S": 7, "T": 19.0, "W": 1, "V": 30000, "Dp": 5.3, }
+            print "No internet, using default values instead"
+            response = {"D": 'NNE', "Pt": 'R', "H": 40.2, "P": 1014, "S": 7, "T": 19.0, "W": 1, "V": 30000, "Dp": 5.3, }
             self.hour = []
             self.hour.append(response)
 
