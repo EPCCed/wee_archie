@@ -144,7 +144,7 @@ class WeatherWindow(UI):
 
     # Function to call NewWindow class to allow a button to open it.
     def OpenWindow(self, event=None):
-        self.new = NewWindow(None, -1, self.title, self.demo, self.servercomm, self)
+        self.new = NewWindow(self, -1, self.title, self.demo, self.servercomm, self)
         self.new.Show()
 
     def temp_view(self, e):
@@ -269,8 +269,7 @@ class NewWindow(wx.Frame):
         wx.Frame.__init__(self, parent, id, 'Settings', size=(width, height))
         wx.Frame.CenterOnScreen(self)
 
-        self.demo=demo
-
+        self.parent=parent
         self.weatherLocationCode=3166
         self.mainWeatherWindow=mainWeatherWindow
 
@@ -331,6 +330,13 @@ class NewWindow(wx.Frame):
         self.Close()
 
     def writeConfig(self):
+
+        #first of all, tell the demo to render the ground:
+
+        self.demo.RenderFrame(self.parent,None,landscape_only=True)
+
+
+
         # because the events or something does not work for setting there values, set them here
 
         weatherInstance=LiveWeather(self.weatherLocationCode)
@@ -346,6 +352,9 @@ class NewWindow(wx.Frame):
         f.write('\nsurface_pressure='+str(weatherInstance.pressure())+'00')
         f.write('\nsurface_reference_pressure='+str(weatherInstance.pressure())+'00')
         f.write('\nfixed_cloud_number=1.0e9')
+
+        self.demo.reference_pressure=weatherInstance.pressure()*100
+        print("PRESSURE IS ",weatherInstance.pressure())
 
         # switch sef.timeofyear
 
