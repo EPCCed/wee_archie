@@ -291,17 +291,25 @@ class WeatherDemo(client.AbstractDemo):
 
         ### Camera settings
 
+
+
         try:
             win.camera
         except:
             win.camera = win.renderer.GetActiveCamera()
-            win.camera.SetFocalPoint(int(x/2),int(y/2),int(z/2))
-            win.camera.Roll(80)
-            win.camera.Dolly(0.35)
-            win.camera.Elevation(70)
-            win.camera.Roll(50)
-            win.camera.Azimuth(180)
-            win.camera.Elevation(-30)
+
+            #focus camera on just beneath the centre of the scene
+            win.camera.SetFocalPoint(x/2,y/2,z/2.5)
+
+            #position camera along the -x axis, and rotate so that z is up
+            win.camera.SetPosition(x/2-2.5*x,y/2,z/2.5)
+            win.camera.Roll(90)
+
+            #Rotate camera around z axis by 120 degrees
+            win.camera.Azimuth(120)
+            #tilt camera up by 10 degrees
+            win.camera.Elevation(10)
+
 
         # Uncomment if you want to get a screenshot of every frame, see function description
         #Screenshot(win.vtkwidget.GetRenderWindow())
