@@ -367,6 +367,10 @@ class WeatherDemo(client.AbstractDemo):
         win.vtkwidget.GetRenderWindow().Render()
         win.vtkwidget.RemoveObserver(win.timer_observer)
         win.vtkwidget.DestroyTimer(win.timer_id, None)
+        win.views['StatusLine'].GetScene().RemoveItem(win.compass1_hand)
+        win.views['StatusLine'].GetScene().RemoveItem(win.compass2_hand)
+        win.views['StatusLine'].GetScene().RemoveItem(win.compass1_strength)
+        win.views['StatusLine'].GetScene().RemoveItem(win.compass2_hand)
 
 def updateStopWatchHand(win, seconds_remaining):
     if (seconds_remaining == 55):
@@ -423,6 +427,7 @@ def generateStatusBar(self, win, renderer, modeltime, wind_u, wind_v, bar_width,
         win.views['StatusLine'].GetScene().AddItem(win.stopwatchImg)
         win.stopWatchHand=generateStopWatchHand(60, bar_width, bar_height)
         win.views['StatusLine'].GetScene().AddItem(win.stopWatchHand)
+
 
         win.views['StatusLine'].GetScene().AddItem(generateCompassRose(bar_width*0.399,bar_height*0.265))
         win.views['StatusLine'].GetScene().AddItem(generateCompassRose(bar_width*0.399,bar_height*0.0886))
