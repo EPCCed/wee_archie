@@ -17,7 +17,6 @@ class LiveWeather(object):
         if (historical != None): self.targetTime-=historical
 
         try:
-
             # The UK Met Office live weather url
             url = "http://datapoint.metoffice.gov.uk/public/data/val/wxobs/all/json/" \
                   "%s?res=hourly&key=25617c79-940e-4254-8e5a-fbdc6d5f0f14" % place
@@ -25,13 +24,7 @@ class LiveWeather(object):
             print("URL= ",url)
 
             # Grab the data from the url and process it
-
-
-            try:
-                response = urllib2.urlopen(url, timeout=3)
-            except:
-                print("Timeout!")
-
+            response = urllib2.urlopen(url, timeout=3)
             data = json.loads(response.read())
 
             # Get to the right data array
