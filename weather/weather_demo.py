@@ -27,9 +27,12 @@ class vtkTimerCallback():
                 self.win.getdata.value = False
                 self.win.showScoreBoard(math.ceil(self.parent.achievedtime/60), self.parent.calculateAccuracy())
             else:
-                if (elapsedTick == 25): self.win.mode=1
-                if (elapsedTick == 35): self.win.mode=2
-                if (elapsedTick == 45): self.win.mode=0
+                #if (elapsedTick == 25): self.win.mode=1
+                #if (elapsedTick == 35): self.win.mode=2
+                #if (elapsedTick == 45): self.win.mode=0
+                if (elapsedTick%15 == 0): self.win.mode=0
+                if ((elapsedTick-5)%15 == 0): self.win.mode=1
+                if ((elapsedTick-10)%15 == 0): self.win.mode=2
                 updateStopWatchHand(self.win, (self.lasttime-self.starttime) + 1)
                 self.lasttime+=1
 
@@ -155,185 +158,25 @@ class WeatherDemo(client.AbstractDemo):
         self.accuracy_setting=accuracy_setting
 
     # Renders a frame with data contained within the data transfer object, data
-    def RenderFrame(self, win, dto):
+    def RenderFrame(self, win, dto, landscape_only=False):
         t1=time.time()
         self.win=win
-        #unpack  data transfer object
-        data = dto.GetData()
-        vapor, clouds, rain, coords, rm, timepersec, overalltime, commtime, th, p, modeltime, wind_u, wind_v, avg_temp, avg_pressure = data
+
+        print("LOCATION=",self.Location)
+
+        x=34
+        y=24
+        z=30
+
 
         win.renderer.SetBackground(0.22,.67,.87)
         win.renderer.SetViewport(0, 0.3, 1, 1)
         win.bottomrenderer.SetViewport(0,0,1,0.3)
-        x, y, z = coords
-
-        print("LOCATION=",self.Location)
-
-        self.mode = win.mode
-
-        self.achievedtime=modeltime*2
-
-        # The actors need to be created only once, that is why we have a actors dictionary in the win. This way we
-        # will only add each actor once to the renderer. The other things like data structures, filters and mappers are
-        # created and destroyed in each function.
-
-        # To switch between the temperature, pressure and 'real' world views.
-        if self.mode == 0:
-            ### Clouds rendering
-            # We create the actor if it does not exist, call the rendering function and give it the actor.
-            # The function then gives new input for the actor, which we then add to the renderer.
-            try:
-                win.actors['CloudActor']
-            except:
-                win.actors['CloudActor'] = vtk.vtkVolume()
-                #win.renderer.AddVolume(win.actors['CloudActor'])
-
-            RenderCloud(clouds, coords, win.actors['CloudActor'])
-            win.renderer.AddVolume(win.actors['CloudActor'])
-
-            ### Rain
-            try:
-                win.actors['RainActor']
-            except:
-                win.actors['RainActor'] = vtk.vtkActor()
-
-            RenderRain(rain, coords, win.actors['RainActor'])
-            win.renderer.AddActor(win.actors['RainActor'])
-
-            ### Remove actors
-            try:
-                win.renderer.RemoveActor(win.actors['TempActor'])
-            except:
-                pass
-
-            try:
-                win.renderer.RemoveActor(win.actors['PressActor'])
-            except:
-                pass
-
-            try:
-                win.renderer.RemoveActor(win.actors['colourbar'])
-            except:
-                pass
-
-        elif self.mode == 1:
-            ### Temperature
-            try:
-                win.actors['TempActor']
-            except:
-                win.actors['TempActor'] = vtk.vtkVolume()
 
 
-            try:
-                win.renderer.RemoveActor(win.actors['colourbar'])
-            except:
-                pass
-
-            win.actors["colourbar"]=RenderTemp(self,th, coords, win.actors['TempActor'])
-            win.renderer.AddActor(win.actors['TempActor'])
-            win.renderer.AddActor(win.actors["colourbar"])
-
-            ### Remove actors
-            try:
-                win.renderer.RemoveActor(win.actors['RainActor'])
-                win.renderer.RemoveActor(win.actors['CloudActor'])
-            except:
-                pass
-
-            try:
-                win.renderer.RemoveActor(win.actors['PressActor'])
-            except:
-                pass
-
-        elif self.mode == 2:
-            ### Pressure
-            try:
-                win.actors['PressActor']
-            except:
-                win.actors['PressActor'] = vtk.vtkVolume()
-
-            try:
-                win.renderer.RemoveActor(win.actors['colourbar'])
-            except:
-                pass
-
-            win.actors["colourbar"]=r=RenderPress(p, coords, win.actors['PressActor'])
-            win.renderer.AddActor(win.actors['PressActor'])
-            win.renderer.AddActor(win.actors["colourbar"])
-
-            ### Remove actors
-            try:
-                win.renderer.RemoveActor(win.actors['RainActor'])
-                win.renderer.RemoveActor(win.actors['CloudActor'])
-            except:
-                pass
-
-            try:
-                win.renderer.RemoveActor(win.actors['TempActor'])
-            except:
-                pass
-
-        ### Sea
-        # try:
-        #     win.actors['SeaActor']
-        # except:
-        #     win.actors['SeaActor'] = vtk.vtkActor()
-        #
-        # if win.frameno.value ==0:
-        #     RenderSea(win.waterlevel, coords, win.renderer, win.actors['SeaActor'])
-        #
-        # win.renderer.AddActor(win.actors['SeaActor'])
-
-        ### Land
-        if (not self.init_scene):
+        if (not self.init_scene or landscape_only):
             #TODO landactor try
-            RenderLand(self,coords, win.renderer)
-
-        ### Decomposition grid redering, TODO
-        if win.decompositiongrid is True:
-            try:  # does the actor exist? if not, create one
-                win.actors['DGridActor']
-            except:
-                win.actors['DGridActor'] = vtk.vtkPropCollection()
-
-            win.actors['DGridActor'].RemoveAllItems()
-            RenderDecompGrid(coords, win.actors['DGridActor'], win.columnsinX, win.columnsinY)
-            #print("Adding actors")
-            for i in range(win.actors['DGridActor'].GetNumberOfItems()):
-                win.renderer.AddActor(win.actors['DGridActor'].GetItemAsObject(i))
-
-        elif win.decompositiongrid is False:
-            try:
-                for i in range(win.actors['DGridActor'].GetNumberOfItems()):
-                    win.renderer.RemoveActor(win.actors['DGridActor'].GetItemAsObject(i))
-            except:
-                pass
-
-        # ### Crops
-        # try:  # does the actor exist? if not, create one
-        #     win.actors['CropsActor']
-        # except:
-        #     win.actors['CropsActor'] = vtk.vtkActor()
-        #
-        # win.rainmass += sum(sum(rm))
-        # if win.rainmass < 1.5:
-        #     win.cropslevel = int(win.rainmass * 3) + 2
-        # else:
-        #     if win.cropslevel > 4:
-        #         win.cropslevel -= 1
-        #     else:
-        #         win.cropslevel = 4
-        #
-        # RenderCrops(win.cropslevel, coords, win.actors['CropsActor'])
-        #
-        # if win.rainmass > 1.5:
-        #     win.actors['CropsActor'].GetProperty().SetColor(0, 0, 0)
-        #
-        # win.renderer.AddActor(win.actors['CropsActor'])
-
-        ### Camera settings
-
-
+            RenderLand(self, win.renderer)
 
         try:
             win.camera
@@ -352,53 +195,235 @@ class WeatherDemo(client.AbstractDemo):
             #tilt camera up by 10 degrees
             win.camera.Elevation(10)
 
+        if not landscape_only:
 
-        # Uncomment if you want to get a screenshot of every frame, see function description
-        #Screenshot(win.vtkwidget.GetRenderWindow())
 
-        #win.vtkwidget.GetRenderWindow.SetFullScreen(False)
-        #win.vtkwidget.GetRenderWindow().FullScreenOn()
+            #unpack  data transfer object
+            data = dto.GetData()
+            vapor, clouds, rain, coords, rm, timepersec, overalltime, commtime, th, p, modeltime, wind_u, wind_v, avg_temp, avg_pressure = data
 
-        ### Render the barplot
-        try:
-            win.views['BarPlot']
-        except:
-            win.views['BarPlot'] = vtk.vtkContextView()
 
-        try:
-            win.views['BarPlot'].GetScene().RemoveItem(0)
-        except:
-            pass
+            x, y, z = coords
 
-        ratio = commtime / overalltime
-        chart = RenderPlot(ratio)
 
-        win.views['BarPlot'].GetScene().AddItem(chart)
-        win.views['BarPlot'].GetRenderer().SetViewport(0,0,1,0.3)
 
-        win.vtkwidget.GetRenderWindow().AddRenderer(win.views['BarPlot'].GetRenderer())
+            self.mode = win.mode
 
-        try:
-            win.views['StatusLine']
-        except:
-            win.views['StatusLine'] = vtk.vtkContextView()
+            self.achievedtime=modeltime*2
 
-        win.views['StatusLine'].GetRenderer().SetBackground(0.22,.67,.87)
-        win.views['StatusLine'].GetRenderer().SetViewport(0.85,0.3,1,1)
+            self.updateCurrentAccuracyScore(avg_temp, avg_pressure)
 
-        win.vtkwidget.GetRenderWindow().AddRenderer(win.views['StatusLine'].GetRenderer())
-        win.views['StatusLine'].GetRenderer().Render()
+            # The actors need to be created only once, that is why we have a actors dictionary in the win. This way we
+            # will only add each actor once to the renderer. The other things like data structures, filters and mappers are
+            # created and destroyed in each function.
 
-        generateStatusBar(self, win, win.views['StatusLine'].GetRenderer(), modeltime, wind_u, wind_v,
-            win.views['StatusLine'].GetScene().GetSceneWidth(), win.views['StatusLine'].GetScene().GetSceneHeight())
+            # To switch between the temperature, pressure and 'real' world views.
+            if self.mode == 0:
+                ### Clouds rendering
+                # We create the actor if it does not exist, call the rendering function and give it the actor.
+                # The function then gives new input for the actor, which we then add to the renderer.
+                try:
+                    win.actors['CloudActor']
+                except:
+                    win.actors['CloudActor'] = vtk.vtkVolume()
+                    #win.renderer.AddVolume(win.actors['CloudActor'])
 
-        if (not self.init_scene):
-            timecallback=vtkTimerCallback(self, win)
-            win.timer_observer=win.vtkwidget.AddObserver(vtk.vtkCommand.TimerEvent, timecallback.execute) # 'TimerEvent', timecallback.execute)
-            win.timer_id=win.vtkwidget.CreateRepeatingTimer(1000)
+                RenderCloud(clouds, coords, win.actors['CloudActor'])
+                win.renderer.AddVolume(win.actors['CloudActor'])
+
+                ### Rain
+                try:
+                    win.actors['RainActor']
+                except:
+                    win.actors['RainActor'] = vtk.vtkActor()
+
+                RenderRain(rain, coords, win.actors['RainActor'])
+                win.renderer.AddActor(win.actors['RainActor'])
+
+                ### Remove actors
+                try:
+                    win.renderer.RemoveActor(win.actors['TempActor'])
+                except:
+                    pass
+
+                try:
+                    win.renderer.RemoveActor(win.actors['PressActor'])
+                except:
+                    pass
+
+                try:
+                    win.renderer.RemoveActor(win.actors['colourbar'])
+                except:
+                    pass
+
+            elif self.mode == 1:
+                ### Temperature
+                try:
+                    win.actors['TempActor']
+                except:
+                    win.actors['TempActor'] = vtk.vtkVolume()
+
+
+                try:
+                    win.renderer.RemoveActor(win.actors['colourbar'])
+                except:
+                    pass
+
+                win.actors["colourbar"]=RenderTemp(self,th, coords, win.actors['TempActor'])
+                win.renderer.AddActor(win.actors['TempActor'])
+                win.renderer.AddActor(win.actors["colourbar"])
+
+                ### Remove actors
+                try:
+                    win.renderer.RemoveActor(win.actors['RainActor'])
+                    win.renderer.RemoveActor(win.actors['CloudActor'])
+                except:
+                    pass
+
+                try:
+                    win.renderer.RemoveActor(win.actors['PressActor'])
+                except:
+                    pass
+
+            elif self.mode == 2:
+                ### Pressure
+                try:
+                    win.actors['PressActor']
+                except:
+                    win.actors['PressActor'] = vtk.vtkVolume()
+
+                try:
+                    win.renderer.RemoveActor(win.actors['colourbar'])
+                except:
+                    pass
+
+                win.actors["colourbar"]=RenderPress(p, coords, win.actors['PressActor'],self.reference_pressure)
+                win.renderer.AddActor(win.actors['PressActor'])
+                win.renderer.AddActor(win.actors["colourbar"])
+
+                ### Remove actors
+                try:
+                    win.renderer.RemoveActor(win.actors['RainActor'])
+                    win.renderer.RemoveActor(win.actors['CloudActor'])
+                except:
+                    pass
+
+                try:
+                    win.renderer.RemoveActor(win.actors['TempActor'])
+                except:
+                    pass
+
+            ### Sea
+            # try:
+            #     win.actors['SeaActor']
+            # except:
+            #     win.actors['SeaActor'] = vtk.vtkActor()
+            #
+            # if win.frameno.value ==0:
+            #     RenderSea(win.waterlevel, coords, win.renderer, win.actors['SeaActor'])
+            #
+            # win.renderer.AddActor(win.actors['SeaActor'])
+
+
+
+
+            ### Decomposition grid redering, TODO
+            if win.decompositiongrid is True:
+                try:  # does the actor exist? if not, create one
+                    win.actors['DGridActor']
+                except:
+                    win.actors['DGridActor'] = vtk.vtkPropCollection()
+
+                win.actors['DGridActor'].RemoveAllItems()
+                RenderDecompGrid(coords, win.actors['DGridActor'], win.columnsinX, win.columnsinY)
+                #print("Adding actors")
+                for i in range(win.actors['DGridActor'].GetNumberOfItems()):
+                    win.renderer.AddActor(win.actors['DGridActor'].GetItemAsObject(i))
+
+            elif win.decompositiongrid is False:
+                try:
+                    for i in range(win.actors['DGridActor'].GetNumberOfItems()):
+                        win.renderer.RemoveActor(win.actors['DGridActor'].GetItemAsObject(i))
+                except:
+                    pass
+
+            # ### Crops
+            # try:  # does the actor exist? if not, create one
+            #     win.actors['CropsActor']
+            # except:
+            #     win.actors['CropsActor'] = vtk.vtkActor()
+            #
+            # win.rainmass += sum(sum(rm))
+            # if win.rainmass < 1.5:
+            #     win.cropslevel = int(win.rainmass * 3) + 2
+            # else:
+            #     if win.cropslevel > 4:
+            #         win.cropslevel -= 1
+            #     else:
+            #         win.cropslevel = 4
+            #
+            # RenderCrops(win.cropslevel, coords, win.actors['CropsActor'])
+            #
+            # if win.rainmass > 1.5:
+            #     win.actors['CropsActor'].GetProperty().SetColor(0, 0, 0)
+            #
+            # win.renderer.AddActor(win.actors['CropsActor'])
+
+            ### Camera settings
+
+
+
+
+
+
+            # Uncomment if you want to get a screenshot of every frame, see function description
+            #Screenshot(win.vtkwidget.GetRenderWindow())
+
+            #win.vtkwidget.GetRenderWindow.SetFullScreen(False)
+            #win.vtkwidget.GetRenderWindow().FullScreenOn()
+
+            ### Render the barplot
+            try:
+                win.views['BarPlot']
+            except:
+                win.views['BarPlot'] = vtk.vtkContextView()
+
+            try:
+                win.views['BarPlot'].GetScene().RemoveItem(0)
+            except:
+                pass
+
+            ratio = commtime / overalltime
+            chart = RenderPlot(ratio)
+
+            win.views['BarPlot'].GetScene().AddItem(chart)
+            win.views['BarPlot'].GetRenderer().SetViewport(0,0,1,0.3)
+
+            win.vtkwidget.GetRenderWindow().AddRenderer(win.views['BarPlot'].GetRenderer())
+
+            try:
+                win.views['StatusLine']
+            except:
+                win.views['StatusLine'] = vtk.vtkContextView()
+
+            win.views['StatusLine'].GetRenderer().SetBackground(0.22,.67,.87)
+            win.views['StatusLine'].GetRenderer().SetViewport(0.85,0.3,1,1)
+
+            win.vtkwidget.GetRenderWindow().AddRenderer(win.views['StatusLine'].GetRenderer())
+            win.views['StatusLine'].GetRenderer().Render()
+
+            generateStatusBar(self, win, win.views['StatusLine'].GetRenderer(), modeltime, wind_u, wind_v,
+                win.views['StatusLine'].GetScene().GetSceneWidth(), win.views['StatusLine'].GetScene().GetSceneHeight())
+
+            if (not self.init_scene):
+                timecallback=vtkTimerCallback(self, win)
+                win.timer_observer=win.vtkwidget.AddObserver(vtk.vtkCommand.TimerEvent, timecallback.execute) # 'TimerEvent', timecallback.execute)
+                win.timer_id=win.vtkwidget.CreateRepeatingTimer(1000)
+
+
+            if (not self.init_scene): self.init_scene=True
 
         win.vtkwidget.GetRenderWindow().Render()
-        if (not self.init_scene): self.init_scene=True
 
         t2=time.time()
         print("Total frame rendering time=",t2-t1)
@@ -1291,8 +1316,8 @@ def RenderTemp(self,th, coords, tempactor):
     colourbar.SetLookupTable(lut)
     #colourbar.SetAnnotationTextScaling(1)
     #colourbar.SetOrientationToHorizontal()
-    colourbar.SetPosition(0.1,0.1)
-    colourbar.SetTitle("Temperature")
+    colourbar.SetPosition(0.,0.1)
+    colourbar.SetTitle("Temperature (Celsius)")
 
     self.win.renderer.AddActor(colourbar)
 
@@ -1373,7 +1398,7 @@ def RenderTemp(self,th, coords, tempactor):
 #     rainactor.GetProperty().SetOpacity(0.1)
 #     rainactor.SetMapper(rainmapper)
 
-def RenderPress(p, coords, pressactor):
+def RenderPress(p, coords, pressactor,p0):
 
     x,y,z = coords
 
@@ -1422,7 +1447,7 @@ def RenderPress(p, coords, pressactor):
 
     lut=vtk.vtkLookupTable()
     lut.SetNumberOfTableValues(256)
-    lut.SetTableRange(mn,mx)
+    lut.SetTableRange((mn+p0)/100000,(mx+p0)/100000.)
 
     for i in range(256):
         #alpha.AddPoint(i,i/1024.)
@@ -1444,8 +1469,8 @@ def RenderPress(p, coords, pressactor):
     colourbar=vtk.vtkScalarBarActor()
 
     colourbar.SetLookupTable(lut)
-    colourbar.SetPosition(0.1,0.1)
-    colourbar.SetTitle("Pressure")
+    colourbar.SetPosition(0.,0.1)
+    colourbar.SetTitle("Pressure (Bar)")
 
     # The preavious two classes stored properties. Because we want to apply these properties to the volume we want to render,
     # we have to store them in a class that stores volume prpoperties.
@@ -1616,7 +1641,7 @@ def RenderSea(sealevel, coords, renderer, seaactor):
     seaactor.SetMapper(seamapper)
 
 
-def RenderLand(self,coords, renderer):
+def RenderLand(self, renderer):
 
     # x,y,z = coords
     #
