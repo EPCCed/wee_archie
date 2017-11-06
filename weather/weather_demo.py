@@ -162,7 +162,7 @@ class WeatherDemo(client.AbstractDemo):
         t1=time.time()
         self.win=win
 
-        print("LOCATION=",self.Location)
+        #print("LOCATION=",self.Location)
 
         x=34
         y=24
@@ -734,8 +734,8 @@ def RenderDecompGrid(coords, collection, px, py):
             points.InsertNextPoint(int(localsizex * j)-1, localsizey * i-1, 0)
             points.InsertNextPoint(int(localsizex * j)-1, 0, 0)
             points.InsertNextPoint(0, 0, z)
-            if i==1:
-                print(overflowy, localsizey, localsizey*i)
+            #if i==1:
+            #    print(overflowy, localsizey, localsizey*i)
 
             grid = vtk.vtkUnstructuredGrid()
             grid.SetPoints(points)
@@ -796,7 +796,7 @@ def RenderDecompGrid(coords, collection, px, py):
         for j in range(1, int(overflowx) + 1):
             points = vtk.vtkPoints()
             ### for the outline, don't ask
-            print("Localsize and j, ", localsizex, j)
+            #print("Localsize and j, ", localsizex, j)
             points.InsertNextPoint(0, 0, 0)
             points.InsertNextPoint(0, int(localsizey * i)+overflowy-1, 0)
             points.InsertNextPoint(int(localsizex * j)-1, int(localsizey * i)+overflowy-1, 0)
@@ -1089,7 +1089,7 @@ def RenderCloud(cloud, coords, cloudactor):
 
 
 def RenderVapor(vapor, coords):
-    print("Vapour?")
+    #print("Vapour?")
     x, y, z = coords
     points = vtk.vtkPoints()
 
