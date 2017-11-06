@@ -5,10 +5,15 @@ from time import strftime
 
 class LiveWeather(object):
 
+    weather_constants={3166: {"D":"SSW","G":"32","H":"79.0","P":"1010","S":"16","T":"11.8","V":"40000","W":"8","Pt":"F","Dp":"8.3","$":"1140"},
+                        3047: {"D":"S","H":"94.1","P":"1007","S":"13","T":"9.2","V":"18000","W":"15","Pt":"F","Dp":"8.3","$":"1140"},
+                        3772: {"D":"SW","H":"58.2","P":"1024","S":"7","T":"11.4","V":"35000","W":"1","Pt":"F","Dp":"3.6","$":"900"},
+                        3808: {"D":"SSW","H":"83.9","P":"1023","S":"15","T":"11.6","V":"2000","W":"12","Pt":"F","Dp":"9.0","$":"900"}}
+
     weatherCompassPoints = {"N" : 0, "NNE" : 22, "NE" : 45, "ENE" : 68, "E" : 90, "ESE" : 112, "SE" : 135, "SSE" : 158, "S" : 180, "SSW" : 202, "SW" : 225, "WSW" : 248,
                             "W" : 270, "WNW" : 292, "NW" : 315, "NNW" : 338}
 
-    def __init__(self, place, historical=3):
+    def __init__(self, place, historical=3, use_internal_values=False):
 
         # Read the current hour
         time = int(strftime("%H"))
@@ -16,45 +21,45 @@ class LiveWeather(object):
         self.targetTime = time
         if (historical != None): self.targetTime-=historical
 
-        try:
-            # The UK Met Office live weather url
-            url = "http://datapoint.metoffice.gov.uk/public/data/val/wxobs/all/json/" \
-                  "%s?res=hourly&key=25617c79-940e-4254-8e5a-fbdc6d5f0f14" % place
-
-            print("URL= ",url)
-
-            # Grab the data from the url and process it
-            response = urllib2.urlopen(url, timeout=3)
-            data = json.loads(response.read())
-
-            # Get to the right data array
-            if (len(data["SiteRep"]["DV"]["Location"]["Period"]) >= 2):
-                todayIndex=1
-            else:
-                todayIndex=0
-            days_weather = (data["SiteRep"]["DV"]["Location"]["Period"][todayIndex]["Rep"])
-
-            hour_num = len(days_weather)
-            print("hour_num=",hour_num)
-            self.hour = []
-
-            # Loop to get the data from the arrays for the current time
-            for i in range(hour_num):
-                hour_weather = int(days_weather[i]["$"]) / 60
-                print(hour_weather, self.targetTime)
-                if hour_weather == self.targetTime:
-                    self.hour.append(days_weather[i])
-            if len(self.hour) == 0:
-                print "Some error retrieving weather... Using default values"
-                response = {"D": 'NNE', "Pt": 'R', "H": 40.2, "P": 1014, "S": 7, "T": 19.0, "W": 1, "V": 30000, "Dp": 5.3, }
-                self.hour = []
-                self.hour.append(response)
-
-        except:
-            print "No internet, using default values instead"
-            response = {"D": 'NNE', "Pt": 'R', "H": 40.2, "P": 1014, "S": 7, "T": 19.0, "W": 1, "V": 30000, "Dp": 5.3, }
+        if (use_internal_values):
+            response = self.weather_constants[place]
             self.hour = []
             self.hour.append(response)
+        else:
+            try:
+                # The UK Met Office live weather url
+                url = "http://datapoint.metoffice.gov.uk/public/data/val/wxobs/all/json/" \
+                  "%s?res=hourly&key=25617c79-940e-4254-8e5a-fbdc6d5f0f14" % place
+
+                # Grab the data from the url and process it
+                response = urllib2.urlopen(url, timeout=3)
+                data = json.loads(response.read())
+
+                # Get to the right data array
+                if (len(data["SiteRep"]["DV"]["Location"]["Period"]) >= 2):
+                    todayIndex=1
+                else:
+                    todayIndex=0
+                days_weather = (data["SiteRep"]["DV"]["Location"]["Period"][todayIndex]["Rep"])
+
+                hour_num = len(days_weather)
+                self.hour = []
+
+                # Loop to get the data from the arrays for the current time
+                for i in range(hour_num):
+                    hour_weather = int(days_weather[i]["$"]) / 60
+                    if hour_weather == self.targetTime:
+                        self.hour.append(days_weather[i])
+                if len(self.hour) == 0:
+                    print "Some error retrieving weather... Using default values for location "+str(place)
+                    response = self.weather_constants[place]
+                    self.hour = []
+                    self.hour.append(response)
+            except:
+                print "No internet, using default values instead"
+                response = self.weather_constants[place]
+                self.hour = []
+                self.hour.append(response)
 
     def target_time(self):
         return self.targetTime

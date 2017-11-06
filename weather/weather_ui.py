@@ -84,6 +84,7 @@ class WeatherWindow(UI):
         fileMenu = wx.Menu()
         settings = fileMenu.Append(wx.ID_ANY, 'Settings', 'Open settings window')
         scoreboard = fileMenu.Append(wx.ID_ANY, 'Score board', 'Open scoreboard window')
+        self.internalWeatherCheckItem=fileMenu.AppendCheckItem(wx.ID_ANY, 'Internal weather', 'Use internal weather')
         playbackAdded = fileMenu.AppendSubMenu(playbackMenu, 'Playback', 'Playback control')
         fitem = fileMenu.Append(wx.ID_EXIT, 'Quit', 'Quit application')
 
@@ -256,7 +257,6 @@ class FinishedWindow(wx.Frame):
         plt.xlabel('Accuracy (%)')
         plt.ylabel('Minutes simulated')
         plt.xlim(0, 100)
-        print((str(max_x)))
         plt.ylim(0, max_x+5)
 
         self.canvas = FigureCanvas(self.LocationPanel, -1, fig)
@@ -347,11 +347,9 @@ class NewWindow(wx.Frame):
 
         self.demo.RenderFrame(self.parent,None,landscape_only=True)
 
-
-
         # because the events or something does not work for setting there values, set them here
 
-        weatherInstance=LiveWeather(self.weatherLocationCode)
+        weatherInstance=LiveWeather(self.weatherLocationCode, use_internal_values=self.mainWeatherWindow.internalWeatherCheckItem.IsChecked())
 
         if (self.weatherLocationCode == 3166):
             selected_location=EDINBURGH_LOCATION
@@ -375,7 +373,6 @@ class NewWindow(wx.Frame):
         f.write('\nfixed_cloud_number=1.0e9') # 9
 
         self.demo.reference_pressure=weatherInstance.pressure()*100
-        print("PRESSURE IS ",weatherInstance.pressure())
 
         # switch sef.timeofyear
 
@@ -484,7 +481,6 @@ class NewWindow(wx.Frame):
             wind_direction=weatherInstance.wind_direction()[i]
             idx=0 if wind_direction == "N" or wind_direction == "S" else 1
             winforce[idx]+=-strength if wind_direction == "S" or wind_direction == "W" else strength
-            print (wind_direction + " "+str(winforce[idx]))
 
         wind_gust=weatherInstance.wind_gust()
         if (wind_gust > 0):
@@ -967,7 +963,6 @@ class TabSetup(wx.Panel):
     def UpdateChip(self,e=None):
         #get the size of the part of the window that contains the graphic
         (w,h) = self.bitmap1.Size
-        print("w,h=",w,h)
         if (w ==0 or h==0):
             w=300
             h=300
@@ -1021,9 +1016,7 @@ class TabLocation(wx.Panel):
         self.setupWindow=setupWindow
 
         maxWidth, maxHeight= wx.GetDisplaySize()
-        print("maxwidth,maxheight=",maxWidth,maxHeight)
         W,H=parent.GetClientSize()
-        print(W,H)
 
         heightCorrector=100
         maxHeight-=heightCorrector
@@ -1117,8 +1110,7 @@ class TabLocation(wx.Panel):
         self.parent.SetSelection(1)
 
     def generateWeatherText(self, numb):
-        print("requesting weather data...")
-        weatherInstance=LiveWeather(numb)
+        weatherInstance=LiveWeather(numb, use_internal_values=self.setupWindow.mainWeatherWindow.internalWeatherCheckItem.IsChecked())
         weatherString=""
         live=weatherInstance.hour_weather()
         if live <= 1:
@@ -1128,13 +1120,11 @@ class TabLocation(wx.Panel):
         else:
             weatherString+="Raining"
         weatherString+=" "+str(weatherInstance.wind_speed())+"m/s "+weatherInstance.wind_direction()+" "+str(weatherInstance.pressure())+"hpa "+str(weatherInstance.temperature())+"C "+str(weatherInstance.visibility())+"m"
-        print("Weather data gotten!")
         return weatherString
 
 
     def weather_data(self, place, numb):
-        print("Getting weather data...")
-        live = LiveWeather(numb).hour_weather()
+        live = LiveWeather(numb, use_internal_values=self.setupWindow.mainWeatherWindow.internalWeatherCheckItem.IsChecked()).hour_weather()
         place = place
         if live <= 1:
             place.append(sun)
@@ -1142,7 +1132,6 @@ class TabLocation(wx.Panel):
             place.append(cloud)
         else:
             place.append(rain)
-        print("weather data gotten")
         return place
 
     # Change the cursor to a hand every time the cursor goes over a button
