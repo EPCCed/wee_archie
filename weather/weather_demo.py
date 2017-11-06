@@ -25,7 +25,7 @@ class vtkTimerCallback():
                 self.win.StopSim()
                 self.win.playing = False
                 self.win.getdata.value = False
-                self.win.showScoreBoard(math.ceil(self.parent.achievedtime/60), self.parent.accuracy_achieved / self.parent.accuracy_ticks)
+                self.win.showScoreBoard(math.ceil(self.parent.achievedtime/60), self.parent.calculateAccuracy())
             else:
                 if (elapsedTick == 25): self.win.mode=1
                 if (elapsedTick == 35): self.win.mode=2
@@ -45,8 +45,11 @@ class DTO(client.AbstractDTO):
 class WeatherDemo(client.AbstractDemo):
     def __init__(self):
         self.init_scene=False
-        self.accuracy_achieved=0.0
-        self.accuracy_ticks=0
+        self.wind_tot=0.0
+        self.wind_min=9999.0
+        self.wind_max=0.0
+        self.wind_angle=0.0
+        self.wind_ticks=0
 
     # read in data and convert it to a data transfer object
     def GetVTKData(self, root): # root=netcdf handle
@@ -70,8 +73,9 @@ class WeatherDemo(client.AbstractDemo):
 
         vapor = (q[0] / 0.018) - 0.08  # return normalized vapor field data
 
-        clouds = (q[1] - 0.00004)/ q[1].max()  # return normalized cloud data
-        rain = (q[2]/q[2].max())
+        clouds = q[1] #(q[1] - 0.00004)/ q[1].max()  # return normalized cloud data
+        #print(str(clouds))
+        rain = q[2]# (q[2]/q[2].max())
 
         timepersec = root.variables['time_per_sec'][0]
         modeltime = root.variables['model_time'][0]
@@ -99,16 +103,56 @@ class WeatherDemo(client.AbstractDemo):
 
         return dto
 
-    def setSubmittedParameters(self, basehour, obs_wind_dir, obs_wind_strength, obs_pressure, obs_temp):
+    def calculateAccuracy(self):
+        if (self.obs_state < 4):
+            clouds_accuracy=25 if self.accuracy_setting >= 60 else 20
+        else:
+            cost_factor = 4 if self.obs_state < 12 else 6
+            clouds_accuracy=random.randint(abs(self.accuracy_setting/4) - cost_factor, self.accuracy_setting + 3)
+            if (clouds_accuracy < 0): clouds_accuracy=0
+            if (clouds_accuracy > 25): clouds_accuracy=25
+        wind_speed_avg=self.wind_tot/self.wind_ticks
+        wind_dir_avg=self.wind_angle/self.wind_ticks
+
+        wind_score_str_component=10-abs(wind_speed_avg - self.obs_wind_strength)
+        if (wind_score_str_component < 0): wind_score_str_component=0
+
+        wind_score_gust_component=10-abs((self.wind_max - self.wind_min) - self.obs_gust)
+        if (wind_score_gust_component < 0): wind_score_gust_component=0
+
+        wind_score_direction_component=10-abs(self.obs_wind_dir - wind_dir_avg)
+        if (wind_score_direction_component < 0): wind_score_direction_component=0
+
+        wind_accuracy=wind_score_str_component+wind_score_gust_component+wind_score_direction_component
+        pressure_accuracy=self.calcSpecificAccuracy()
+        temp_accuracy=self.calcSpecificAccuracy()
+        return clouds_accuracy+wind_accuracy+pressure_accuracy+temp_accuracy
+
+
+    def calcSpecificAccuracy(self):
+        field_accuracy=random.randint(15,20)
+        if (self.accuracy_setting < 70):
+            field_accuracy-=random.randint(3,6)
+        if (self.accuracy_setting < 60):
+            field_accuracy-=random.randint(3,6)
+        if (self.accuracy_setting < 50):
+            field_accuracy-=random.randint(3,6)
+        if (self.accuracy_setting < 40):
+            field_accuracy-=random.randint(3,6)
+        if (field_accuracy < 0): field_accuracy=0
+        if (field_accuracy > 25): field_accuracy=25
+        return field_accuracy
+
+
+    def setSubmittedParameters(self, basehour, obs_wind_dir, obs_wind_strength, obs_gust, obs_pressure, obs_temp, obs_state, accuracy_setting):
         self.basehour=basehour
         self.obs_wind_dir=obs_wind_dir
         self.obs_wind_strength=obs_wind_strength
+        self.obs_gust=obs_gust if obs_gust > 0 else 0
         self.obs_pressure=obs_pressure
         self.obs_temp=obs_temp
-
-    def updateCurrentAccuracyScore(self, avg_temp, avg_pressure):
-        self.accuracy_achieved+=50
-        self.accuracy_ticks+=1
+        self.obs_state=obs_state
+        self.accuracy_setting=accuracy_setting
 
     # Renders a frame with data contained within the data transfer object, data
     def RenderFrame(self, win, dto):
@@ -128,8 +172,6 @@ class WeatherDemo(client.AbstractDemo):
         self.mode = win.mode
 
         self.achievedtime=modeltime*2
-
-        self.updateCurrentAccuracyScore(avg_temp, avg_pressure)
 
         # The actors need to be created only once, that is why we have a actors dictionary in the win. This way we
         # will only add each actor once to the renderer. The other things like data structures, filters and mappers are
@@ -453,13 +495,17 @@ def generateStatusBar(self, win, renderer, modeltime, wind_u, wind_v, bar_width,
     win.views['StatusLine'].GetScene().AddItem(win.timeOfDayHourHand)
 
     win_strength, win_direction=calcWindStrenghDirection(wind_u, wind_v)
+    self.wind_tot+=win_strength
+    self.wind_angle+=win_direction
+    self.wind_ticks+=1
+    if (self.wind_min > win_strength): self.wind_min=win_strength
+    if (self.wind_max < win_strength): self.wind_max=win_strength
     win.compass1_hand=generateWindDirectionHand(bar_width*0.4166, bar_height*0.2658, win_direction)
     win.compass1_strength=generateCompassStength(bar_width*0.5798, bar_height*0.3291, win_strength)
     win.views['StatusLine'].GetScene().AddItem(win.compass1_hand)
     win.views['StatusLine'].GetScene().AddItem(win.compass1_strength)
 
 def calcWindStrenghDirection(wind_u, wind_v):
-    print(str(wind_u)+ " "+str(wind_v))
     strength=abs(wind_u + wind_v)
     wind_u_abs=abs(wind_u)
     wind_v_abs=abs(wind_v)

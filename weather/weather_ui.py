@@ -15,6 +15,7 @@ from matplotlib.backends.backend_wx import NavigationToolbar2Wx
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 from time import strftime
+import random
 
 # New module to import the live weather forcast
 from weather_live import LiveWeather
@@ -32,6 +33,11 @@ edinburgh = []
 london = []
 cornwall = []
 highlands = []
+
+EDINBURGH_LOCATION=1
+LONDON_LOCATION=2
+CORNWALL_LOCATION=3
+HIGHLANDS_LOCATION=4
 
 # Derive the demo-specific GUI class from the AbstractUI class
 class WeatherWindow(UI):
@@ -133,7 +139,7 @@ class WeatherWindow(UI):
         self.OpenWindow()
 
     def OpenScoreboard(self, event=None):
-        self.showScoreBoard(1000, 50)
+        self.showScoreBoard(None, None)
 
     def showScoreBoard(self, time_modelled, accuracy_achieved):
         newWindow=FinishedWindow(self, time_modelled, accuracy_achieved)
@@ -249,7 +255,7 @@ class FinishedWindow(wx.Frame):
         plt.ylabel('Minutes simulated')
         plt.xlim(0, 100)
         print((str(max_x)))
-        plt.ylim(0, max_x)
+        plt.ylim(0, max_x+5)
 
         self.canvas = FigureCanvas(self.LocationPanel, -1, fig)
         locationSizer.Add(self.canvas,1,wx.GROW)
@@ -335,28 +341,124 @@ class NewWindow(wx.Frame):
 
         weatherInstance=LiveWeather(self.weatherLocationCode)
 
-        self.demo.setSubmittedParameters(weatherInstance.target_time(), weatherInstance.wind_compass_direction(), weatherInstance.wind_speed(),
-                weatherInstance.pressure(), weatherInstance.temperature())
+        if (self.weatherLocationCode == 3166):
+            selected_location=EDINBURGH_LOCATION
+        elif (self.weatherLocationCode == 3047):
+            selected_location=HIGHLANDS_LOCATION
+        elif (self.weatherLocationCode == 3772):
+            selected_location=LONDON_LOCATION
+        elif (self.weatherLocationCode == 3808):
+            selected_location=CORNWALL_LOCATION
+
+        self.demo.setSubmittedParameters(weatherInstance.target_time(), weatherInstance.wind_compass_direction(), weatherInstance.wind_speed(), weatherInstance.wind_gust(),
+                weatherInstance.pressure(), weatherInstance.temperature(), weatherInstance.hour_weather(), self.tab2.accuracySlider.GetValue())
 
         f = open('config.mcf', 'w+')
 
         f.write('global_configuration=outreach_config')
 
         # pressure settings
-        f.write('\nsurface_pressure='+str(weatherInstance.pressure())+'00')
-        f.write('\nsurface_reference_pressure='+str(weatherInstance.pressure())+'00')
-        f.write('\nfixed_cloud_number=1.0e9')
+        f.write('\nsurface_pressure='+str(weatherInstance.pressure())+'00.0')
+        f.write('\nsurface_reference_pressure='+str(weatherInstance.pressure())+'00.0')
+        f.write('\nfixed_cloud_number=1.0e9') # 9
 
         # switch sef.timeofyear
 
-        f.write('\nf_force_pl_q=-1.2e-8, -1.2e-8, 0.0, 0.0')
+        f.write('\nl_force_pl_q=.false.')
 
-        f.write('\nsurface_latent_heat_flux=200.052')
-        f.write('\nsurface_sensible_heat_flux=16.04')
+        f.write('\nz_force_pl_q=0.0, 300.0, 500.0, 1000.')
+        f.write('\nf_force_pl_q=-10.0, 0.0, 4.2e-3, 0.0')
+        #f.write('\nf_force_pl_q=17.0e-3, 16.3e-3, 10.7e-3, 4.2e-3, 3.0e-3')
+
+        f.write('\nl_constant_forcing_theta=.false.\nl_subs_pl_theta=.true.\nl_constant_forcing_q=.false.\nl_subs_pl_q=.false.')
+
+        f.write('\nz_subs_pl=0.0, 1500.0, 2100.0, 3000.')
+        f.write('\nf_subs_pl=0.0, -0.0065, 0.0, 10.7e-3')
+
+        if (selected_location==CORNWALL_LOCATION):
+            f.write('\nsurface_latent_heat_flux=1000.0')
+            f.write('\nsurface_sensible_heat_flux=100.0')
 
         # amount of water
-        f.write('\nz_init_pl_q=0.0, 520.0, 1480., 2000., 3000.')
-        f.write('\nf_init_pl_q=17.0e-3, 16.3e-3, 10.7e-3, 4.2e-3, 3.0e-3')
+        f.write('\nl_init_pl_q=.true.')
+
+        if (weatherInstance.hour_weather() == 7 or weatherInstance.hour_weather() == 8):
+            # Cloudy weather
+            f.write('\nz_init_pl_q=0.0, 500.0, 2200., 2500., 3000.')
+            if (selected_location==HIGHLANDS_LOCATION):
+                f.write('\nf_init_pl_q=0.0, 4.3e-3, 4.3e-3, 0.0, 0.0')
+            else:
+                f.write('\nf_init_pl_q=0.0, 4.3e-3, 4.3e-3, 0.0, 0.0')
+            if (self.tab2.accuracySlider.GetValue() > 40):
+                f.write('\nl_init_pl_q_patchy=.true.')
+                num_clouds=abs((self.tab2.accuracySlider.GetValue() - 20) / 5)
+                start_posns=[]
+                end_posns=[]
+                divisor=32/num_clouds
+                for i in range(num_clouds):
+                    split_quad=abs(((i+1)*divisor)/4)
+                    start_posn=random.randint(i*divisor,(i*divisor) + (divisor/4))
+                    end_posn=random.randint(((i+1)*divisor) - (divisor/4),(i+1)*divisor)
+                    if (start_posn >= end_posn): end_posn=start_posn+2
+                    start_posns.append(start_posn)
+                    end_posns.append(end_posn)
+                f.write('\nq_x_start=')
+                first_write=True
+                for x in start_posns:
+                    if (not first_write): f.write(',')
+                    f.write(str(x))
+                    first_write=False
+                f.write('\nq_x_end=')
+                first_write=True
+                for x in end_posns:
+                    if (not first_write): f.write(',')
+                    f.write(str(x))
+                    first_write=False
+
+                f.write('\nq_y_start=')
+                first_write=True
+                bunch=True
+                for x in start_posns:
+                    if (not first_write): f.write(',')
+                    f.write("1" if bunch else "5")
+                    first_write=False
+                    bunch=False if bunch else True
+                f.write('\nq_y_end=')
+                first_write=True
+                bunch=False
+                for x in end_posns:
+                    if (not first_write): f.write(',')
+                    f.write("31" if bunch else "25")
+                    first_write=False
+                    bunch=False if bunch else True
+                #f.write('\nq_x_start=3,22\nq_x_end=17,31\nq_y_start=1,1\nq_y_end=30,30')
+        elif (weatherInstance.hour_weather() == 5 or weatherInstance.hour_weather() == 6):
+            # Misty/fog weather
+            f.write('\nz_init_pl_q=0.0, 100.0, 1800., 2000., 3000.')
+            f.write('\nf_init_pl_q=6.3e-3, 6.3e-3, 0.0, 0.0, 0.0')
+        elif (weatherInstance.hour_weather() >= 9 and weatherInstance.hour_weather() <= 12):
+            # Light rain weather
+            f.write('\nz_init_pl_q=0.0, 1000.0, 1800., 2000., 3000.')
+            f.write('\nf_init_pl_q=0.0, 6.3e-2, 0.0, 0.0, 0.0')
+            f.write('\nl_init_pl_q_patchy=.true.')
+            f.write('\nq_x_start=3,10,22\nq_x_end=10,20,32\nq_y_start=10,5,9\nq_y_end=25,20,30')
+        elif (weatherInstance.hour_weather() >= 13):
+            # Heavy rain weather
+            f.write('\nz_init_pl_q=0.0, 500.0, 1000., 2000., 3000.')
+            f.write('\nf_init_pl_q=0.0, 8.3e-2, 2.3e-3, 4.3e-3, 0.0')
+            f.write('\nl_init_pl_q_patchy=.true.')
+            f.write('\nq_x_start=3\nq_x_end=22\nq_y_start=10\nq_y_end=30')
+        else:
+            # Sunny weather
+            f.write('\nz_init_pl_q=0.0, 500.0, 1000., 2000., 3000.')
+            f.write('\nf_init_pl_q=0.0, 4.3e-3, 4.3e-3, 0.0, 0.0')
+            f.write('\nl_init_pl_q_patchy=.true.')
+            f.write('\nq_x_start=3,10,20\nq_x_end=17,22,25\nq_y_start=5,10,2\nq_y_end=20,25,25')
+        #else:
+        #    f.write('\nz_init_pl_q=0.0, 520.0, 1480., 2000., 3000.')
+        #    f.write('\nf_init_pl_q=0.0, 0.0, 4.2e-3, 0.0, 0.0')
+
+        #f.write('\nf_init_pl_q=17.0e-3, 16.3e-3, 10.7e-3, 4.2e-3, 3.0e-3')
 
         # wind config
         winforce=[0.0]*2
@@ -399,10 +501,39 @@ class NewWindow(wx.Frame):
         tempstr = str(temperature)
 
         f.write('\nthref0 = ' + tempstr)
+        f.write('\nl_init_pl_theta=.true.')
 
-        f.write('\nz_init_pl_theta=0.0, 520.0, 1480., 2000., 3000.')
+        if (weatherInstance.hour_weather() == 7 or weatherInstance.hour_weather() == 8):
+            # Cloudy weather
+            f.write('\nz_init_pl_theta=0.0, 1000.0, 1480., 2000., 3000.')
+            if (selected_location==CORNWALL_LOCATION):
+                f.write('\nf_init_pl_theta=' + str(temperature+4) + ', ' + str(temperature+2) + ', ' + str(temperature) + ', ' + str(temperature-2) + ', ' + str(temperature-6))
+            elif (selected_location==HIGHLANDS_LOCATION):
+                f.write('\nf_init_pl_theta=' + str(temperature-10) + ', ' + str(temperature-8) + ', ' + str(temperature) + ', ' + str(temperature+2) + ', ' + str(temperature))
+            else:
+                f.write('\nf_init_pl_theta=' + str(temperature) + ', ' + str(temperature-2) + ', ' + str(temperature-4) + ', ' + str(temperature-6) + ', ' + str(temperature-10))
+        elif (weatherInstance.hour_weather() == 5 or weatherInstance.hour_weather() == 6):
+            # Misty/foggy weather
+            f.write('\nz_init_pl_theta=0.0, 1000.0, 1480., 2000., 3000.')
+            f.write('\nf_init_pl_theta=' + str(temperature-4) + ', ' + str(temperature-2) + ', ' + str(temperature-2) + ', ' + str(temperature-2) + ', ' + str(temperature-6))
+        elif (weatherInstance.hour_weather() >= 9 and weatherInstance.hour_weather() <= 12):
+            # Light rain weather
+            f.write('\nz_init_pl_theta=0.0, 1000.0, 1480., 2000., 3000.')
+            f.write('\nf_init_pl_theta=' + str(temperature-4) + ', ' + str(temperature-2) + ', ' + str(temperature-2) + ', ' + str(temperature-2) + ', ' + str(temperature-6))
+        elif (weatherInstance.hour_weather() >= 13):
+            # Heavy rain weather
+            f.write('\nz_init_pl_theta=0.0, 1000.0, 1480., 2000., 3000.')
+            f.write('\nf_init_pl_theta=' + str(temperature-4) + ', ' + str(temperature-2) + ', ' + str(temperature-2) + ', ' + str(temperature-2) + ', ' + str(temperature-6))
+        else:
+            # Sunny weather
+            f.write('\nz_init_pl_theta=0.0, 1000.0, 1480., 2000., 3000.')
+            f.write('\nf_init_pl_theta=' + str(temperature) + ', ' + str(temperature-2) + ', ' + str(temperature-2) + ', ' + str(temperature-4) + ', ' + str(temperature-6))
 
-        f.write('\nf_init_pl_theta=' + tempstr + ', ' + tempstr + ', ' + str(temperature+2) + ', ' + str(temperature+5) + ', ' + str(temperature+7))
+        #f.write('\nz_init_pl_theta=0.0, 520.0, 1480., 2000., 3000.')
+        #f.write('\nf_init_pl_theta=' + tempstr + ', ' + str(temperature) + ', ' + str(temperature-10) + ', ' + str(temperature-10) + ', ' + str(temperature-10))
+
+        #f.write('\nl_constant_forcing_theta=.true.')
+       # f.write('\nf_force_pl_theta=2.0, 2.0, -10.0, -10.0')
 
         # core number and decomposition
         f.write('\ncores_per_pi=' + str(self.tab2.coresRadio.GetSelection()+1))
@@ -412,64 +543,65 @@ class NewWindow(wx.Frame):
         wind_accuracy=self.tab3.B
         micro_phys_accuracy=self.tab3.C
 
-        if (self.tab2.accuracySlider.GetValue() < 30):
-            pressure_accuracy=0.1
-            wind_accuracy=0.1
-            micro_phys_accuracy=0.1
-        if (self.tab2.accuracySlider.GetValue() < 40):
-            pressure_accuracy=0.1
-            wind_accuracy=0.1
-            micro_phys_accuracy=0.21
-        elif (self.tab2.accuracySlider.GetValue() < 60):
-            pressure_accuracy=0.21
-            wind_accuracy=0.21
-            micro_phys_accuracy=0.31
-        elif (self.tab2.accuracySlider.GetValue() < 70):
-            pressure_accuracy=0.31
-            wind_accuracy=0.31
-            micro_phys_accuracy=0.31
-        elif (self.tab2.accuracySlider.GetValue() < 80):
-            pressure_accuracy=0.41
-            wind_accuracy=0.41
-            micro_phys_accuracy=0.41
-        elif (self.tab2.accuracySlider.GetValue() < 90):
-            pressure_accuracy=0.51
-            wind_accuracy=0.51
-            micro_phys_accuracy=0.51
-        elif (self.tab2.accuracySlider.GetValue() <= 100):
-            pressure_accuracy=0.7
-            wind_accuracy=0.7
-            micro_phys_accuracy=0.7
-
-
-        if (pressure_accuracy < 0.2):
-            f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.\ntolerance=1.e-1')
-        elif (pressure_accuracy >= 0.2 and pressure_accuracy < 0.3):
-            f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.\ntolerance=1.e-2')
-        elif (pressure_accuracy >= 0.3 and pressure_accuracy < 0.4):
-            f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.\ntolerance=1.e-3')
-        elif (pressure_accuracy >= 0.4 and pressure_accuracy < 0.5):
-            f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.\ntolerance=1.e-5')
-        elif (pressure_accuracy >= 0.5 and pressure_accuracy < 0.6):
-            f.write('\nfftsolver_enabled=.true.\niterativesolver_enabled=.false.')
+        if (self.tab2.accuracySlider.GetValue() != 60):
+            if (self.tab2.accuracySlider.GetValue() >= 0 and self.tab2.accuracySlider.GetValue() < 50):
+                f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.\ntolerance=1.e-1')
+            if (self.tab2.accuracySlider.GetValue() >= 0 and self.tab2.accuracySlider.GetValue() < 20):
+                f.write('\ncasim_enabled=.false.\nsimplecloud_enabled=.false.')
+            if (self.tab2.accuracySlider.GetValue() >= 0 and self.tab2.accuracySlider.GetValue() < 30):
+                f.write('\nadvection_flow_fields=pw\nadvection_theta_field=pw\nadvection_q_fields=pw')
+            if (self.tab2.accuracySlider.GetValue() >= 20 and self.tab2.accuracySlider.GetValue() < 50):
+                if (weatherInstance.hour_weather() < 4):
+                    f.write('\ncasim_enabled=.false.\nsimplecloud_enabled=.false.')
+                else:
+                    f.write('\ncasim_enabled=.true.\nsimplecloud_enabled=.false.')
+            if (self.tab2.accuracySlider.GetValue() >= 30 and self.tab2.accuracySlider.GetValue() < 50):
+                f.write('\nadvection_flow_fields=pw\nadvection_theta_field=tvd\nadvection_q_fields=pw')
+            if (self.tab2.accuracySlider.GetValue() >= 50 and self.tab2.accuracySlider.GetValue() < 60):
+                f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.\ntolerance=1.e-2')
+                f.write('\nadvection_flow_fields=pw\nadvection_theta_field=pw\nadvection_q_fields=tvd')
+                if (weatherInstance.hour_weather() < 4):
+                    f.write('\ncasim_enabled=.false.\nsimplecloud_enabled=.false.')
+                else:
+                    f.write('\ncasim_enabled=.true.\nsimplecloud_enabled=.false.')
+            if (self.tab2.accuracySlider.GetValue() >= 60 and self.tab2.accuracySlider.GetValue() < 70):
+                f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.\ntolerance=1.e-3')
+                f.write('\nadvection_flow_fields=pw\nadvection_theta_field=tvd\nadvection_q_fields=tvd')
+            if (self.tab2.accuracySlider.GetValue() >= 70 and self.tab2.accuracySlider.GetValue() < 80):
+                f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.\ntolerance=1.e-4')
+                f.write('\nadvection_flow_fields=tvd\nadvection_theta_field=tvd\nadvection_q_fields=tvd')
+            if (self.tab2.accuracySlider.GetValue() >= 80):
+                f.write('\nfftsolver_enabled=.true.')
+                f.write('\nadvection_flow_fields=tvd\nadvection_theta_field=tvd\nadvection_q_fields=tvd')
         else:
-            f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.\ntolerance=1.e-8')
+            if (pressure_accuracy < 0.2):
+                f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.\ntolerance=1.e-1')
+            elif (pressure_accuracy >= 0.2 and pressure_accuracy < 0.3):
+                f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.\ntolerance=1.e-2')
+            elif (pressure_accuracy >= 0.3 and pressure_accuracy < 0.4):
+                f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.\ntolerance=1.e-3')
+            elif (pressure_accuracy >= 0.4 and pressure_accuracy < 0.5):
+                f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.\ntolerance=1.e-5')
+            elif (pressure_accuracy >= 0.5 and pressure_accuracy < 0.6):
+                f.write('\nfftsolver_enabled=.true.\niterativesolver_enabled=.false.')
+            else:
+                f.write('\nfftsolver_enabled=.false.\niterativesolver_enabled=.true.\ntolerance=1.e-8')
 
-        if (wind_accuracy < 0.2):
-             f.write('\nadvection_flow_fields=pw\nadvection_theta_field=pw\nadvection_q_fields=pw')
-        elif (wind_accuracy >= 0.2 and wind_accuracy < 0.3):
-            f.write('\nadvection_flow_fields=pw\nadvection_theta_field=tvd\nadvection_q_fields=pw')
-        elif (wind_accuracy >= 0.3 and wind_accuracy < 0.4):
-            f.write('\nadvection_flow_fields=pw\nadvection_theta_field=tvd\nadvection_q_fields=tvd')
-        else:
-            f.write('\nadvection_flow_fields=tvd\nadvection_theta_field=tvd\nadvection_q_fields=tvd')
+            if (wind_accuracy < 0.2):
+                 f.write('\nadvection_flow_fields=pw\nadvection_theta_field=pw\nadvection_q_fields=pw')
+            elif (wind_accuracy >= 0.2 and wind_accuracy < 0.3):
+                f.write('\nadvection_flow_fields=pw\nadvection_theta_field=tvd\nadvection_q_fields=pw')
+            elif (wind_accuracy >= 0.3 and wind_accuracy < 0.4):
+                f.write('\nadvection_flow_fields=pw\nadvection_theta_field=tvd\nadvection_q_fields=tvd')
+            else:
+                f.write('\nadvection_flow_fields=tvd\nadvection_theta_field=tvd\nadvection_q_fields=tvd')
 
-        if (micro_phys_accuracy < 0.3):
-            f.write('\ncasim_enabled=.false.\nsimplecloud_enabled=.false.')
-        elif (micro_phys_accuracy >= 0.2 and micro_phys_accuracy < 0.3):
-            f.write('\ncasim_enabled=.false.\nsimplecloud_enabled=.true.')
-        else:
-            f.write('\ncasim_enabled=.true.\nsimplecloud_enabled=.false.')
+            if (micro_phys_accuracy < 0.3):
+                f.write('\ncasim_enabled=.false.\nsimplecloud_enabled=.false.')
+            elif (micro_phys_accuracy >= 0.2 and micro_phys_accuracy < 0.3):
+                f.write('\ncasim_enabled=.false.\nsimplecloud_enabled=.true.')
+            else:
+                f.write('\ncasim_enabled=.true.\nsimplecloud_enabled=.false.')
 
         f.close()
 
