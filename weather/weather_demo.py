@@ -211,8 +211,6 @@ class WeatherDemo(client.AbstractDemo):
 
             self.achievedtime=modeltime*2
 
-            self.updateCurrentAccuracyScore(avg_temp, avg_pressure)
-
             # The actors need to be created only once, that is why we have a actors dictionary in the win. This way we
             # will only add each actor once to the renderer. The other things like data structures, filters and mappers are
             # created and destroyed in each function.
