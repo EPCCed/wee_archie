@@ -224,6 +224,8 @@ class FinishedWindow(wx.Frame):
         wx.Frame.__init__(self, parent, -1, 'Score board')
         wx.Frame.CenterOnScreen(self)
 
+        self.parent=parent
+
         p = wx.Panel(self)
         sizer = wx.BoxSizer()
 
@@ -261,10 +263,14 @@ class FinishedWindow(wx.Frame):
         locationSizer.Add(self.canvas,1,wx.GROW)
 
         #assign the main windows's sizer
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
         self.SetSizer(self.WinSizer)
         self.Show()
         self.Fit()
 
+    def OnClose(self, event):
+        self.parent.OpenWindow()
+        self.Destroy()
 
 # Class to create a new window for the "settings".
 class NewWindow(wx.Frame):
