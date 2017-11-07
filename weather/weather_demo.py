@@ -27,12 +27,9 @@ class vtkTimerCallback():
                 self.win.getdata.value = False
                 self.win.showScoreBoard(math.ceil(self.parent.achievedtime/60), self.parent.calculateAccuracy())
             else:
-                #if (elapsedTick == 25): self.win.mode=1
-                #if (elapsedTick == 35): self.win.mode=2
-                #if (elapsedTick == 45): self.win.mode=0
-                if (elapsedTick%15 == 0): self.win.mode=0
-                if ((elapsedTick-5)%15 == 0): self.win.mode=1
-                if ((elapsedTick-10)%15 == 0): self.win.mode=2
+                # if (elapsedTick%15 == 0): self.win.mode=0
+                # if ((elapsedTick-5)%15 == 0): self.win.mode=1
+                # if ((elapsedTick-10)%15 == 0): self.win.mode=2
                 updateStopWatchHand(self.win, (self.lasttime-self.starttime) + 1)
                 self.lasttime+=1
 
