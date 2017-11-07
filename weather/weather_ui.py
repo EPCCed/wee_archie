@@ -89,9 +89,9 @@ class WeatherWindow(UI):
         fitem = fileMenu.Append(wx.ID_EXIT, 'Quit', 'Quit application')
 
         viewMenu = wx.Menu()
-        temp = viewMenu.Append(wx.ID_ANY, 'Temperature', 'Change to temp view')
-        press = viewMenu.Append(wx.ID_ANY, 'Pressure', 'Change to press view')
-        real = viewMenu.Append(wx.ID_ANY, 'Real World', 'Change to real view')
+        temp = viewMenu.Append(wx.ID_ANY, 'Temperature', 'Change to temperture view')
+        press = viewMenu.Append(wx.ID_ANY, 'Pressure', 'Change to pressure view')
+        real = viewMenu.Append(wx.ID_ANY, 'Cloud/Rain', 'Change to cloud and rain view')
 
         gridCheckItem=viewMenu.AppendCheckItem(wx.ID_ANY, 'Show grid', 'Show decomposition grid')
 
