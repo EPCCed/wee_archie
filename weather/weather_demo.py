@@ -168,8 +168,41 @@ class WeatherDemo(client.AbstractDemo):
 
 
         win.renderer.SetBackground(0.22,.67,.87)
-        win.renderer.SetViewport(0, 0.3, 1, 1)
-        win.bottomrenderer.SetViewport(0,0,1,0.3)
+        win.renderer.SetViewport(0, 0.3, 0.85, 1)
+
+        try:
+            win.views['BarPlot']
+        except:
+            win.views['BarPlot'] = vtk.vtkContextView()
+
+        if landscape_only:
+            win.views['BarPlot'].GetScene().ClearItems()
+
+
+
+        win.views['BarPlot'].GetRenderer().SetViewport(0,0,1,0.3)
+        win.views["BarPlot"].GetRenderer().SetBackground(0.79,0.79,0.79)
+
+        win.vtkwidget.GetRenderWindow().AddRenderer(win.views['BarPlot'].GetRenderer())
+        win.views['BarPlot'].GetRenderer().Render()
+
+
+
+        try:
+            win.views['StatusLine']
+        except:
+            win.views['StatusLine'] = vtk.vtkContextView()
+
+        if landscape_only:
+            win.views["StatusLine"].GetScene().ClearItems()
+
+
+        win.views['StatusLine'].GetRenderer().SetBackground(0.22,.67,.87)
+        win.views['StatusLine'].GetRenderer().SetBackground(0.79,0.79,0.79)
+        win.views['StatusLine'].GetRenderer().SetViewport(0.85,0.3,1,1)
+
+        win.vtkwidget.GetRenderWindow().AddRenderer(win.views['StatusLine'].GetRenderer())
+        win.views['StatusLine'].GetRenderer().Render()
 
 
         if (not self.init_scene or landscape_only):
@@ -192,6 +225,10 @@ class WeatherDemo(client.AbstractDemo):
             win.camera.Azimuth(120)
             #tilt camera up by 10 degrees
             win.camera.Elevation(10)
+
+
+
+
 
         if not landscape_only:
 
@@ -403,6 +440,7 @@ class WeatherDemo(client.AbstractDemo):
                 win.views['StatusLine'] = vtk.vtkContextView()
 
             win.views['StatusLine'].GetRenderer().SetBackground(0.22,.67,.87)
+            win.views['StatusLine'].GetRenderer().SetBackground(0.79,0.79,0.79)
             win.views['StatusLine'].GetRenderer().SetViewport(0.85,0.3,1,1)
 
             win.vtkwidget.GetRenderWindow().AddRenderer(win.views['StatusLine'].GetRenderer())
