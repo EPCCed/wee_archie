@@ -22,10 +22,11 @@ class vtkTimerCallback():
             if (elapsedTick > 60):
                 self.win.vtkwidget.RemoveObserver(self.win.timer_observer)
                 self.win.vtkwidget.DestroyTimer(self.win.timer_id, None)
-                self.win.StopSim()
                 self.win.playing = False
                 self.win.getdata.value = False
-                self.win.showScoreBoard(math.ceil(self.parent.achievedtime/60), self.parent.calculateAccuracy())
+                self.win.showScoreBoard(math.ceil(self.parent.achievedtime/60),self.parent.calculateAccuracy())
+                self.win.StopSim()
+
             else:
                 # if (elapsedTick%15 == 0): self.win.mode=0
                 # if ((elapsedTick-5)%15 == 0): self.win.mode=1
