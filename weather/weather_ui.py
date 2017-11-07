@@ -233,7 +233,7 @@ class FinishedWindow(wx.Frame):
         self.WinSizer=wx.BoxSizer(wx.VERTICAL)
 
         self.LocationPanel=wx.Panel(self,style=wx.BORDER_SUNKEN)
-        self.WinSizer.Add(self.LocationPanel,0,wx.EXPAND | wx.ALL,border=5)
+        self.WinSizer.Add(self.LocationPanel,1,wx.EXPAND | wx.ALL,border=5)
 
         locationSizer=wx.BoxSizer(wx.VERTICAL)
         self.LocationPanel.SetSizer(locationSizer)
@@ -244,23 +244,65 @@ class FinishedWindow(wx.Frame):
 
         max_x=0
 
+        #get previous score data and compare to current run
+        x=[]
+        y=[]
+
+        for xx,yy in parent.scores:
+            x.append(xx)
+            y.append(yy)
+
+        #sort the data and reverse (so the top score is at position 0 of the array)
+
+        x.sort()
+        y.sort()
+
+        x.reverse()
+        y.reverse()
+
+        #now go through each score list and find where the current score resides on the scoreboard
+
+        #get time position
+        tplace=1
+
+        print("Time:")
+        for t in y:
+            print(t,time_modelled)
+            if t < time_modelled:
+                print("breakpoint",tplace)
+                break
+            tplace+=1
+
+        #get accuracy position
+        aplace=1
+        for a in x:
+            if a < accuracy_achieved:
+                break
+            aplace+=1
+
+
+
         for data in parent.scores:
             if (data[0] > 0 and data[1] > 0):
-                ax.scatter(data[0], data[1], alpha=0.8, c="green", edgecolors='none', s=30)
+                ax.scatter(data[0], data[1], alpha=0.8, c="black", edgecolors='none',marker='x', s=20)
                 if (data[1] > max_x): max_x=data[1]
 
         if (not (time_modelled is None or accuracy_achieved is None)):
-            ax.scatter(accuracy_achieved, time_modelled, alpha=0.8, c="red", edgecolors='none', s=30)
+            ax.scatter(accuracy_achieved, time_modelled, alpha=1.0, c="green", edgecolors='none', s=200)
             if (time_modelled > max_x): max_x=time_modelled
 
         plt.title('Score board')
         plt.xlabel('Accuracy (%)')
         plt.ylabel('Minutes simulated')
+        ax.text(5,max_x+5,"Position "+str(tplace)+" out of "+str(len(y)+1)+" for minutes simulated")
+        ax.text(5,max_x+10,"Position "+str(aplace)+" out of "+str(len(x)+1)+" for accuracy achieved")
         plt.xlim(0, 100)
-        plt.ylim(0, max_x+5)
+        plt.ylim(0, max_x+15)
+
+
 
         self.canvas = FigureCanvas(self.LocationPanel, -1, fig)
-        locationSizer.Add(self.canvas,1,wx.GROW)
+        locationSizer.Add(self.canvas,1,wx.GROW | wx.EXPAND | wx.ALL)
 
         #assign the main windows's sizer
         self.Bind(wx.EVT_CLOSE, self.OnClose)
