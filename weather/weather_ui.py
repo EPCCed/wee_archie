@@ -267,9 +267,7 @@ class FinishedWindow(wx.Frame):
 
         print("Time:")
         for t in y:
-            print(t,time_modelled)
             if t < time_modelled:
-                print("breakpoint",tplace)
                 break
             tplace+=1
 
