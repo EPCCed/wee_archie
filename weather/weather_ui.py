@@ -294,8 +294,9 @@ class FinishedWindow(wx.Frame):
         plt.ylabel('Minutes simulated')
         ax.text(5,max_x+5,"Position "+str(tplace)+" out of "+str(len(y)+1)+" for minutes simulated")
         ax.text(5,max_x+10,"Position "+str(aplace)+" out of "+str(len(x)+1)+" for accuracy achieved")
+        ax.text(5,max_x+15,str(int(time_modelled))+" minutes simulated, with an accuracy of "+str(round(accuracy_achieved,1))+"%")
         plt.xlim(0, 100)
-        plt.ylim(0, max_x+15)
+        plt.ylim(0, max_x+20)
 
 
 
