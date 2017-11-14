@@ -970,7 +970,7 @@ class TabSetup(wx.Panel):
                 nodesGrid.Add(self.nodes[i],1,wx.EXPAND)
 
         #slider to select the number of nodes
-        self.NodesSlider=wx.Slider(self.NodesPanel,minValue=1,maxValue=16,value=1,name="nodes")
+        self.NodesSlider=wx.Slider(self.NodesPanel,minValue=1,maxValue=16,value=8,name="nodes")
         self.SetNodes()
 
         #bind moving the sliders to the method SetNodes (which colours the node panels according to your selection)
