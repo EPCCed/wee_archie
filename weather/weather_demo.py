@@ -613,7 +613,7 @@ def generateCompassRose(xpos, ypos):
 
 def generateWindDirectionHand(xpos, ypos, wind_angle):
     imageReader = vtk.vtkPNGReader()
-    imageReader.SetFileName("wind_compass_hand2.png")
+    imageReader.SetFileName("wind_compass_hand.png")
     imageReader.Update()
 
     imageResizer=vtk.vtkImageResize()
