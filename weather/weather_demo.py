@@ -533,7 +533,7 @@ def generateStatusBar(self, win, renderer, modeltime, wind_u, wind_v, bar_width,
         win.views['StatusLine'].GetScene().AddItem(generateCompassRose(bar_width*0.399,bar_height*0.265))
         win.views['StatusLine'].GetScene().AddItem(generateCompassRose(bar_width*0.399,bar_height*0.0886))
         win.compass2_hand=generateWindDirectionHand(bar_width*0.4166,bar_height*0.0886, self.obs_wind_dir)
-        win.compass2_strength=generateCompassStength(bar_width*0.62, bar_height*0.1568, self.obs_wind_strength)
+        win.compass2_strength=generateCompassStength(bar_width*0.605, bar_height*0.1518, self.obs_wind_strength)
         win.views['StatusLine'].GetScene().AddItem(win.compass2_hand)
         win.views['StatusLine'].GetScene().AddItem(win.compass2_strength)
         win.bar_width=bar_width
@@ -560,7 +560,7 @@ def generateStatusBar(self, win, renderer, modeltime, wind_u, wind_v, bar_width,
     if (self.wind_min > win_strength): self.wind_min=win_strength
     if (self.wind_max < win_strength): self.wind_max=win_strength
     win.compass1_hand=generateWindDirectionHand(bar_width*0.4166, bar_height*0.2658, win_direction)
-    win.compass1_strength=generateCompassStength(bar_width*0.62, bar_height*0.3321, win_strength)
+    win.compass1_strength=generateCompassStength(bar_width*0.605, bar_height*0.3291, win_strength)
     win.views['StatusLine'].GetScene().AddItem(win.compass1_hand)
     win.views['StatusLine'].GetScene().AddItem(win.compass1_strength)
 
@@ -613,7 +613,7 @@ def generateCompassRose(xpos, ypos):
 
 def generateWindDirectionHand(xpos, ypos, wind_angle):
     imageReader = vtk.vtkPNGReader()
-    imageReader.SetFileName("wind_compass_hand.png")
+    imageReader.SetFileName("wind_compass_hand2.png")
     imageReader.Update()
 
     imageResizer=vtk.vtkImageResize()
