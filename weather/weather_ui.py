@@ -41,7 +41,7 @@ HIGHLANDS_LOCATION=4
 
 # Derive the demo-specific GUI class from the AbstractUI class
 class WeatherWindow(UI):
-    def __init__(self, parent, title, demo, servercomm):
+    def __init__(self, parent, title, demo, servercomm,internal=False):
 
         # call superclass' __init__
         UI.__init__(self, parent, title, demo, servercomm)
@@ -85,6 +85,9 @@ class WeatherWindow(UI):
         settings = fileMenu.Append(wx.ID_ANY, 'Settings', 'Open settings window')
         scoreboard = fileMenu.Append(wx.ID_ANY, 'Score board', 'Open scoreboard window')
         self.internalWeatherCheckItem=fileMenu.AppendCheckItem(wx.ID_ANY, 'Internal weather', 'Use internal weather')
+        if internal:
+            print("Using cached weather data")
+            self.internalWeatherCheckItem.Check(True)
         playbackAdded = fileMenu.AppendSubMenu(playbackMenu, 'Playback', 'Playback control')
         fitem = fileMenu.Append(wx.ID_EXIT, 'Quit', 'Quit application')
 

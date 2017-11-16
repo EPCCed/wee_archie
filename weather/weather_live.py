@@ -22,6 +22,7 @@ class LiveWeather(object):
         if (historical != None): self.targetTime-=historical
 
         if (use_internal_values):
+            print "Using cached weather data"
             response = self.weather_constants[place]
             self.hour = []
             self.hour.append(response)

@@ -12,6 +12,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-s","--server",type=str,default="http://0.0.0.0:5000/", help="Server to be used; default='http://0.0.0.0:5000/'")
 parser.add_argument("-n","--name",type=str,default="SHPCW",help="Simulation name; default='SHPCW'")
 parser.add_argument("-c","--cores", type=int, default=0, help="number of cores per CPU, default: 1")
+parser.add_argument("-i","--internal",type=bool,default=False,help="Use internal (cached) weather. Default=False")
 
 args=parser.parse_args()
 
@@ -20,7 +21,7 @@ servercomm=client.servercomm(args.name,args.server)
 
 app = wx.App(False)
 
-window = weather_ui.WeatherWindow(None, "Weather Simulator", demo, servercomm)
+window = weather_ui.WeatherWindow(None, "Weather Simulator", demo, servercomm,args.internal)
 window.Maximize(True)
 
 app.MainLoop()
