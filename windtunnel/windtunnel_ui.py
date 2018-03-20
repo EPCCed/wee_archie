@@ -465,7 +465,7 @@ class WindTunnelWindow(UI):
 
 
         self.buttonsizer.Layout()
-        self.Fit()
+        #self.Fit()
 
         self.simbutton.SetLabel("Run Simulation")
         self.GetShape(0)
