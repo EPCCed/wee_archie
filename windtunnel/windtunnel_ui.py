@@ -23,7 +23,7 @@ class WindTunnelWindow(UI):
         
         self.args=args
 
-        self.serverversion=False
+        self.serverversion=True
         self.Vorticity=False
 
         self.now = datetime.datetime.now
