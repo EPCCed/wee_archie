@@ -14,4 +14,4 @@ the appropriate institution.
 </a><br />
 This work is licensed under a <a rel="license" href="https://opensource.org/licenses/BSD-3-Clause">
 BSD 3-Clause License</a>.<br/>
-&copy; Copyright EPCC, The University of Edinburgh 2018.
+&copy; Copyright EPCC, The University of Edinburgh 2016-2018.
