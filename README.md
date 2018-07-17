@@ -1,7 +1,6 @@
-# Institutional logo
+# Wee Archie
 
-Permission to re-use these logos should be sought from 
-the appropriate institution.
+This repository contains a number of activities designed to run on Wee Archie, a Raspberry-Pi parallel computer, designed to be taken to outreach events to demonstrate how parallel computers work and thus illustrate the underlying principles of supercomputers.
 
 <!-- Licensing and copyright stuff below -->
 <br>
