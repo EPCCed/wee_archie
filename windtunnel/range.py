@@ -269,7 +269,7 @@ class Range(wx.Frame):
         #setup latitude and longitude grid
         res=1080
         nph=res
-        nth=res/2
+        nth=int(res/2)
 
         lon=np.zeros(nph)
         lat=np.zeros(nth)
