@@ -229,7 +229,9 @@ the laptop command line.
 Again, you need to adjust the IP address to your master node IP
 address. This should open the Wintunnel simulation window and now you
 can play with the simulation similarly as if when it was running on
-the laptop only.  Works? Well done!
+the laptop only.  
+
+You got it to work? Well done!
    
 <!-- Licensing and copyright stuff below -->
 <br>
