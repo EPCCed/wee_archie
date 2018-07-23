@@ -101,14 +101,14 @@ python Start.py
 ```
 A new window should open: 
 
-[Simulation start](imgs/Start_py.png)
+![Simulation start](imgs/Start_py.png)
 
 Now you can adjust the shape of the wing on the screen with the slider
 bars on the left. Then click on ”Run Simulation”. The computation
 might take a while. Once it is finished the flow lines graph will be
 shown:
 
-[Flowlines around a wing](imgs/Flowlines.png)
+![Flowlines around a wing](imgs/Flowlines.png)
 
 You can click on `Take off` button on the left to see if the airplane
 with such a wing would take off or crash.
@@ -171,7 +171,7 @@ Where `-np 4` flag specifies that there will be 4 MPI copies created and the
 sure you specify full paths to the hostfile and the executable file
 ”windtunnel”! For clarity, see my hostfile and `run.sh` file below.
 
-[Hostfile example and run.sh example.](imgs/run.png)
+![Hostfile example and run.sh example.](imgs/run.png)
 
 ### Part 2 - Database
 
@@ -204,7 +204,7 @@ address of the cluster master node according to your setup.
 ```
 This should get ready the simulation to be run on the cluster. The
 terminal should now look as follows
-[Command line window after run on the cluster.](imgs/pythonrun.png)
+![Command line window after run on the cluster.](imgs/pythonrun.png)
 The simulation has not started yet though, it needs to be done from
 the laptop command line.
 * In case the command `run.py` does not work, i.e. the program
