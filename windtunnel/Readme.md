@@ -99,9 +99,9 @@ necessary for Python 2, but does not do any harm.)
 
 * Finally, run the code, type to the command line:
 ```
-python Start.py -s http://10.42.0.46:5000/ -c 5
+python Start.py
 ```
-Note on a Mac you will have to use `pythonw Start.py ...`, `pythonw` comes
+Note on a Mac you will have to use `pythonw Start.py`, `pythonw` comes
 with the Anaconda Python distribution. A new window should open:
 
 ![Simulation start](imgs/Start_py.png)
@@ -227,7 +227,7 @@ the laptop command line.
   the GUI will run on the laptop.
 * On the laptop terminal command line type:
 ```
-     python Start.py -s http://10.42.0.46:5000 -c 5
+     python Start.py -s http://10.42.0.46:5000/ -c 5
 ```
 Again, you need to adjust the IP address to your master node IP
 address. This should open the Wintunnel simulation window and now you
