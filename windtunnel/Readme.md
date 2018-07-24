@@ -99,9 +99,9 @@ necessary for Python 2, but does not do any harm.)
 
 * Finally, run the code, type to the command line:
 ```
-python Start.py 
+python Start.py -s http://10.42.0.46:5000/ -c 5
 ```
-Note on a Mac you will have to use `pythonw Start.py`, `pythonw` comes
+Note on a Mac you will have to use `pythonw Start.py ...`, `pythonw` comes
 with the Anaconda Python distribution. A new window should open:
 
 ![Simulation start](imgs/Start_py.png)
