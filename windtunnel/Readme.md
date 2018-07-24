@@ -101,7 +101,8 @@ necessary for Python 2, but does not do any harm.)
 ```
 python Start.py 
 ```
-A new window should open: 
+Note on a Mac you will have to use `pythonw Start.py`, `pythonw` comes
+with the Anaconda Python distribution. A new window should open:
 
 ![Simulation start](imgs/Start_py.png)
 
