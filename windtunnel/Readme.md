@@ -7,7 +7,7 @@ To run this demo you will need on your local machine:
 * `git` to clone the distribution from GitHub.
 * `Python`, we assume the [anaconda distribution](https://www.anaconda.com/distribution/).
 * `make` to compile the fluid dynamics code.
-* An MPI distribution
+* An MPI distribution like [openmpi](https://www.open-mpi.org/) or [mpich](https://www.mpich.org/).
 * A `Fortran` compiler, [GNU Fortran](http://gcc.gnu.org/fortran/) will work.
 
 ## Download and clone
