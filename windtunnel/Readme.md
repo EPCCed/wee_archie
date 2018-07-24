@@ -64,16 +64,18 @@ make
 ```bash
 cd ..
 ```
-• You need to edit the `windtunnel_ui.py` file.
+* You need to edit the `windtunnel_ui.py` file.
 
 First, because now we want to run the program on a single machine only
 we need to ”switch off the server option”. So open the file with your
 favourite editor, find a variable `self.serverversion` (should be line
-26) and set it to ”False”, i.e.
+26) and set it to `False`, i.e.
 ```
      self.serverversion=False
 ```
-Second, in the same file find a line that contains `mpiexec` (should be line 311) and change it so that it only requires one node, i.e.
+Secondly, in the same file find a line that contains `mpiexec` 
+(should be line 311) and change it so that it only requires one 
+process, i.e. 
 ```
      subprocess.call(["mpiexec","-n","1","./simulation/windtunnel"])
 ```
