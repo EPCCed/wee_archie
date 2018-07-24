@@ -235,7 +235,14 @@ can play with the simulation similarly as if when it was running on
 the laptop only.  
 
 You got it to work? Well done!
-   
+
+## Acknowledgements
+
+* The Demo Framework was written by Gordon Gibb and Alistair Grant from EPCC. 
+* The CFD Demo was written by Gordon Gibb, the artwork was by Mirren White.
+* Kara Moraw added some enhancements to the demo under a [PRACE Summer of HPC](https://summerofhpc.prace-ri.eu/) 2017 visit. 
+* Eva Havelková wrote the first version of this documentation under a  [PRACE Summer of HPC](https://summerofhpc.prace-ri.eu/) 2018 visit. 
+
 <!-- Licensing and copyright stuff below -->
 <br>
 <a href="http://www.epcc.ed.ac.uk">
