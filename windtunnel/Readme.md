@@ -115,7 +115,7 @@ with the Anaconda Python distribution. A new window should open:
 ![Simulation start](imgs/Start_py.png)
 
 Now you can adjust the shape of the wing on the screen with the slider
-bars on the left. Then click on ”Run Simulation”. The computation
+bars on the left. Then click on `Run Simulation`. The computation
 might take a while. Once it is finished the flow lines graph will be
 shown:
 
@@ -137,8 +137,8 @@ instructions assume that you are using a Wee Archie type of system.
 
 ### Part 1
 
-* Copy the program (the folder ”wee archie”) to the cluster shared
-  directory. Type to the command line on the laptop:
+* Copy the program (the folder `wee_archie`) to the cluster shared
+  directory. Type to the command line on your machine:
 ```
 scp -r wee_archie/ pi@ip_address_of_the_master:/path_to_the_cluster_shared_directory
 ```
@@ -151,7 +151,7 @@ scp -r wee_archie/ pi@ip_address_of_the_master:/path_to_the_cluster_shared_direc
 ```
 Make sure to `make clean` first before doing `make`. This is because
 we copied the program from the laptop where `make` had been done
-before but the laptop might have different software, libraries etc
+before but the laptop might have different software, libraries, etc.
 installed than the cluster.
 
 * Create a `hostfile` that specifies on which nodes and how many MPI
