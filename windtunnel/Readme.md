@@ -1,5 +1,13 @@
 # Instructions for running the windtunnel CFD program
 
+## Contents
+
+* [Prerequisites](#prerequisites)
+* [Download and clone](#download-and-clone)
+* [Python](#python)
+* [Acknowledgements](#acknowledgements)
+
+
 ## Prerequisites
 
 To run this demo you will need on your local machine:
