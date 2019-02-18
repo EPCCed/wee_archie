@@ -13,9 +13,9 @@ import abc
 
 
 class AbstractUI(wx.Frame):
-    __metaclass__ = abc.ABCMeta
+    #__metaclass__ = abc.ABCMeta
 
-    @abc.abstractmethod
+    #@abc.abstractmethod
     def __init__(self,parent,title,demo,servercomm):
         wx.Frame.__init__(self,parent,title=title)
         self.demo=demo
@@ -32,7 +32,7 @@ class AbstractUI(wx.Frame):
         self.refreshrate=0.5
 
     #start the simulation
-    @abc.abstractmethod
+    #@abc.abstractmethod
     def StartSim(self,config):
 
             self.servercomm.StartSim(config) #pass in config file
@@ -45,7 +45,7 @@ class AbstractUI(wx.Frame):
             self.finished=mp.Value('b',False)  #flag to tell process that we are done
 
             #kick off process
-            self.p=mp.Process(target=process.process,args=(self.frameno,self.nfiles,self.getdata,self.newdata,pipeprocess,self.demo,self.servercomm,self.finished))
+            self.p=mp.Process(target=process.process,args=(self.frameno,self.nfiles,self.getdata,self.newdata,pipeprocess,self.demo,self.servercomm,self.finished,self.refreshrate))
             self.p.start() #start off process
 
             self.CurrentFrame=0
@@ -55,7 +55,7 @@ class AbstractUI(wx.Frame):
 
 
     #stop the simulation
-    @abc.abstractmethod
+    #@abc.abstractmethod
     def StopSim(self):
 
             print("Deleting Simulation")
@@ -69,7 +69,7 @@ class AbstractUI(wx.Frame):
 
 
     #function that checks for new data from the process. If so, it downloads it and (if required) renders it
-    @abc.abstractmethod
+    #@abc.abstractmethod
     def TimerCallback(self,e):
         if self.servercomm.IsStarted():
 
@@ -109,7 +109,7 @@ class AbstractUI(wx.Frame):
 
 
     #Make sure any background processes are killed off when the main window is closed
-    @abc.abstractmethod
+    #@abc.abstractmethod
     def OnClose(self,evt):
       print("Exiting Program...")
       try:

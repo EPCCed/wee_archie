@@ -2,7 +2,7 @@ import time
 from netCDF4 import Dataset
 
 #process that periodically checks the server for the simulation status, and downloads new data files and sends them to the GUI process if requested.
-def process(frameno,nfiles,getdata,newdata,pipe,demo,servercomm,finished):
+def process(frameno,nfiles,getdata,newdata,pipe,demo,servercomm,finished,refresh):
     # frameno=shared variable containing current frame number
     # nfiles=shared variable containing number of files on server
     # getdata=flag to tell process whether to download new data from server
@@ -10,6 +10,7 @@ def process(frameno,nfiles,getdata,newdata,pipe,demo,servercomm,finished):
     # pipe = communication object
     # demo = object contaning demo-specific functions
     # servercomm = Servercomm object
+    # refresh = How frequently process should poll server
 
     print("Process initiated")
 
@@ -31,7 +32,7 @@ def process(frameno,nfiles,getdata,newdata,pipe,demo,servercomm,finished):
                 servercomm.GetDataFile(fname,'tmp.nc') #get the data file
             except:
                 #print("no file to get")
-                time.sleep(1)
+                time.sleep(refresh)
                 continue
 
             try:
@@ -46,10 +47,10 @@ def process(frameno,nfiles,getdata,newdata,pipe,demo,servercomm,finished):
             pipe.send(dto) #send the data across
             ok=pipe.recv() #get a read receipt
             newdata.value=False #say we no longer have new data (since its been sent and received)
-            time.sleep(1)
+            time.sleep(0.1)
 
 
         else:
-            time.sleep(1)
+            time.sleep(refresh)
 
     print("Process finished")
