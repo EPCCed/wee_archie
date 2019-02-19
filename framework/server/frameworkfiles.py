@@ -61,7 +61,10 @@ def list_results_files(path, instanceid, omittedfiles):
     files = sorted(os.listdir(os.path.join(path, instanceid)),
                    key=lambda fn: os.path.getctime(os.path.join(path, instanceid, fn)))
     for filename in omittedfiles:
-        files.remove(filename)
+        try:
+            files.remove(filename)
+        except:
+            pass
     return files
 
 def delete_results_directory(path, instanceid):

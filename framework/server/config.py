@@ -22,4 +22,4 @@ DB_CONNECTION_OPTS = {}
 STATUS_NAMES = {'ready':'READY', 'running':'RUNNING', 'complete':'COMPLETE', 'error':'ERROR'}
 
 # Files to ignore in results
-OMITTED_FILES = ['config.txt']
+OMITTED_FILES = ['config.txt','damping.dat','depth.dat','mask.dat','data.tar.gz']
