@@ -38,8 +38,16 @@ class SimResults:
         print("Time is %2.2f"%t)
         print("---------------------------")
 
-        data=np.fromfile(f,np.float64,nxy[0]*nxy[1])
-        data=data.reshape((nxy[1],nxy[0]))
+        atype = "%-20s"%"A"
+        whtype= "%-20s"%"waveheights"
+
+        if text == atype:
+            data=np.fromfile(f,np.float64,nxy[0]*nxy[1])
+            data=data.reshape((nxy[1],nxy[0]))
+        elif text == whtype:
+            data=np.fromfile(f,np.float64,nxy[0])
+        else:
+            print('Error wrong type "%s"'%text)
 
         f.close()
 
@@ -102,5 +110,3 @@ class WaveDemo(client.AbstractDemo):
 
         win.figure.clf()
         win.plt=win.figure.add_subplot(111)
-
-        

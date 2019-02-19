@@ -75,11 +75,12 @@ class WaveWindow(UI):
 
 
         #play/pause button for simulation results
-        self.PlayButton=wx.Button(self,wx.ID_ANY,"Play")
+        #self.PlayButton=wx.Button(self,wx.ID_ANY,"Play")
 
-        self.RewindButton=wx.Button(self,wx.ID_ANY,"Rewind")
+        #self.RewindButton=wx.Button(self,wx.ID_ANY,"Rewind")
 
         self.ResultsButton=wx.Button(self,wx.ID_ANY,"Results")
+        self.Bind(wx.EVT_BUTTON,self.results,self.ResultsButton)
 
 
         #Place items in sizers
@@ -128,24 +129,36 @@ class WaveWindow(UI):
         #INSERT ANY CUSTOM CODE HERE
 
     # Renders the contents of a file on the server
-    def RenderFrame(self,number):
-        if self.nfiles.value>4:
-            self.frameno.value=number
-            print("Frame number= %d"%number)
-            self.getdata.value=True
-            self.dto=self.pipemain.recv()
-            self.getdata.value=False
-            self.pipemain.send(0)
+    # def RenderFrame(self,number):
+    #     if self.nfiles.value>4:
+    #         self.frameno.value=number
+    #         print("Frame number= %d"%number)
+    #         self.getdata.value=True
+    #         self.dto=self.pipemain.recv()
+    #         self.getdata.value=False
+    #         self.pipemain.send(0)
+    #
+    #         print("Datatype=", self.dto.GetData().GetType())
+    #
+    #         self.figure.clf()
+    #         self.plt=self.figure.add_subplot(111)
+    #
+    #         data=self.dto.GetData().GetData()
+    #         self.plt.imshow(data - 20*(1-self.mask),vmin=-10,vmax=2,cmap="ocean")
+    #         self.plt.axis("off")
+    #         self.canvas.draw()
 
-            print("Datatype=", self.dto.GetData().GetType())
+    def get_dto(self,number):
 
-            self.figure.clf()
-            self.plt=self.figure.add_subplot(111)
+        self.frameno.value=number
+        print("Frame number= %d"%number)
+        self.getdata.value=True
+        dto=self.pipemain.recv()
+        self.getdata.value=False
+        self.pipemain.send(0)
+        return dto
 
-            data=self.dto.GetData().GetData()
-            self.plt.imshow(data - 20*(1-self.mask),vmin=-10,vmax=2,cmap="ocean")
-            self.plt.axis("off")
-            self.canvas.draw()
+
 
 
 
@@ -153,13 +166,77 @@ class WaveWindow(UI):
     def TimerCallback(self,e):
 
         if self.servercomm.IsStarted():
-            print("Number of files= %d"%self.nfiles.value)
+            nfiles=self.nfiles.value
+            if self.simfinished.value:
+                self.logger.Clear()
+                self.logger.AppendText("Simulation complete.\n\nClick 'Results' below to view wave heights")
+                self.ResultsButton.Enable()
 
-            self.RenderFrame(self.fno)
-            self.fno+=1
-            if self.fno == 124:
-                self.fno=4
-                self.timer.Stop()
+            if self.fno <= nfiles-1:
+                self.dto= self.get_dto(self.fno)
+
+                atype = "%-20s"%"A"
+                whtype= "%-20s"%"waveheights"
+
+                if self.dto.GetData().GetType() == atype:
+                    self.figure.clf()
+                    self.plt=self.figure.add_subplot(111)
+
+                    data=self.dto.GetData().GetData()
+                    self.plt.imshow(data - 20*(1-self.mask),vmin=-10,vmax=2,cmap="ocean")
+                    self.plt.axis("off")
+                    self.canvas.draw()
+                elif self.dto.GetData().GetType() == whtype:
+                    print("Waveheights file reached")
+                    #self.timer.Stop()
+
+                    self.results(0)
+
+                else:
+                    print("ERROR")
+                    print("'%s'"%self.dto.GetData().GetType())
+
+
+
+            self.fno+=1#=nfiles-1
+
+    def results(self,e):
+        if self.timer.IsRunning():
+            self.timer.Stop()
+            self.dto= self.get_dto(self.nfiles.value-1)
+            self.logger.Clear()
+            self.logger.AppendText("Some results go here...")
+
+            self.figure.clf()
+            self.plt=self.figure.add_subplot(111)
+            #self.plt2=self.figure.add_subplot(212)
+
+            data=self.dto.GetData().GetData()
+
+            reference=self.ReadCoastArray("reference.dat")
+
+            data2=smooth(data,10)
+            reference2=smooth(reference,10)
+
+            self.plt.plot(data2,label="With Defences",color="green")
+            self.plt.plot(reference2,label="No Defences",color="red")
+            self.plt.legend()
+
+            self.plt.axes.set_ylim(bottom=0)
+
+            self.canvas.draw()
+
+            self.ResultsButton.SetLabel('Replay')
+
+        else:
+            self.ResultsButton.SetLabel("Results")
+            self.logger.Clear()
+            self.logger.AppendText("Simulation complete.\n\nClick 'Results' below to view wave heights")
+            self.fno=0
+            self.timer.Start()
+
+
+
 
 
 
@@ -268,7 +345,7 @@ class WaveWindow(UI):
 
             self.ShowResultsControls()
 
-            self.fno=4
+            self.fno=0
 
             time.sleep(1)
 
@@ -284,20 +361,20 @@ class WaveWindow(UI):
         self.buttonsizer.Clear()
 
         self.SimButton.Show()
-        self.PlayButton.Show()
-        self.RewindButton.Show()
+        #self.PlayButton.Show()
+        #self.RewindButton.Show()
         self.ResultsButton.Show()
 
         self.buttonsizer.Add(self.SimButton,0,wx.EXPAND|wx.ALIGN_TOP)
         self.SimButton.SetLabel("New Simulation")
         self.buttonsizer.Add(self.logger,1,wx.EXPAND)
-        self.buttonsizer.Add(self.PlayButton,0,wx.EXPAND)
-        self.buttonsizer.Add(self.RewindButton,0,wx.EXPAND)
+        #self.buttonsizer.Add(self.PlayButton,0,wx.EXPAND)
+        #self.buttonsizer.Add(self.RewindButton,0,wx.EXPAND)
         self.buttonsizer.Add(self.ResultsButton,0,wx.EXPAND|wx.ALIGN_BOTTOM)
 
         self.logger.Clear()
 
-        self.logger.AppendText("Simulation playing...")
+        self.logger.AppendText("Simulation in progress...")
 
         self.ResultsButton.Disable()
 
@@ -311,8 +388,8 @@ class WaveWindow(UI):
 
     def HideResultsControls(self):
         self.SimButton.Hide()
-        self.PlayButton.Hide()
-        self.RewindButton.Hide()
+        #self.PlayButton.Hide()
+        #self.RewindButton.Hide()
         self.ResultsButton.Hide()
 
 
@@ -320,6 +397,8 @@ class WaveWindow(UI):
         self.SimButton.Hide()
         self.ResetButton.Hide()
         self.DeleteModeButton.Hide()
+        self.canvas.mpl_disconnect(self.onclick)
+        self.canvas.mpl_disconnect(self.mousemove)
         self.info.Hide()
 
 
@@ -361,9 +440,9 @@ class WaveWindow(UI):
 
         self.plt=self.figure.add_subplot(111)
         #self.plt.imshow(self.blob,zorder=2,extent=(145,165,140,160))
-        self.plt.imshow(self.mask,vmin=0,vmax=1.2,zorder=1,cmap="ocean")
+        self.plt.imshow(self.mask,vmin=0,vmax=1.2,zorder=1,cmap="ocean",interpolation="bilinear")
         self.plt.axis("off")
-        self.figure.tight_layout()
+        #self.figure.tight_layout()
         #levels=np.arange(-1,1,0.1)
         #cs=self.plt.contour(self.depth,levels=levels,cmap="Blues")#colors="Black")
         #self.plt.clabel(cs,zorder=1)
@@ -402,11 +481,25 @@ class WaveWindow(UI):
         print("Time is %2.2f"%t)
         print("---------------------------")
 
-        data=np.fromfile(f,np.float64,nxy[0]*nxy[1])
+        wtype="%-20s"%"waveheights"
+        atype="%-20s"%"A"
+        mtype="%-20s"%"mask"
+        dtype="%-20s"%"depth_profile"
+
+        if text == atype or text == mtype or text == dtype:
+            data=np.fromfile(f,np.float64,nxy[0]*nxy[1])
+            data=data.reshape((nxy[0],nxy[1]))
+        elif text == wtype:
+            data=np.fromfile(f,np.float64,nxy[0])
+
+        else:
+            print("ERROR: wrong type '%s'"%text)
 
         f.close()
 
-        return data.reshape((nxy[0],nxy[1]))
+        return data
+
+
 
 
 
@@ -551,6 +644,7 @@ class WaveWindow(UI):
     # Display text in the logger that describes money spent on existing defences
     def spreadsheet(self):
         self.logger.Clear()
+        self.logger.SetDefaultStyle(wx.TextAttr(wx.BLACK))
         self.budget = 100
         basecost=15
         self.logger.AppendText("Total budget = £%3d,000\n"%self.budget)
@@ -660,6 +754,24 @@ class DraggableRectangle:
     def get_position(self):
         x,y = self.rect.xy
         return int(x+5),int(y+10)
+
+def smooth(data,w):
+    nx = len(data)
+
+    smoothed = np.zeros(nx)
+    dd=np.concatenate([data,data,data])
+
+    for i in range(nx,2*nx):
+        wgt=0.
+        for j in range(i-nx,i+nx):
+            #smoothed[i-nx] += dd[j]
+            smoothed[i-nx] += dd[j] * np.exp(-(i-j)*(i-j)/w/w)
+            wgt+=np.exp(-(i-j)*(i-j)/w/w)
+        smoothed[i-nx] /=wgt
+
+    #smoothed= smoothed/(len(range(-w,w)))
+
+    return smoothed
 
 
 
