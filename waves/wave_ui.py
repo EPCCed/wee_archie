@@ -397,8 +397,10 @@ class WaveWindow(UI):
         self.SimButton.Hide()
         self.ResetButton.Hide()
         self.DeleteModeButton.Hide()
-        self.canvas.mpl_disconnect(self.onclick)
-        self.canvas.mpl_disconnect(self.mousemove)
+        for handle in self.callbackhandles:
+            self.canvas.mpl_disconnect(handle)
+
+        self.callbackhandles=[]
         self.info.Hide()
 
 
@@ -450,9 +452,9 @@ class WaveWindow(UI):
         self.canvas.Refresh()
 
 
-
-        self.canvas.mpl_connect("button_press_event",self.onclick)
-        self.canvas.mpl_connect("motion_notify_event",self.mousemove)
+        self.callbackhandles=[]
+        self.callbackhandles.append(self.canvas.mpl_connect("button_press_event",self.onclick))
+        self.callbackhandles.append(self.canvas.mpl_connect("motion_notify_event",self.mousemove))
         self.nblock=0
 
         self.blocks=[]
