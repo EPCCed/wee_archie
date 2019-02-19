@@ -2,7 +2,7 @@ import time
 from netCDF4 import Dataset
 
 #process that periodically checks the server for the simulation status, and downloads new data files and sends them to the GUI process if requested.
-def process(frameno,nfiles,getdata,newdata,pipe,demo,servercomm,finished,refresh):
+def process(frameno,nfiles,getdata,newdata,pipe,demo,servercomm,finished,refresh,simfinished):
     # frameno=shared variable containing current frame number
     # nfiles=shared variable containing number of files on server
     # getdata=flag to tell process whether to download new data from server
@@ -11,6 +11,7 @@ def process(frameno,nfiles,getdata,newdata,pipe,demo,servercomm,finished,refresh
     # demo = object contaning demo-specific functions
     # servercomm = Servercomm object
     # refresh = How frequently process should poll server
+    # simfinished = is the simulation finished
 
     print("Process initiated")
 
@@ -18,8 +19,18 @@ def process(frameno,nfiles,getdata,newdata,pipe,demo,servercomm,finished,refresh
 
         # get status and set nfiles
         status=servercomm.GetStatus()
+        #print(status)
         datafiles=status['files']
         nfiles.value=len(datafiles)
+        if status["status"]=="RUNNING":
+            simfinished.value=False
+            print("SIM RUNNING")
+        elif status["status"]=="COMPLETE":
+            simfinished.value=True
+            print("SIM FINISHED")
+        else:
+            print("Wrong status")
+
         #print(datafiles)
 
         if getdata.value == True: #if GUI has requested a new file
@@ -47,7 +58,7 @@ def process(frameno,nfiles,getdata,newdata,pipe,demo,servercomm,finished,refresh
             pipe.send(dto) #send the data across
             ok=pipe.recv() #get a read receipt
             newdata.value=False #say we no longer have new data (since its been sent and received)
-            time.sleep(0.1)
+            time.sleep(refresh)
 
 
         else:

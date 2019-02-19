@@ -43,9 +43,10 @@ class AbstractUI(wx.Frame):
             self.getdata=mp.Value('b',False) #flag to tell process to get new data
             self.newdata=mp.Value('b',False) #flag saying if process has new data ready
             self.finished=mp.Value('b',False)  #flag to tell process that we are done
+            self.simfinished=mp.Value('b',False) #flag for process to tell ui that the simulation is finished
 
             #kick off process
-            self.p=mp.Process(target=process.process,args=(self.frameno,self.nfiles,self.getdata,self.newdata,pipeprocess,self.demo,self.servercomm,self.finished,self.refreshrate))
+            self.p=mp.Process(target=process.process,args=(self.frameno,self.nfiles,self.getdata,self.newdata,pipeprocess,self.demo,self.servercomm,self.finished,self.refreshrate,self.simfinished))
             self.p.start() #start off process
 
             self.CurrentFrame=0
