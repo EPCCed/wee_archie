@@ -5,7 +5,7 @@ module vars_mod
   !!user-definable parameters
 
   !grid/domain options
-  integer, parameter :: nxglobal=240, nyglobal=240
+  integer, parameter :: nxglobal=240, nyglobal=480
   double precision, parameter :: xmin=0.d0, xmax=10.d0
   double precision, parameter :: ymin=0.d0, ymax=10.d0
 

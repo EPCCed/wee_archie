@@ -43,9 +43,9 @@ class SimResults:
 
         if text == atype:
             data=np.fromfile(f,np.float64,nxy[0]*nxy[1])
-            data=data.reshape((nxy[1],nxy[0]))
+            data=data.reshape((nxy[0],nxy[1]),order="F")
         elif text == whtype:
-            data=np.fromfile(f,np.float64,nxy[0])
+            data=np.fromfile(f,np.float64,nxy[1])
         else:
             print('Error wrong type "%s"'%text)
 

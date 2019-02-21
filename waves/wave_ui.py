@@ -9,6 +9,7 @@ import time
 import datetime
 import argparse
 import os
+import matplotlib.gridspec as gridspec
 
 #select the UI abstract superclass to derive from
 UI=client.AbstractmatplotlibUI
@@ -25,7 +26,7 @@ class WaveWindow(UI):
 
         self.serverversion=False
 
-        self.refreshrate = 0.1
+        self.refreshrate = 0.25
 
         #variables for the log file
         self.now = datetime.datetime.now
@@ -167,12 +168,14 @@ class WaveWindow(UI):
 
         if self.servercomm.IsStarted():
             nfiles=self.nfiles.value
+            print("In timer callback: nfiles=%d, fno=%d"%(nfiles,self.fno))
             if self.simfinished.value:
                 self.logger.Clear()
                 self.logger.AppendText("Simulation complete.\n\nClick 'Results' below to view wave heights")
                 self.ResultsButton.Enable()
 
             if self.fno <= nfiles-1:
+                print("Trying to get file #%d"%self.fno)
                 self.dto= self.get_dto(self.fno)
 
                 atype = "%-20s"%"A"
@@ -188,6 +191,7 @@ class WaveWindow(UI):
                     self.canvas.draw()
                 elif self.dto.GetData().GetType() == whtype:
                     print("Waveheights file reached")
+                    self.ResultsButton.Enable()
                     #self.timer.Stop()
 
                     self.results(0)
@@ -196,9 +200,11 @@ class WaveWindow(UI):
                     print("ERROR")
                     print("'%s'"%self.dto.GetData().GetType())
 
+                self.fno+=1#=nfiles-1
 
 
-            self.fno+=1#=nfiles-1
+
+
 
     def results(self,e):
         if self.timer.IsRunning():
@@ -208,7 +214,10 @@ class WaveWindow(UI):
             self.logger.AppendText("Some results go here...")
 
             self.figure.clf()
-            self.plt=self.figure.add_subplot(111)
+
+            spec = gridspec.GridSpec(ncols=1,nrows=3,figure=self.figure)
+            #ax1=self.figure.add_subplot(211)
+            ax1=self.figure.add_subplot(spec[0:2,:])
             #self.plt2=self.figure.add_subplot(212)
 
             data=self.dto.GetData().GetData()
@@ -218,11 +227,18 @@ class WaveWindow(UI):
             data2=smooth(data,10)
             reference2=smooth(reference,10)
 
-            self.plt.plot(data2,label="With Defences",color="green")
-            self.plt.plot(reference2,label="No Defences",color="red")
-            self.plt.legend()
+            ax1.plot(data2,label="With Defences",color="green")
+            ax1.plot(reference2,label="No Defences",color="red")
+            ax1.get_xaxis().set_visible(False)
+            ax1.legend()
+            ax1.set_ylabel("Wave Height (m)")
 
-            self.plt.axes.set_ylim(bottom=0)
+            ax1.axes.set_ylim(bottom=0)
+
+            #self.plt=self.figure.add_subplot(212,sharex=ax1)
+            self.plt=self.figure.add_subplot(spec[2,:],sharex=ax1)
+            self.plt.imshow(self.mask[120:,:],aspect="auto",vmin=0,vmax=1.2,zorder=1,cmap="ocean")
+            self.plt.axis("off")
 
             self.canvas.draw()
 
@@ -280,17 +296,14 @@ class WaveWindow(UI):
             for block in self.blocks:
                 x,y = block.get_position()
                 print("Adding block at x=%d, y=%d"%(x,y))
-                xi=x-5
-                xf=x+5
-                yi=y-10
-                yf=y+10
+                xi=x-10
+                xf=x+10
+                yi=y-5
+                yf=y+5
                 mask[yi:yf,xi:xf]=0.
                 block.disconnect()
 
             dlg.Update(10)
-
-
-
 
 
             self.resultsscreen=True
@@ -299,7 +312,7 @@ class WaveWindow(UI):
 
             ny=len(mask)
             nx=len(mask[0])
-            tmp = np.zeros((ny,nx),np.float64)
+            tmp = np.zeros((ny,nx),np.float64,order="F")
             tmp[:,:] = 4*depth[:,:]
             for n in range(100):
                 print(n)
@@ -317,22 +330,27 @@ class WaveWindow(UI):
             #rescale the depth so it gors from 0.05-1 rather than 0-1
             depth = 0.95*depth + 0.05
 
+
             #write the new depth profiles and damping coefficents to file
+
+            depth=np.transpose(depth)
+
 
             f=open("depth.dat","wb")
             f.write(type)
-            f.write(np.asarray([nx,ny],np.int32))
+            f.write(np.asarray([ny,nx],np.int32))
             f.write(np.asarray(0.,np.float64))
-            f.write(depth)
+            f.write(np.ascontiguousarray(depth))
             f.close()
 
             type="%-20s"%"damping"
             damping = 1.*(1.-mask)
+            damping=np.transpose(damping)
             f=open("damping.dat","wb")
             f.write(type)
-            f.write(np.asarray([nx,ny],np.int32))
+            f.write(np.asarray([ny,nx],np.int32))
             f.write(np.asarray(0.,np.float64))
-            f.write(damping)
+            f.write(np.ascontiguousarray(damping))
             f.close()
 
             dlg.Update(60)
@@ -442,7 +460,7 @@ class WaveWindow(UI):
 
         self.plt=self.figure.add_subplot(111)
         #self.plt.imshow(self.blob,zorder=2,extent=(145,165,140,160))
-        self.plt.imshow(self.mask,vmin=0,vmax=1.2,zorder=1,cmap="ocean",interpolation="bilinear")
+        self.plt.imshow(self.mask,vmin=0,vmax=1.2,zorder=1,cmap="ocean")#,interpolation="bilinear")
         self.plt.axis("off")
         #self.figure.tight_layout()
         #levels=np.arange(-1,1,0.1)
@@ -490,9 +508,9 @@ class WaveWindow(UI):
 
         if text == atype or text == mtype or text == dtype:
             data=np.fromfile(f,np.float64,nxy[0]*nxy[1])
-            data=data.reshape((nxy[0],nxy[1]))
+            data=data.reshape((nxy[0],nxy[1]),order="F")
         elif text == wtype:
-            data=np.fromfile(f,np.float64,nxy[0])
+            data=np.fromfile(f,np.float64,nxy[1])
 
         else:
             print("ERROR: wrong type '%s'"%text)
@@ -526,11 +544,12 @@ class WaveWindow(UI):
     # Determine if a defence can be placed here
     def can_place(self,x,y):
         i=0
-        if x<5 or x>=235 or y<10 or y>=230: return False
+        print(x,y)
+        if x<5 or x>=470 or y<10 or y>=230: return False
         if self.depth[y][x] < 0.05: return False
         for block in self.blocks:
             xp,yp = block.get_position()
-            if (np.abs(x-xp) < 5 and np.abs(y-yp) < 10):
+            if (np.abs(x-xp) < 10 and np.abs(y-yp) < 5):
                 print(i)
                 if self.delete:
                     block.disconnect()
@@ -576,7 +595,7 @@ class WaveWindow(UI):
 
         #We not want to place a defence
         self.nblock+=1
-        block=self.plt.bar(x=x,height=20,width=10,bottom=y-10,align="center",zorder=3,color="Grey")
+        block=self.plt.bar(x=x,height=10,width=20,bottom=y-5,align="center",zorder=3,color="Grey")
         label=self.plt.text(x,y,"%d"%(self.nblock),horizontalalignment="center",verticalalignment="center")
         block=block[0]
 
@@ -691,8 +710,8 @@ class DraggableRectangle:
 
     def getxy(self):
         self.x, self.y=self.rect.xy
-        self.x+=5
-        self.y+=10
+        self.x+=10
+        self.y+=5
 
     def connect(self):
         'connect to all the events we need'
@@ -729,8 +748,8 @@ class DraggableRectangle:
         #      (x0, xpress, event.xdata, dx, x0+dx))
         self.rect.set_x(x0+dx)
         self.rect.set_y(y0+dy)
-        self.label.set_x(x0+dx+5)
-        self.label.set_y(y0+dy+10)
+        self.label.set_x(x0+dx+10)
+        self.label.set_y(y0+dy+5)
 
         self.rect.figure.canvas.draw()
 
@@ -755,7 +774,7 @@ class DraggableRectangle:
 
     def get_position(self):
         x,y = self.rect.xy
-        return int(x+5),int(y+10)
+        return int(x+10),int(y+5)
 
 def smooth(data,w):
     nx = len(data)
@@ -765,7 +784,7 @@ def smooth(data,w):
 
     for i in range(nx,2*nx):
         wgt=0.
-        for j in range(i-nx,i+nx):
+        for j in range(i-nx/4,i+nx/4):
             #smoothed[i-nx] += dd[j]
             smoothed[i-nx] += dd[j] * np.exp(-(i-j)*(i-j)/w/w)
             wgt+=np.exp(-(i-j)*(i-j)/w/w)

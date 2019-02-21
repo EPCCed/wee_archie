@@ -12,10 +12,10 @@ def place_block(x,y,mask):
 
 
 #read png image
-im=imageio.imread("coast3.png")
+im=imageio.imread("coast4.png")
 
-nx = len(im)
-ny=len(im[0])
+ny = len(im)
+nx=len(im[0])
 print nx,ny
 
 im2=np.asarray(im)
@@ -23,11 +23,14 @@ im2=np.asarray(im)
 # get R channel
 result=np.dsplit(im2,4)
 r=result[0]
-r=r.reshape((nx,ny),order="F")
+r=r.reshape((ny,nx),order="F")
 print r.shape
 r=r.astype(np.float64)
 #normalise 0->1
 r=r/255.
+
+#plt.imshow(r)
+#plt.show()
 
 #sys.exit()
 
@@ -58,7 +61,12 @@ print(t)
 mask=np.fromfile(f,np.float64,nx*ny)
 f.close()
 
-mask=mask.reshape((nx,ny))
+mask=mask.reshape((ny,nx))
+
+plt.imshow(mask)
+plt.show()
+
+
 
 #add blocks
 f=open("blocks.txt","r")
@@ -103,7 +111,7 @@ print(t)
 data=np.fromfile(f,np.float64,nx*ny)
 f.close()
 
-data=data.reshape((nx,ny))
+data=data.reshape((ny,nx))
 
 plt.imshow(data)
 plt.show()

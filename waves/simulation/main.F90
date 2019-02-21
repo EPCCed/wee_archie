@@ -10,7 +10,7 @@ program main
   implicit none
 
   double precision :: ttarget=0.d0
-  double precision :: dttarget=0.25
+  double precision :: dttarget=0.5
   integer :: i, j, fno
   integer :: jstart
   double precision :: t1, t2
