@@ -10,6 +10,8 @@ import datetime
 import argparse
 import os
 import matplotlib.gridspec as gridspec
+import matplotlib.pyplot as plt
+import InfoScreen
 
 #select the UI abstract superclass to derive from
 UI=client.AbstractmatplotlibUI
@@ -211,7 +213,7 @@ class WaveWindow(UI):
             self.timer.Stop()
             self.dto= self.get_dto(self.nfiles.value-1)
             self.logger.Clear()
-            self.logger.AppendText("Some results go here...")
+
 
             self.figure.clf()
 
@@ -229,16 +231,20 @@ class WaveWindow(UI):
 
             ax1.plot(data2,label="With Defences",color="green")
             ax1.plot(reference2,label="No Defences",color="red")
-            ax1.get_xaxis().set_visible(False)
+            #ax1.get_xaxis().set_visible(False)
             ax1.legend()
             ax1.set_ylabel("Wave Height (m)")
 
             ax1.axes.set_ylim(bottom=0)
 
             #self.plt=self.figure.add_subplot(212,sharex=ax1)
+            img=plt.imread("coastline_short.png")
             self.plt=self.figure.add_subplot(spec[2,:],sharex=ax1)
-            self.plt.imshow(self.mask[120:,:],aspect="auto",vmin=0,vmax=1.2,zorder=1,cmap="ocean")
+            #self.plt.imshow(self.mask[120:,:],aspect="auto",vmin=0,vmax=1.2,zorder=1,cmap="ocean")
+            self.plt.imshow(img,extent=(0,479,119,0),aspect="auto")
             self.plt.axis("off")
+
+            self.costings(data2,reference2)
 
             self.canvas.draw()
 
@@ -254,6 +260,82 @@ class WaveWindow(UI):
 
 
 
+
+
+    def costings(self,height,reference):
+        beach=[75,125]
+        houses=[200,250]
+        library=[335,385]
+        supermarket=[410,460]
+
+        cost=0.
+
+        #bheight = np.mean(height[beach[0]:beach[1]])
+        #hheight = np.mean(height[houses[0]:houses[1]])
+        #lheight = np.mean(height[library[0]:library[1]])
+        #sheight = np.mean(height[supermarket[0]:supermarket[1]])
+
+        self.logger.AppendText("Damage\n")
+        self.logger.AppendText("---------------\n")
+
+        ht = np.mean(height[beach[0]:beach[1]])
+        rh = np.mean(reference[beach[0]:beach[1]])
+        frac = 1-(rh-ht)/(rh-1)
+        if frac <0: frac=0
+        bcost = 5000*frac
+
+        #print("beach:", ht, rh, frac, bcost)
+
+
+
+        self.logger.AppendText("Beach Furniture:\n")
+        self.logger.AppendText("Mean wave height = %1.2f m\n"%ht)
+        self.logger.AppendText("Cost to repair = £%4d\n"%bcost)
+        self.logger.AppendText("\n")
+
+        ht = np.mean(height[houses[0]:houses[1]])
+        rh = np.mean(reference[houses[0]:houses[1]])
+        frac = 1-(rh-ht)/(rh-1)
+        if frac <0: frac=0
+        hcost = 100000*frac
+        #print("house:", ht, rh, frac, hcost)
+
+        self.logger.AppendText("Houses:\n")
+        self.logger.AppendText("Mean wave height = %1.2f m\n"%ht)
+        self.logger.AppendText("Cost to repair = £%6d\n"%hcost)
+        self.logger.AppendText("\n")
+
+        ht = np.mean(height[library[0]:library[1]])
+        rh = np.mean(reference[library[0]:library[1]])
+        frac = 1-(rh-ht)/(rh-1)
+        if frac <0: frac=0
+        lcost = 40000*frac
+
+        #print("library:", ht, rh, frac, lcost)
+
+        self.logger.AppendText("Library:\n")
+        self.logger.AppendText("Mean wave height = %1.2f m\n"%ht)
+        self.logger.AppendText("Cost to repair = £%6d\n"%lcost)
+        self.logger.AppendText("\n")
+
+        ht = np.mean(height[supermarket[0]:supermarket[1]])
+        rh= np.mean(reference[supermarket[0]:supermarket[1]])
+        frac = 1-(rh-ht)/(rh-1)
+        if frac <0: frac=0
+        scost = 25000*frac
+
+        #print("supermarket:", ht, rh, frac, scost)
+
+        self.logger.AppendText("Supermarket:\n")
+        self.logger.AppendText("Mean wave height = %1.2f m\n"%ht)
+        self.logger.AppendText("Cost to repair = £%6d\n"%scost)
+        self.logger.AppendText("\n")
+
+
+        cost=bcost+hcost+lcost+scost
+
+        self.logger.AppendText("---------------\n")
+        self.logger.AppendText("Total repair cost = £%6d\n"%(cost))
 
 
 
@@ -459,10 +541,13 @@ class WaveWindow(UI):
 
 
         self.plt=self.figure.add_subplot(111)
+
+        bg = plt.imread("coastline_nocost.png")
         #self.plt.imshow(self.blob,zorder=2,extent=(145,165,140,160))
-        self.plt.imshow(self.mask,vmin=0,vmax=1.2,zorder=1,cmap="ocean")#,interpolation="bilinear")
+        #self.plt.imshow(self.mask,vmin=0,vmax=1.2,zorder=1,cmap="ocean")#,interpolation="bilinear")
+        self.plt.imshow(bg,extent=(0,479,239,0))#,interpolation="bilinear")
         self.plt.axis("off")
-        #self.figure.tight_layout()
+        self.figure.tight_layout()
         #levels=np.arange(-1,1,0.1)
         #cs=self.plt.contour(self.depth,levels=levels,cmap="Blues")#colors="Black")
         #self.plt.clabel(cs,zorder=1)
@@ -482,6 +567,11 @@ class WaveWindow(UI):
 
 
         self.spreadsheet()
+
+        self.Disable()
+
+        info=InfoScreen.Info(self,"Info",(1000,750))
+        info.Show()
 
 
 
