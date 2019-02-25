@@ -16,6 +16,17 @@ import InfoScreen
 #select the UI abstract superclass to derive from
 UI=client.AbstractmatplotlibUI
 
+
+#al costs are in units of £1000
+Budget=200
+
+BeachCost= 10
+HouseCost= 100
+LibraryCost=50
+ShopCost=40
+OriginalCost = BeachCost+HouseCost+LibraryCost+ShopCost
+
+
 # Derive the demo-specific GUI class from the Abstract??UI class
 class WaveWindow(UI):
 
@@ -263,6 +274,7 @@ class WaveWindow(UI):
 
 
     def costings(self,height,reference):
+        #x range of each location
         beach=[75,125]
         houses=[200,250]
         library=[335,385]
@@ -282,7 +294,7 @@ class WaveWindow(UI):
         rh = np.mean(reference[beach[0]:beach[1]])
         frac = 1-(rh-ht)/(rh-1)
         if frac <0: frac=0
-        bcost = 5000*frac
+        bcost = int(BeachCost*frac)
 
         #print("beach:", ht, rh, frac, bcost)
 
@@ -290,52 +302,59 @@ class WaveWindow(UI):
 
         self.logger.AppendText("Beach Furniture:\n")
         self.logger.AppendText("Mean wave height = %1.2f m\n"%ht)
-        self.logger.AppendText("Cost to repair = £%4d\n"%bcost)
+        self.logger.AppendText("Cost to repair = £%3d,000\n"%bcost)
         self.logger.AppendText("\n")
 
         ht = np.mean(height[houses[0]:houses[1]])
         rh = np.mean(reference[houses[0]:houses[1]])
         frac = 1-(rh-ht)/(rh-1)
         if frac <0: frac=0
-        hcost = 100000*frac
+        hcost = int(HouseCost*frac)
         #print("house:", ht, rh, frac, hcost)
 
         self.logger.AppendText("Houses:\n")
         self.logger.AppendText("Mean wave height = %1.2f m\n"%ht)
-        self.logger.AppendText("Cost to repair = £%6d\n"%hcost)
+        self.logger.AppendText("Cost to repair = £%3d,000\n"%hcost)
         self.logger.AppendText("\n")
 
         ht = np.mean(height[library[0]:library[1]])
         rh = np.mean(reference[library[0]:library[1]])
         frac = 1-(rh-ht)/(rh-1)
         if frac <0: frac=0
-        lcost = 40000*frac
+        lcost = int(LibraryCost*frac)
 
         #print("library:", ht, rh, frac, lcost)
 
         self.logger.AppendText("Library:\n")
         self.logger.AppendText("Mean wave height = %1.2f m\n"%ht)
-        self.logger.AppendText("Cost to repair = £%6d\n"%lcost)
+        self.logger.AppendText("Cost to repair = £%3d,000\n"%lcost)
         self.logger.AppendText("\n")
 
         ht = np.mean(height[supermarket[0]:supermarket[1]])
         rh= np.mean(reference[supermarket[0]:supermarket[1]])
         frac = 1-(rh-ht)/(rh-1)
         if frac <0: frac=0
-        scost = 25000*frac
+        scost = int(ShopCost*frac)
 
         #print("supermarket:", ht, rh, frac, scost)
 
         self.logger.AppendText("Supermarket:\n")
         self.logger.AppendText("Mean wave height = %1.2f m\n"%ht)
-        self.logger.AppendText("Cost to repair = £%6d\n"%scost)
+        self.logger.AppendText("Cost to repair = £%3d,000\n"%scost)
         self.logger.AppendText("\n")
 
 
         cost=bcost+hcost+lcost+scost
 
         self.logger.AppendText("---------------\n")
-        self.logger.AppendText("Total repair cost = £%6d\n"%(cost))
+        self.logger.AppendText("Total repair cost = £%3d,000\n"%(cost))
+        self.logger.AppendText("Original repair cost = £%3d,000\n"%(OriginalCost))
+        self.logger.AppendText("Saving = £%3d,000\n"%(OriginalCost-cost))
+        self.logger.AppendText("\n")
+
+        self.logger.AppendText('Savings after 5 storms: £%3d,000\n'%(-Budget+self.budget + 5*(OriginalCost-cost)))
+        #self.logger.AppendText("Remaining budget = %d"%self.budget)
+
 
 
 
@@ -464,6 +483,7 @@ class WaveWindow(UI):
         #self.PlayButton.Show()
         #self.RewindButton.Show()
         self.ResultsButton.Show()
+        self.ResultsButton.SetLabel("Results")
 
         self.buttonsizer.Add(self.SimButton,0,wx.EXPAND|wx.ALIGN_TOP)
         self.SimButton.SetLabel("New Simulation")
@@ -531,7 +551,7 @@ class WaveWindow(UI):
         self.SimButton.SetLabel("Run Simulation")
 
 
-        self.budget=100
+        #self.budget=200
 
 
         self.figure.clf()
@@ -626,7 +646,7 @@ class WaveWindow(UI):
 
         d=self.depth[y][x]
         if d> 0.05:
-            self.info.AppendText("Depth = %3.0fm, Cost = £%2d,000"%(100.*d,15+int(10*d)))
+            self.info.AppendText("Depth = %3.0fm, Cost = £%2d,000"%(100.*d,20+int(10*d*2)))
         else:
             self.info.AppendText("You cannot place a defence here")
 
@@ -756,14 +776,14 @@ class WaveWindow(UI):
     def spreadsheet(self):
         self.logger.Clear()
         self.logger.SetDefaultStyle(wx.TextAttr(wx.BLACK))
-        self.budget = 100
-        basecost=15
+        self.budget = Budget
+        basecost=20
         self.logger.AppendText("Total budget = £%3d,000\n"%self.budget)
         self.logger.AppendText("\n")
         i=1
         for block in self.blocks:
             block.label.set_text("%d"%i)
-            depthcost=int(block.depthm*10)+15
+            depthcost=int(block.depthm*10*2)+basecost
             self.budget -= depthcost
             self.logger.AppendText("Block %2d:   - £%2d,000\n"%(i,depthcost))
             i+=1
