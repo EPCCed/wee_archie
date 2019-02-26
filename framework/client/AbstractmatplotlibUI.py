@@ -19,7 +19,7 @@ class AbstractmatplotlibUI(AbstractUI):
         AbstractUI.__init__(self,parent,title,demo,servercomm)
 
         #set up matplotlib figure
-        self.figure = Figure()
+        self.figure = Figure(figsize=(8,6))
         #self.axes = self.figure.add_subplot(111)
         self.canvas = FigureCanvas(self, -1, self.figure)
 
