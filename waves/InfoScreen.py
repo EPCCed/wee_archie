@@ -50,10 +50,20 @@ class Info(wx.Frame):
         text.AppendText("Once you are happy with your placement, you can run a simulation to determine the effects of the defences on the waves. Can you save Beachville? Can you find a cost-efficient way to do so?")
 
         sizer.Add(text,1,wx.EXPAND)
-        sizer.Add(background,1)
         sizer.Add(button,0,wx.EXPAND)
+        sizer.Add(background,1)
+
 
         self.SetSizer(sizer)
+
+        self.MakeModal()
+
+
+    def MakeModal(self, modal=True):
+        if modal and not hasattr(self, '_disabler'):
+            self._disabler = wx.WindowDisabler(self)
+        if not modal and hasattr(self, '_disabler'):
+            del self._disabler
 
 
 

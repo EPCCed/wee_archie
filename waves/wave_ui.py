@@ -17,7 +17,7 @@ import InfoScreen
 UI=client.AbstractmatplotlibUI
 
 
-#al costs are in units of £1000
+#all costs are in units of £1000
 Budget=200
 
 BeachCost= 10
@@ -25,6 +25,8 @@ HouseCost= 100
 LibraryCost=50
 ShopCost=40
 OriginalCost = BeachCost+HouseCost+LibraryCost+ShopCost
+
+RestoreBlocks=True
 
 
 # Derive the demo-specific GUI class from the Abstract??UI class
@@ -105,7 +107,6 @@ class WaveWindow(UI):
         self.PlotSizer.Add(self.canvas,3,wx.EXPAND | wx.ALL)
 
         self.fno=4
-
 
 
 
@@ -242,7 +243,7 @@ class WaveWindow(UI):
 
             ax1.plot(data2,label="With Defences",color="green")
             ax1.plot(reference2,label="No Defences",color="red")
-            #ax1.get_xaxis().set_visible(False)
+            ax1.get_xaxis().set_visible(False)
             ax1.legend()
             ax1.set_ylabel("Wave Height (m)")
 
@@ -256,6 +257,7 @@ class WaveWindow(UI):
             self.plt.axis("off")
 
             self.costings(data2,reference2)
+
 
             self.canvas.draw()
 
@@ -282,13 +284,10 @@ class WaveWindow(UI):
 
         cost=0.
 
-        #bheight = np.mean(height[beach[0]:beach[1]])
-        #hheight = np.mean(height[houses[0]:houses[1]])
-        #lheight = np.mean(height[library[0]:library[1]])
-        #sheight = np.mean(height[supermarket[0]:supermarket[1]])
+        if self.logIncomplete: self.logfile.write("  <results>\n")
 
-        self.logger.AppendText("Damage\n")
-        self.logger.AppendText("---------------\n")
+
+
 
         ht = np.mean(height[beach[0]:beach[1]])
         rh = np.mean(reference[beach[0]:beach[1]])
@@ -301,9 +300,21 @@ class WaveWindow(UI):
 
 
         self.logger.AppendText("Beach Furniture:\n")
-        self.logger.AppendText("Mean wave height = %1.2f m\n"%ht)
-        self.logger.AppendText("Cost to repair = £%3d,000\n"%bcost)
+        # self.logger.AppendText("Wave height = %1.2fm (%1.2fm)\n"%(ht,rh))
+        # self.logger.AppendText("Repair Cost = £%d,000 (£%d,000)\n"%(bcost,BeachCost))
+        # self.logger.AppendText("Saving of £%d,000\n"%(BeachCost-bcost))
+        self.logger.AppendText("Wave height = %1.2fm\n"%(ht))
+        self.logger.AppendText("Repair cost = £%d,000\n"%(bcost))
+        self.logger.AppendText("Saving of £%d,000\n"%(BeachCost-bcost))
         self.logger.AppendText("\n")
+
+        if self.logIncomplete:
+            self.logfile.write('    <location place="Beach">\n')
+            self.logfile.write('      <waveheight> %1.2f </waveheight>\n'%ht)
+            self.logfile.write('      <cost> %d </cost>\n'%bcost)
+            self.logfile.write('    </location>\n')
+
+
 
         ht = np.mean(height[houses[0]:houses[1]])
         rh = np.mean(reference[houses[0]:houses[1]])
@@ -313,9 +324,19 @@ class WaveWindow(UI):
         #print("house:", ht, rh, frac, hcost)
 
         self.logger.AppendText("Houses:\n")
-        self.logger.AppendText("Mean wave height = %1.2f m\n"%ht)
-        self.logger.AppendText("Cost to repair = £%3d,000\n"%hcost)
+        # self.logger.AppendText("Wave height = %1.2fm (%1.2fm)\n"%(ht,rh))
+        # self.logger.AppendText("Cost to repair = £%d,000 (£%d,000)\n"%(hcost,HouseCost))
+        # self.logger.AppendText("Saving of £%d,000\n"%(HouseCost-hcost))
+        self.logger.AppendText("Wave height = %1.2fm\n"%(ht))
+        self.logger.AppendText("Repair cost = £%d,000\n"%(hcost))
+        self.logger.AppendText("Saving of £%d,000\n"%(HouseCost-hcost))
         self.logger.AppendText("\n")
+
+        if self.logIncomplete:
+            self.logfile.write('    <location place="Houses">\n')
+            self.logfile.write('      <waveheight> %1.2f </waveheight>\n'%ht)
+            self.logfile.write('      <cost> %d </cost>\n'%hcost)
+            self.logfile.write('    </location>\n')
 
         ht = np.mean(height[library[0]:library[1]])
         rh = np.mean(reference[library[0]:library[1]])
@@ -326,9 +347,19 @@ class WaveWindow(UI):
         #print("library:", ht, rh, frac, lcost)
 
         self.logger.AppendText("Library:\n")
-        self.logger.AppendText("Mean wave height = %1.2f m\n"%ht)
-        self.logger.AppendText("Cost to repair = £%3d,000\n"%lcost)
+        # self.logger.AppendText("Wave height = %1.2fm (%1.2fm)\n"%(ht,rh))
+        # self.logger.AppendText("Cost to repair = £%d,000 (£%d,000)\n"%(lcost,LibraryCost))
+        # self.logger.AppendText("Saving of £%d,000\n"%(LibraryCost-lcost))
+        self.logger.AppendText("Wave height = %1.2fm\n"%(ht))
+        self.logger.AppendText("Repair cost = £%d,000\n"%(lcost))
+        self.logger.AppendText("Saving of £%d,000\n"%(LibraryCost-lcost))
         self.logger.AppendText("\n")
+
+        if self.logIncomplete:
+            self.logfile.write('    <location place="Library">\n')
+            self.logfile.write('      <waveheight> %1.2f </waveheight>\n'%ht)
+            self.logfile.write('      <cost> %d </cost>\n'%lcost)
+            self.logfile.write('    </location>\n')
 
         ht = np.mean(height[supermarket[0]:supermarket[1]])
         rh= np.mean(reference[supermarket[0]:supermarket[1]])
@@ -339,24 +370,40 @@ class WaveWindow(UI):
         #print("supermarket:", ht, rh, frac, scost)
 
         self.logger.AppendText("Supermarket:\n")
-        self.logger.AppendText("Mean wave height = %1.2f m\n"%ht)
-        self.logger.AppendText("Cost to repair = £%3d,000\n"%scost)
+        # self.logger.AppendText("Wave height = %1.2fm (%1.2fm)\n"%(ht,rh))
+        # self.logger.AppendText("Cost to repair = £%d,000 (£%d,000)\n"%(scost,ShopCost))
+        # self.logger.AppendText("Saving of £%d,000\n"%(ShopCost-scost))
+        self.logger.AppendText("Wave height = %1.2fm\n"%(ht))
+        self.logger.AppendText("Repair cost = £%d,000\n"%(scost))
+        self.logger.AppendText("Saving of £%d,000\n"%(ShopCost-scost))
         self.logger.AppendText("\n")
+
+        if self.logIncomplete:
+            self.logfile.write('    <location place="Supermarket">\n')
+            self.logfile.write('      <waveheight> %1.2f </waveheight>\n'%ht)
+            self.logfile.write('      <cost> %d </cost>\n'%scost)
+            self.logfile.write('    </location>\n')
 
 
         cost=bcost+hcost+lcost+scost
 
-        self.logger.AppendText("---------------\n")
+        self.logger.AppendText("---------------\n\n")
         self.logger.AppendText("Total repair cost = £%3d,000\n"%(cost))
-        self.logger.AppendText("Original repair cost = £%3d,000\n"%(OriginalCost))
-        self.logger.AppendText("Saving = £%3d,000\n"%(OriginalCost-cost))
+        self.logger.AppendText("Total saving = £%3d,000\n"%(OriginalCost-cost))
         self.logger.AppendText("\n")
-
+        self.logger.AppendText("Cost of defences = £%d,000\n"%(Budget-self.budget))
+        self.logger.AppendText("\n")
         self.logger.AppendText('Savings after 5 storms: £%3d,000\n'%(-Budget+self.budget + 5*(OriginalCost-cost)))
         #self.logger.AppendText("Remaining budget = %d"%self.budget)
 
+        if self.logIncomplete:
+            self.logfile.write('    <TotalCost> %d </TotalCost>\n'%cost)
+            self.logfile.write('    <saving> %d </saving>\n'%(OriginalCost-cost))
+            self.logfile.write('    <FiveyearSaving> %d </FiveyearSaving>\n'%(-Budget+self.budget + 5*(OriginalCost-cost)))
 
+            self.logfile.write("  </results>\n")
 
+        self.logIncomplete=False
 
 
 
@@ -382,8 +429,9 @@ class WaveWindow(UI):
     def SwapScreens(self,e):
         if self.resultsscreen == True:
             self.StopSim()
-            self.ShowSetupControls()
+            self.ShowSetupControls(RestoreBlocks)
             self.resultsscreen=False
+            self.logfile.write("</sim>\n")
         else:
 
             dlg=wx.ProgressDialog("Please Wait","Setting up the simulation.",parent=self,)
@@ -394,6 +442,8 @@ class WaveWindow(UI):
             depth=self.depth
             mask=self.mask
 
+            f=open("blocks.dat","w")
+
             for block in self.blocks:
                 x,y = block.get_position()
                 print("Adding block at x=%d, y=%d"%(x,y))
@@ -402,9 +452,11 @@ class WaveWindow(UI):
                 yi=y-5
                 yf=y+5
                 mask[yi:yf,xi:xf]=0.
-                block.disconnect()
+                f.write("%d %d\n"%(x,y))
+                #block.disconnect()
 
             dlg.Update(10)
+            f.close()
 
 
             self.resultsscreen=True
@@ -417,7 +469,9 @@ class WaveWindow(UI):
             tmp[:,:] = 4*depth[:,:]
             for n in range(100):
                 print(n)
+                tmp[0,1:nx-1] = depth[ny-1,1:nx-1]+depth[1,1:nx-1]+depth[0,0:nx-2]+depth[0,2:nx]
                 tmp[1:ny-1,1:nx-1] = depth[0:ny-2,1:nx-1]+depth[2:ny,1:nx-1]+depth[1:ny-1,0:nx-2]+depth[1:ny-1,2:nx]
+                tmp[ny-1,1:nx-1] = depth[ny-2,1:nx-1]+depth[0,1:nx-1]+depth[ny-1,0:nx-2]+depth[ny-1,2:nx]
                 depth=0.25*tmp*mask
 
 
@@ -461,14 +515,34 @@ class WaveWindow(UI):
             #os.system("export OMP_NUM_THREADS=4; simulation/main")
 
             dlg.Update(100)
+            self.StartSim("data.tar.gz")
+
+            simid=self.servercomm.simid
+
+            self.logfile.write('<sim id="%s">\n'%simid)
+            self.logfile.write("  <blocks>\n")
+
+            for block in self.blocks:
+                x,y = block.get_position()
+                self.logfile.write('    <block x="%d" y="%d"/>\n'%(x,y))
+                block.disconnect()
+
+            self.logfile.write('    <cost> %d </cost>\n'%self.budget)
+
+            self.logfile.write('  </blocks>\n')
+
+            self.logIncomplete=True
+
+            dlg.Update(10)
+            f.close()
 
             self.ShowResultsControls()
 
             self.fno=0
 
-            time.sleep(1)
+            #time.sleep(1)
 
-            self.StartSim("data.tar.gz")
+
 
             dlg.Destroy()
 
@@ -499,7 +573,7 @@ class WaveWindow(UI):
         self.ResultsButton.Disable()
 
         self.buttonsizer.Layout()
-        self.Fit()
+        #self.Fit()
         self.Update()
 
         self.infobar.Dismiss()
@@ -526,7 +600,7 @@ class WaveWindow(UI):
 
 
 
-    def ShowSetupControls(self):
+    def ShowSetupControls(self,restore=False):
         self.HideResultsControls()
         self.buttonsizer.Clear()
 
@@ -546,7 +620,7 @@ class WaveWindow(UI):
         self.infobar.ShowMessage("Click on the sea to add defences. Click and drag on existing defences to move them.")
 
         self.buttonsizer.Layout()
-        self.Fit()
+        #self.Fit()
 
         self.SimButton.SetLabel("Run Simulation")
 
@@ -571,8 +645,7 @@ class WaveWindow(UI):
         #levels=np.arange(-1,1,0.1)
         #cs=self.plt.contour(self.depth,levels=levels,cmap="Blues")#colors="Black")
         #self.plt.clabel(cs,zorder=1)
-        self.canvas.draw()
-        self.canvas.Refresh()
+
 
 
         self.callbackhandles=[]
@@ -582,7 +655,32 @@ class WaveWindow(UI):
 
         self.blocks=[]
 
+
+        if restore:
+            print("Restoring blocks from file")
+
+            f=open("blocks.dat","r")
+
+            for line in f:
+                xy=line.split()
+                x=int(xy[0])
+                y=int(xy[1])
+                print("Adding block at (x,y) = (%d,%d)"%(x,y))
+                self.nblock+=1
+                block=self.plt.bar(x=x,height=10,width=20,bottom=y-5,align="center",zorder=3,color="Grey")
+                label=self.plt.text(x,y,"%d"%(self.nblock),horizontalalignment="center",verticalalignment="center")
+                block=block[0]
+
+                rect=DraggableRectangle(block,label,self.depth,self)
+                rect.connect()
+
+                self.blocks.append(rect)
+            f.close()
+
         self.delete=False
+
+        self.canvas.draw()
+        self.canvas.Refresh()
 
 
 
@@ -703,7 +801,7 @@ class WaveWindow(UI):
         jmax= min(j+10,239)
         jmin = max(0,j-10)
 
-        #We not want to place a defence
+        #We now want to place a defence
         self.nblock+=1
         block=self.plt.bar(x=x,height=10,width=20,bottom=y-5,align="center",zorder=3,color="Grey")
         label=self.plt.text(x,y,"%d"%(self.nblock),horizontalalignment="center",verticalalignment="center")
