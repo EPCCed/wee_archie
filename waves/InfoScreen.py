@@ -53,18 +53,13 @@ class Info(wx.Frame):
         sizer.Add(button,0,wx.EXPAND)
         sizer.Add(background,1)
 
-
+        self.parent.Disable()
         self.SetSizer(sizer)
 
-        self.MakeModal()
+       
 
 
-    def MakeModal(self, modal=True):
-        if modal and not hasattr(self, '_disabler'):
-            self._disabler = wx.WindowDisabler(self)
-        if not modal and hasattr(self, '_disabler'):
-            del self._disabler
-
+    
 
 
 
@@ -74,9 +69,10 @@ class Info(wx.Frame):
     def OnClose(self,e):
         print("Exiting")
         try:
-            parent.Enable()
+            self.parent.Enable()
         except:
-            print("Parent cannot be disabled")
+            print("Parent cannot be Enabled. It is already enabled")
+        
         self.Destroy()
 
 

@@ -686,10 +686,11 @@ class WaveWindow(UI):
 
         self.spreadsheet()
 
-        self.Disable()
+        #self.Disable()
 
         info=InfoScreen.Info(self,"Info",(1000,750))
         info.Show()
+        #self.Enable()
 
 
 
