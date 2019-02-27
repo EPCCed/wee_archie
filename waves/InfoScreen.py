@@ -56,10 +56,12 @@ class Info(wx.Frame):
         self.parent.Disable()
         self.SetSizer(sizer)
 
-       
+        self.Bind(wx.EVT_CLOSE,self.OnClose)
 
 
-    
+
+
+
 
 
 
@@ -72,7 +74,7 @@ class Info(wx.Frame):
             self.parent.Enable()
         except:
             print("Parent cannot be Enabled. It is already enabled")
-        
+
         self.Destroy()
 
 
