@@ -4,7 +4,7 @@ sys.path.append('../framework/')
 
 import wave_demo
 import wave_ui
-import client
+from client import servercomm
 import wx
 import argparse
 
@@ -16,9 +16,9 @@ parser.add_argument("-c","--cores", type=int, default=0, help="number of cores p
 args=parser.parse_args()
 
 demo=wave_demo.WaveDemo()
-servercomm=client.servercomm(args.name,args.server) #on Wee Archie 1
+Servercomm=servercomm(args.name,args.server) #on Wee Archie 1
 #servercomm=client.servercomm("WDS") #on wee archie 2
 
 app=wx.App(False)
-window=wave_ui.WaveWindow(None,"Wave Simulator",demo,servercomm,args)
+window=wave_ui.WaveWindow(None,"Wave Simulator",demo,Servercomm,args)
 app.MainLoop()

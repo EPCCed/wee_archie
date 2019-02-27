@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
-import client
+from client import AbstractmatplotlibUI
 import numpy as np
 import wx
 import subprocess
@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import InfoScreen
 
 #select the UI abstract superclass to derive from
-UI=client.AbstractmatplotlibUI
+UI=AbstractmatplotlibUI
 
 
 #all costs are in units of £1000
@@ -707,7 +707,7 @@ class WaveWindow(UI):
         print("---------------------------")
         print("Opening '%s'"%fname)
         text=np.fromfile(f,np.byte,20)
-        text=text.tostring()
+        text=text.tostring().decode()
         print("Filetype is: %s"%text)
         nxy=np.fromfile(f,np.int32,2)
         #print(nxy)

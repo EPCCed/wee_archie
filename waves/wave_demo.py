@@ -1,5 +1,5 @@
 from __future__ import print_function
-import client
+from client import AbstractDTO, AbstractDemo
 import wx
 
 import numpy as np
@@ -11,7 +11,7 @@ import numpy as np
 
 
 #Data transfer object
-class DTO(client.AbstractDTO):
+class DTO(AbstractDTO):
     def SetData(self,data):
         self.Data=data
 
@@ -29,7 +29,7 @@ class SimResults:
         print("---------------------------")
         print("DTO Opening '%s'"%self.file)
         text=np.fromfile(f,np.byte,20)
-        text=text.tostring()
+        text=text.tostring().decode()
         print("Filetype is: %s"%text)
         nxy=np.fromfile(f,np.int32,2)
         #print(nxy)
@@ -75,10 +75,10 @@ class SimResults:
     def GetData(self):
         return self.data
 
-
+## NOT USED
 
 #class containing demo-specific functions
-class WaveDemo(client.AbstractDemo):
+class WaveDemo(AbstractDemo):
 
     # read in data and convert it to a data transfer object
     def GetVTKData(self,root):
