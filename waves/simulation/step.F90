@@ -73,7 +73,7 @@ contains
 
   subroutine driver()
     A(1,1:ny) = exp(-((ymax-ymin)/2. - y(1:ny))**2)*sin(2.*pi/period*t)
-    A(1,1:ny) = sin(2.*pi/period*t)
+    A(1,1:ny) = 1.5*sin(2.*pi/period*t)
     !A(1,1:ny) = 2*exp(-(t-5)**2)
   end subroutine
 

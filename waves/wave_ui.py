@@ -173,6 +173,14 @@ class WaveWindow(UI):
                     data=self.dto.GetData().GetData()
                     self.plt.imshow(data - 20*(1-self.mask),vmin=-10,vmax=2,cmap="ocean")
                     self.plt.axis("off")
+                    self.plt.plot([60,60],[0,240],color='black', linestyle='dashed')
+                    self.plt.plot([120,120],[0,240],color='black', linestyle='dashed')
+                    self.plt.plot([180,180],[0,240],color='black', linestyle='dashed')
+                    self.plt.plot([240,240],[0,240],color='black', linestyle='dashed')
+                    self.plt.plot([300,300],[0,240],color='black', linestyle='dashed')
+                    self.plt.plot([360,360],[0,240],color='black', linestyle='dashed')
+                    self.plt.plot([420,420],[0,240],color='black', linestyle='dashed')
+
                     self.canvas.draw()
 
                 #Otherwise if the datatype is "waveheights" then we are finished. Load the results screen
