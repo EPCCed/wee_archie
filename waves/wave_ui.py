@@ -281,7 +281,7 @@ class WaveWindow(UI):
 
             f=open("depth.dat","wb")
             type="%-20s"%"depth"
-            f.write(type)
+            f.write(type.encode('utf-8'))
             f.write(np.asarray([ny,nx],np.int32))
             f.write(np.asarray(0.,np.float64))
             f.write(np.ascontiguousarray(depth))
@@ -291,7 +291,7 @@ class WaveWindow(UI):
             damping = 1.*(1.-mask)
             damping=np.transpose(damping)
             f=open("damping.dat","wb")
-            f.write(type)
+            f.write(type.encode('utf-8'))
             f.write(np.asarray([ny,nx],np.int32))
             f.write(np.asarray(0.,np.float64))
             f.write(np.ascontiguousarray(damping))
