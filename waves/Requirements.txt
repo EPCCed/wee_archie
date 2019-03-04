@@ -38,4 +38,3 @@ tbb4py==2019.0
 tornado==5.1.1
 urllib3==1.24.1
 vtk==8.1.2
-wxPython==4.0.4
