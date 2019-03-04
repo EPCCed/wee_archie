@@ -997,7 +997,7 @@ def smooth(data,w):
 
     for i in range(nx,2*nx):
         wgt=0.
-        for j in range(i-nx/4,i+nx/4):
+        for j in range(int(i-nx/4),int(i+nx/4)):
             smoothed[i-nx] += dd[j] * np.exp(-(i-j)*(i-j)/w/w)
             wgt+=np.exp(-(i-j)*(i-j)/w/w)
         smoothed[i-nx] /=wgt
