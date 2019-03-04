@@ -281,7 +281,7 @@ class WaveWindow(UI):
 
             f=open("depth.dat","wb")
             type="%-20s"%"depth"
-            f.write(type)
+            f.write(type.encode('ascii'))
             f.write(np.asarray([ny,nx],np.int32))
             f.write(np.asarray(0.,np.float64))
             f.write(np.ascontiguousarray(depth))
@@ -291,7 +291,7 @@ class WaveWindow(UI):
             damping = 1.*(1.-mask)
             damping=np.transpose(damping)
             f=open("damping.dat","wb")
-            f.write(type)
+            f.write(type.encode('ascii'))
             f.write(np.asarray([ny,nx],np.int32))
             f.write(np.asarray(0.,np.float64))
             f.write(np.ascontiguousarray(damping))
@@ -997,7 +997,7 @@ def smooth(data,w):
 
     for i in range(nx,2*nx):
         wgt=0.
-        for j in range(i-nx/4,i+nx/4):
+        for j in range(int(i-nx/4),int(i+nx/4)):
             smoothed[i-nx] += dd[j] * np.exp(-(i-j)*(i-j)/w/w)
             wgt+=np.exp(-(i-j)*(i-j)/w/w)
         smoothed[i-nx] /=wgt
