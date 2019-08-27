@@ -1,0 +1,48 @@
+{
+  "name": "@wee-archie/framework",
+  "version": "0.0.0",
+  "description": "Web framework for client running wee archie demos.",
+  "private": true,
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack --config ./webpack.config.js --mode=production",
+    "debug": "webpack --config ./webpack.config.js --mode=development"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EPCCed/wee_archie.git"
+  },
+  "keywords": [
+    "education",
+    "hpc",
+    "parallel",
+    "computing",
+    "visualisation"
+  ],
+  "author": "Caelen Feller (PRACE)",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/EPCCed/wee_archie/issues"
+  },
+  "homepage": "https://github.com/EPCCed/wee_archie#readme",
+  "dependencies": {
+    "axios": "^0.19.0",
+    "d3": "^5.9.7"
+  },
+  "peerDependencies": {
+    "react": "^16.0.0"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.5.5",
+    "@babel/core": "^7.5.5",
+    "@babel/preset-env": "^7.5.5",
+    "@babel/preset-react": "^7.0.0",
+    "babel-loader": "^8.0.6",
+    "core-js": "^3.2.1",
+    "react": "^16.0.0",
+    "regenerator-runtime": "^0.13.3",
+    "webpack": "^4.39.1",
+    "webpack-cli": "^3.3.6"
+  }
+}
