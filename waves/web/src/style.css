@@ -1,0 +1,65 @@
+:root {
+    --active-color: #eff0f1;
+    --inactive-color: #f3f3f3;
+}
+
+.visible {
+    display: inherit;
+}
+
+.hidden {
+    display: none;
+}
+
+.demo {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.demo button {
+    flex-grow: 1;
+    font-family: sans-serif;
+    margin: auto 10px;
+    margin-bottom: 1.45rem;
+    border-radius: 5px;
+    font-size: 2rem;
+    font-weight: 100;
+    padding: 2rem;
+    background-color: var(--inactive-color);
+    border: solid black 1px;
+    text-decoration: none;
+    display: inline-block;
+    cursor: pointer;
+}
+
+.demo button:hover {
+    background-color: var(--active-color);
+    text-decoration: none;
+}
+
+.displayBox {
+    margin-bottom: 1.45rem;
+    width: 100%;
+}
+.displayBox::before {
+    content: "";
+    width: 1px;
+    margin-left: -1px;
+    float: left;
+    height: 0;
+    padding-top: calc(1080 / 1920 * 100%);
+}
+.displayBox::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+.displayBox img {
+    margin: auto;
+    max-width: 100%;
+}
+.displayBox canvas {
+    width: 100%
+}

@@ -1,0 +1,43 @@
+{
+  "name": "@wee-archie/wave-demo",
+  "version": "1.0.0",
+  "description": "Client code for Wee Archie wave demo.",
+  "private": true,
+  "main": "lib/index.js",
+  "repository": "https://github.com/EPCCed/wee_archie/",
+  "license": "BSD-3-Clause",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack --config ./webpack.config.js --mode=production",
+    "debug": "webpack --config ./webpack.config.js --mode=development"
+  },
+  "dependencies": {
+    "color-convert": "^2.0.0",
+    "colormap": "^2.3.1",
+    "gzip-js": "^0.3.2",
+    "tar-js": "^0.3.0"
+  },
+  "peerDependencies": {
+    "@wee-archie/framework": "^0.0.0",
+    "react": "^16.0.0"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.5.5",
+    "@babel/core": "^7.5.5",
+    "@babel/preset-env": "^7.5.5",
+    "@babel/preset-react": "^7.0.0",
+    "autoprefixer": "^9.6.1",
+    "babel-loader": "^8.0.6",
+    "core-js": "^3.2.1",
+    "css-loader": "^3.2.0",
+    "file-loader": "^4.2.0",
+    "image-webpack-loader": "^5.0.0",
+    "postcss-loader": "^3.0.0",
+    "react": "^16.0.0",
+    "regenerator-runtime": "^0.13.3",
+    "style-loader": "^1.0.0",
+    "url-loader": "^2.1.0",
+    "webpack": "^4.39.1",
+    "webpack-cli": "^3.3.6"
+  }
+}
