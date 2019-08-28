@@ -1,0 +1,33 @@
+{
+  "name": "@wee-archie/wee-mpi-tutorial",
+  "version": "1.0.0",
+  "description": "Client code for Wee Archie Wee MPI demos.",
+  "private": true,
+  "main": "lib/index.js",
+  "repository": "https://github.com/EPCCed/wee_archie/",
+  "license": "BSD-3-Clause",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack --config ./webpack.config.js --mode=production",
+    "debug": "webpack --config ./webpack.config.js --mode=development"
+  },
+  "dependencies": {
+  },
+  "peerDependencies": {
+    "@wee-archie/framework": "^0.0.0",
+    "react": "^16.0.0"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.5.5",
+    "@babel/core": "^7.5.5",
+    "@babel/preset-env": "^7.5.5",
+    "@babel/preset-react": "^7.0.0",
+    "babel-loader": "^8.0.6",
+    "core-js": "^3.2.1",
+    "file-loader": "^4.2.0",
+    "react": "^16.0.0",
+    "regenerator-runtime": "^0.13.3",
+    "webpack": "^4.39.1",
+    "webpack-cli": "^3.3.6"
+  }
+}

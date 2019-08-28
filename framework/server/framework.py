@@ -14,9 +14,12 @@ from subprocess import Popen, PIPE
 from flask import Flask, request, render_template, redirect, g, send_from_directory
 import frameworkdb as fdb
 import frameworkfiles as ffs
+from flask_cors import CORS
 
 # Create exportable app
 app = Flask(__name__)
+CORS(app)
+
 # Create and attach logger to app
 handler = RotatingFileHandler('error.log', maxBytes=100000, backupCount=1)
 handler.setLevel(logging.DEBUG)
@@ -146,7 +149,7 @@ def get_results(simid, instanceid,fileid):
             active = conn.getInstanceStatus(simid,instanceid)
         if active in {cfg.STATUS_NAMES['ready'], cfg.STATUS_NAMES['error']}:
             return '', httpcodes.NO_CONTENT
-        if ffs.check_results_exist(cfg.RESULTS_DIR, instanceid, fileid): 
+        if ffs.check_results_exist(cfg.RESULTS_DIR, instanceid, fileid):
             return send_from_directory(ffs.get_results_directory(cfg.RESULTS_DIR, instanceid), fileid, as_attachment=True), httpcodes.OK
         else:
             return '', httpcodes.NO_CONTENT
@@ -174,4 +177,3 @@ def hello_world():
     """
     ffs.create_results_directory(cfg.BASE_DIR,'obbb')
     return 'Op not implemented', httpcodes.NOT_IMPLEMENTED
-
