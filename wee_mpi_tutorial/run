@@ -1,0 +1,8 @@
+#!/bin/bash
+# wee_mpi_tutorial - Accepts number of tutorial to be run, runs that demo.
+
+export WDIR=/home/pi/sohpc-19/wee_archie/wee_mpi_tutorial/
+export EXE=${WDIR}demo-$(cat config.txt)
+export HOSTFILE=/home/pi/sohpc-19/hostfile
+
+mpiexec -wdir $WDIR -hostfile $HOSTFILE $EXE

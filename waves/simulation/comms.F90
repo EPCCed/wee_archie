@@ -2,6 +2,7 @@
 module comms_mod
   use MPI
   use vars_mod
+  use wee_mpi 
 
   implicit none
 
@@ -16,13 +17,13 @@ module comms_mod
   integer :: ccomm, csize, crank
 
   integer :: up, down
-
+  integer :: called 
 contains
 
   !initialise commuications, setup ioserver and decomposition
   subroutine init_comms()
     integer :: group
-
+    called = 0
     call MPI_Init(ierr)
 
     !get global number of processes and rank
@@ -101,17 +102,33 @@ contains
   subroutine haloswap(arr)
     double precision, intent(inout), dimension(:,:), allocatable :: arr
     integer :: status(MPI_STATUS_SIZE)
+    
+    if (mod(called,50) .ne. 0) then 
+        ierr = wee_flags(1)
+    else 
+        ierr = wee_flags(0)
+    endif
+    
+    if (mod(rank+called, 2) .eq. 0) then 
+        ierr = f_wee_anim("haloswap-vert-out")
+        ierr = f_wee_anim("haloswap-vert-in")
+    else
+        ierr = f_wee_anim("haloswap-vert-in")
+        ierr = f_wee_anim("haloswap-vert-out")
+    endif
 
+    ierr = wee_flags(1)
     !send up, recv down
     call MPI_Sendrecv(arr(:,ny), nx, MPI_DOUBLE_PRECISION, up, 1,&
-                      arr(:,0),nx, MPI_DOUBLE_PRECISION, down, 1, &
-                      ccomm, status,ierr)
+		      arr(:,0),nx, MPI_DOUBLE_PRECISION, down, 1, &
+		      ccomm, status,ierr)
 
     !send down recv up
     call MPI_Sendrecv(arr(:,1), nx, MPI_DOUBLE_PRECISION, down, 1,&
-                      arr(:,ny+1),nx, MPI_DOUBLE_PRECISION, up, 1, &
-                      ccomm, status,ierr)
+		      arr(:,ny+1),nx, MPI_DOUBLE_PRECISION, up, 1, &
+			      ccomm, status,ierr)
 
+    called = called + 1
   end subroutine
 
 

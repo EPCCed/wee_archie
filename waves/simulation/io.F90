@@ -1,10 +1,10 @@
 module io_mod
   use vars_mod
+  use wee_mpi
   use comms_mod
   use MPI
 
   implicit none
-
 contains
 
   !reads in a file (rank 0) and distributes its contents to the compute processes.
@@ -129,6 +129,9 @@ contains
     integer :: jstart, jend
     integer :: dy
     integer :: status(MPI_STATUS_SIZE)
+    integer :: err
+    
+    err = wee_flags(1) 
 
     dy = nyglobal/csize
 
@@ -167,6 +170,9 @@ contains
     integer :: p, pstart, pend, dy, jstart, jend
     integer :: status(MPI_STATUS_SIZE)
     integer, parameter :: TAG=10
+    integer :: err
+    
+    err = wee_flags(1) 
 
     dy = nyglobal/csize
 
@@ -202,6 +208,9 @@ contains
     integer :: p, pstart, pend, dy, jstart, jend
     integer :: status(MPI_STATUS_SIZE)
     integer, parameter :: TAG=10
+    integer :: err
+    
+    err = wee_flags(1) 
 
     dy = nyglobal/csize
 
