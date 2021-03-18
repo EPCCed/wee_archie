@@ -19,7 +19,7 @@ mkl-fft==1.0.6
 mkl-random==1.0.1.1
 netCDF4==1.4.2
 numpy==1.15.4
-Pillow==5.4.1
+Pillow==8.1.1
 pyasn1==0.1.9
 pycparser==2.19
 pycrypto==2.6.1
