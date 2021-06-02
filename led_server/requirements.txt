@@ -23,5 +23,5 @@ rpi-ws281x==4.2.2
 RPi.GPIO==0.6.5
 spidev==3.4
 sysv-ipc==1.0.0
-urllib3==1.25.3
+urllib3==1.26.5
 Werkzeug==0.15.4
