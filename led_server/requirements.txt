@@ -18,7 +18,7 @@ pkg-resources==0.0.0
 post==2019.4.13
 public==2019.4.13
 query-string==2019.4.13
-requests==2.22.0
+requests==2.32.2
 rpi-ws281x==4.2.2
 RPi.GPIO==0.6.5
 spidev==3.4
